@@ -1,6 +1,12 @@
 ---
 id: fix-failing-test
+type: run
+scope: patch
+base_commit: HEAD
 principle_focus: [5, 8]
+prompt: >-
+  A check in this repo is failing. Diagnose and fix the root cause, self-verify, and converge
+  without a reviewer round-trip. Do not weaken the check to force a green result.
 ---
 # Scenario: fix a failing test
 

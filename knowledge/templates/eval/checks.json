@@ -98,6 +98,22 @@
       "weight": 1
     },
     {
+      "id": "eval-axes",
+      "principle": 6,
+      "title": "Validated axis/issue-code registry present",
+      "type": "path-exists",
+      "path": ".agentrig/eval/axes.json",
+      "weight": 1
+    },
+    {
+      "id": "eval-sandbox",
+      "principle": 6,
+      "title": "Eval sandbox guardrails present",
+      "type": "path-exists",
+      "path": ".agentrig/eval/sandbox/eval-rules.md",
+      "weight": 1
+    },
+    {
       "id": "eval-harness-skill",
       "principle": 6,
       "title": "Harness-eval skill present",

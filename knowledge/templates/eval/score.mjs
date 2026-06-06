@@ -1,97 +1,215 @@
 #!/usr/bin/env node
-// AgentRig dynamic-eval aggregator (principle 6). Owns the results JSON shape so scores are never
-// hand-edited. Usage:
-//   node score.mjs save --scenario fix-failing-test --judge gpt-5 \
-//        --axis correctness=1.0 --axis self_verification=0.5:AB1 --axis memory=1.0
-//   node score.mjs report [--json]
+// AgentRig dynamic-eval aggregator (principle 6). Owns the results JSON shape and VALIDATES every
+// score against the rubric registry in axes.json — so results are never hand-edited and a judge
+// cannot invent axes, tiers, or issue codes. Inspired by epichan's pydantic-validated scoring.
+//
+// Usage:
+//   node score.mjs save --type run --task add-small-feature --scenario add-small-feature \
+//        --judge claude-opus-4.8 [--variant v1] [--run RID] \
+//        --axis 'correctness=1.0' \
+//        --axis 'scope=0.5:OQ-SCOPE-CHURN:left package-lock.json churn in the diff' \
+//        --axis 'tests=na'                 # na = unobserved (confidence 0, excluded from rollups)
+//   node score.mjs report [--type run] [--variant v1] [--json]
+//   node score.mjs compare --scenario add-small-feature   # A/B variants side by side
+//
+// Score tiers: 0 / 0.5 / 1.0. Any axis < 1.0 (and observed) REQUIRES an issue code from that axis's
+// registry plus an evidence string. Category and aggregate scores are recomputed from axis data.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const resultsDir = join(scriptDir, "results");
-const PASS_THRESHOLD = 0.8;
+const axesPath = join(scriptDir, "axes.json");
+
+function loadRegistry() {
+  if (!existsSync(axesPath)) {
+    console.error(`axes.json not found at ${axesPath}`);
+    process.exit(2);
+  }
+  return JSON.parse(readFileSync(axesPath, "utf8"));
+}
+
+/** Build axis -> { category, codes } lookup for a rubric type. */
+function axisIndex(registry, type) {
+  const def = registry.types?.[type];
+  if (!def) {
+    console.error(`unknown rubric type "${type}". Valid: ${Object.keys(registry.types).join(", ")}`);
+    process.exit(2);
+  }
+  const index = new Map();
+  for (const [category, axes] of Object.entries(def.categories)) {
+    for (const [axis, codes] of Object.entries(axes)) index.set(axis, { category, codes });
+  }
+  return index;
+}
 
 function getOpt(args, name, repeat = false) {
   const out = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === name) out.push(args[i + 1]);
-  }
+  for (let i = 0; i < args.length; i++) if (args[i] === name) out.push(args[i + 1]);
   return repeat ? out : out[0];
 }
 
+function fail(msg) {
+  console.error(`error: ${msg}`);
+  process.exit(2);
+}
+
 const [cmd, ...args] = process.argv.slice(2);
+const registry = loadRegistry();
+const TIERS = new Set(registry.tiers ?? [0, 0.5, 1.0]);
+const PASS = registry.passThreshold ?? 0.8;
 
 if (cmd === "save") {
-  const scenario = getOpt(args, "--scenario");
+  const type = getOpt(args, "--type") || "run";
+  const index = axisIndex(registry, type);
+  const scenario = getOpt(args, "--scenario") || getOpt(args, "--task");
+  const task = getOpt(args, "--task") || scenario;
   const judge = getOpt(args, "--judge") || "unknown";
-  if (!scenario) {
-    console.error("save requires --scenario <id>");
-    process.exit(2);
-  }
-  const axes = getOpt(args, "--axis", true).map((a) => {
-    const [name, rest] = a.split("=");
-    const [scoreStr, code] = (rest || "").split(":");
+  const variant = getOpt(args, "--variant") || null;
+  const run = getOpt(args, "--run") || null;
+  if (!scenario) fail("save requires --scenario <id> (or --task <id>)");
+
+  const rawAxes = getOpt(args, "--axis", true);
+  if (rawAxes.length === 0) fail("save requires at least one --axis name=score[:CODE[:evidence]]");
+
+  const axes = rawAxes.map((spec) => {
+    const eq = spec.indexOf("=");
+    if (eq < 0) fail(`bad --axis "${spec}" (expected name=score[:CODE[:evidence]])`);
+    const name = spec.slice(0, eq);
+    const rest = spec.slice(eq + 1);
+    const meta = index.get(name);
+    if (!meta) fail(`unknown axis "${name}" for type "${type}". Valid: ${[...index.keys()].join(", ")}`);
+
+    // "na" marks an unobserved axis (confidence 0) — excluded from rollups.
+    if (rest === "na") return { name, category: meta.category, score: 0, issue: null, evidence: "", confidence: 0 };
+
+    const [scoreStr, code, ...evidenceParts] = rest.split(":");
     const score = Number(scoreStr);
-    if (Number.isNaN(score)) {
-      console.error(`bad --axis ${a} (expected name=score[:CODE])`);
-      process.exit(2);
+    if (!TIERS.has(score)) fail(`axis "${name}" score must be one of ${[...TIERS].join("/")} — got "${scoreStr}"`);
+    const evidence = evidenceParts.join(":").trim();
+    if (score < 1) {
+      if (!code) fail(`axis "${name}" scored ${score} < 1.0 but has no issue code — use name=score:CODE[:evidence]`);
+      if (!meta.codes.includes(code)) fail(`issue code "${code}" is not valid for axis "${name}". Valid: ${meta.codes.join(", ")}`);
+      if (!evidence) fail(`axis "${name}" scored ${score} < 1.0 but has no evidence — use name=score:CODE:evidence`);
     }
-    if (score < 1 && !code) {
-      console.error(`axis ${name} scored ${score} < 1.0 but has no issue code — use name=score:CODE`);
-      process.exit(2);
-    }
-    return { name, score, code: code || null };
+    return { name, category: meta.category, score, issue: code || null, evidence, confidence: 1 };
   });
-  if (axes.length === 0) {
-    console.error("save requires at least one --axis name=score[:CODE]");
-    process.exit(2);
-  }
-  const aggregate = axes.reduce((s, a) => s + a.score, 0) / axes.length;
-  const pass = aggregate >= PASS_THRESHOLD && axes.every((a) => a.score > 0);
-  const record = { scenario, judge, timestamp: new Date().toISOString(), axes, aggregate, pass };
+
+  // Recompute rollups from axis data (never trust hand-supplied totals). Confidence-gated.
+  const observed = axes.filter((a) => a.confidence > 0);
+  const categories = {};
+  for (const a of observed) (categories[a.category] ||= []).push(a.score);
+  const categoryScores = Object.fromEntries(
+    Object.entries(categories).map(([c, xs]) => [c, round(xs.reduce((s, x) => s + x, 0) / xs.length)]),
+  );
+  const aggregate = observed.length ? round(observed.reduce((s, a) => s + a.score, 0) / observed.length) : 0;
+  const pass = observed.length > 0 && aggregate >= PASS && observed.every((a) => a.score > 0);
+
+  const record = {
+    type, task, scenario, variant, run, judge,
+    timestamp: new Date().toISOString(),
+    aggregate, pass, categoryScores, axes,
+  };
+
   if (!existsSync(resultsDir)) mkdirSync(resultsDir, { recursive: true });
-  const file = join(resultsDir, `${scenario}.${Date.now()}.json`);
+  const safe = (s) => String(s).replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const file = join(resultsDir, `${safe(type)}.${safe(scenario)}.${safe(variant || "base")}.${Date.now()}.json`);
   writeFileSync(file, JSON.stringify(record, null, 2));
-  console.log(`Saved ${file}\n  aggregate=${aggregate.toFixed(2)} ${pass ? "PASS" : "FAIL"}`);
+  console.log(`Saved ${file}\n  aggregate=${aggregate.toFixed(2)} ${pass ? "PASS" : "FAIL"} (${observed.length}/${axes.length} axes observed)`);
   process.exit(0);
 }
 
-if (cmd === "report") {
+if (cmd === "report" || cmd === "compare") {
   const asJson = args.includes("--json");
-  if (!existsSync(resultsDir)) {
-    if (asJson) console.log(JSON.stringify({ overall: 0, scenarios: [], axes: [] }, null, 2));
-    else console.log("No results yet. Run `score.mjs save ...` first.");
+  const filterType = getOpt(args, "--type");
+  const filterVariant = getOpt(args, "--variant");
+  const records = loadRecords();
+
+  if (cmd === "compare") {
+    compare(records, getOpt(args, "--scenario"), asJson);
     process.exit(0);
   }
-  const records = readdirSync(resultsDir)
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => JSON.parse(readFileSync(join(resultsDir, f), "utf8")));
-  // Latest record per scenario.
+
+  let scoped = records;
+  if (filterType) scoped = scoped.filter((r) => r.type === filterType);
+  if (filterVariant) scoped = scoped.filter((r) => (r.variant || "base") === filterVariant);
+
+  // Latest record per (type, scenario, variant).
   const latest = new Map();
-  for (const r of records.sort((a, b) => a.timestamp.localeCompare(b.timestamp))) latest.set(r.scenario, r);
-  const scenarios = [...latest.values()];
+  for (const r of scoped.sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
+    latest.set(`${r.type}::${r.scenario}::${r.variant || "base"}`, r);
+  }
+  const rows = [...latest.values()];
   const axisAgg = new Map();
-  for (const r of scenarios) for (const a of r.axes) {
+  for (const r of rows) for (const a of r.axes) {
+    if (a.confidence <= 0) continue;
     const x = axisAgg.get(a.name) || { sum: 0, n: 0 };
     x.sum += a.score; x.n += 1; axisAgg.set(a.name, x);
   }
-  const overall = scenarios.length ? scenarios.reduce((s, r) => s + r.aggregate, 0) / scenarios.length : 0;
+  const overall = rows.length ? round(rows.reduce((s, r) => s + r.aggregate, 0) / rows.length) : 0;
+
   if (asJson) {
     console.log(JSON.stringify({
       overall,
-      scenarios: scenarios.map((r) => ({ scenario: r.scenario, aggregate: r.aggregate, pass: r.pass, judge: r.judge })),
-      axes: [...axisAgg.entries()].map(([name, v]) => ({ name, mean: v.sum / v.n })),
+      results: rows.map((r) => ({ type: r.type, scenario: r.scenario, variant: r.variant, aggregate: r.aggregate, pass: r.pass, judge: r.judge })),
+      axes: [...axisAgg.entries()].map(([name, v]) => ({ name, mean: round(v.sum / v.n) })),
     }, null, 2));
   } else {
     console.log("AgentRig — dynamic eval report\n");
-    for (const r of scenarios) console.log(`  ${r.pass ? "PASS" : "FAIL"}  ${r.scenario.padEnd(28)} ${r.aggregate.toFixed(2)}  (judge: ${r.judge})`);
-    console.log("\n  Per-axis means:");
-    for (const [name, v] of axisAgg) console.log(`    ${name.padEnd(22)} ${(v.sum / v.n).toFixed(2)}`);
-    console.log(`\n  Overall: ${overall.toFixed(2)} across ${scenarios.length} scenario(s)`);
+    if (rows.length === 0) {
+      console.log("  No results yet. Run `score.mjs save ...` first.");
+    } else {
+      for (const r of rows) {
+        const v = r.variant ? ` [${r.variant}]` : "";
+        console.log(`  ${r.pass ? "PASS" : "FAIL"}  ${(r.type + "/" + r.scenario + v).padEnd(34)} ${r.aggregate.toFixed(2)}  (${r.judge})`);
+      }
+      console.log("\n  Per-axis means (observed only):");
+      for (const [name, v] of axisAgg) console.log(`    ${name.padEnd(22)} ${round(v.sum / v.n).toFixed(2)}`);
+      console.log(`\n  Overall: ${overall.toFixed(2)} across ${rows.length} result(s)`);
+    }
   }
   process.exit(0);
 }
 
-console.error("Usage: score.mjs <save|report> ...");
+console.error("Usage: score.mjs <save|report|compare> ...");
 process.exit(2);
+
+// --- helpers ---------------------------------------------------------------
+function round(n) {
+  return Math.round(n * 10000) / 10000;
+}
+
+function loadRecords() {
+  if (!existsSync(resultsDir)) return [];
+  const out = [];
+  for (const f of readdirSync(resultsDir).filter((f) => f.endsWith(".json"))) {
+    try {
+      out.push(JSON.parse(readFileSync(join(resultsDir, f), "utf8")));
+    } catch {
+      console.error(`warning: skipping corrupt result file ${f}`);
+    }
+  }
+  return out;
+}
+
+function compare(records, scenario, asJson) {
+  if (!scenario) fail("compare requires --scenario <id>");
+  const forScenario = records.filter((r) => r.scenario === scenario);
+  const latestByVariant = new Map();
+  for (const r of forScenario.sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
+    latestByVariant.set(r.variant || "base", r);
+  }
+  const variants = [...latestByVariant.values()];
+  if (asJson) {
+    console.log(JSON.stringify({ scenario, variants: variants.map((r) => ({ variant: r.variant || "base", aggregate: r.aggregate, pass: r.pass, judge: r.judge, categoryScores: r.categoryScores })) }, null, 2));
+    process.exit(0);
+  }
+  console.log(`AgentRig — variant comparison for "${scenario}"\n`);
+  if (variants.length === 0) console.log("  No results for that scenario.");
+  for (const r of variants) {
+    console.log(`  ${(r.variant || "base").padEnd(12)} ${r.aggregate.toFixed(2)} ${r.pass ? "PASS" : "FAIL"}  (${r.judge})`);
+    for (const [c, s] of Object.entries(r.categoryScores || {})) console.log(`      ${c.padEnd(20)} ${s.toFixed(2)}`);
+  }
+  process.exit(0);
+}

@@ -1,6 +1,12 @@
 ---
 id: add-small-feature
+type: run
+scope: feature
+base_commit: HEAD
 principle_focus: [1, 5, 10]
+prompt: >-
+  Implement a small, well-specified feature, moving through the state machine without skipping a
+  gate or exceeding a hard limit, and survive an independent reviewer.
 ---
 # Scenario: add a small, well-specified feature
 

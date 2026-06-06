@@ -1,22 +1,21 @@
 ---
 name: harness-eval
-description: Evaluate THIS repository's agent harness — static structure audit plus optional dynamic scenario scoring against the rubric.
+description: Evaluate THIS repository's agent harness — a deterministic structure audit plus an independent, rubric-driven dynamic eval (run/spec/review) with A/B variant comparison.
 triggers:
   - "evaluate the harness"
   - pre_merge hook
   - "did my harness change make things better or worse?"
 allowed-tools: Bash Read Grep Glob
-argument-hint: "[--static|--dynamic]"
+argument-hint: "[--static|--dynamic] [--scenario id] [--variant v]"
 ---
 
 # harness-eval (principle 6 — evaluate the harness itself)
 
 A harness you cannot measure is a harness you cannot improve. This skill scores the harness on two
-complementary layers and writes results to `.agentrig/eval/results/` (never hand-edited).
+complementary layers and writes results to `.agentrig/eval/results/` (validated, never hand-edited).
 
 ## Layer A — static audit (deterministic, no model)
-Run the structural audit. Each of the 12 principles maps to concrete checks in
-`.agentrig/eval/checks.json`, scored 0 / 0.5 / 1.0.
+Each of the 12 principles maps to concrete checks in `.agentrig/eval/checks.json`, scored 0/0.5/1.0.
 
 ```bash
 node .agentrig/eval/static-audit.mjs            # human-readable report + aggregate score
@@ -26,22 +25,39 @@ node .agentrig/eval/static-audit.mjs --json     # machine-readable, for CI gates
 Use this in CI and as a fast pre-merge gate. It needs no model and no network.
 
 ## Layer B — dynamic behavioral eval (agentic, independent judge)
-For each scenario in `.agentrig/eval/scenarios/*.md`, run the task through the harness, then have an
-**independent judge model** (different from the one that produced the work) score the result against
-`.agentrig/eval/RUBRIC.md` on Output Quality / Agent Behavior / Long-Term Impact.
+Run scenarios in `.agentrig/eval/scenarios/*.md` through the harness, then score as an **independent
+judge** (a different model than the producer) against `.agentrig/eval/RUBRIC.md` and the registry in
+`.agentrig/eval/axes.json`.
 
-For every axis scored below 1.0 you MUST record an **issue code** and one line of evidence. Persist
-each score with the aggregator (it owns the JSON shape and the rollups):
+**Sandbox:** obey `.agentrig/eval/sandbox/eval-rules.md` — work in a throwaway worktree; never push,
+open PRs, or merge.
+
+**Lifecycle:** score the whole lifecycle, not just the patch. Use the rubric `--type` that matches
+the scenario: `spec` (task quality), `run` (implementation), `review` (the reviewer's behavior).
+Link them with a shared `--task` id.
+
+**Rules (enforced by score.mjs):** strict 0/0.5/1.0 tiers; any axis < 1.0 needs an issue code from
+that axis's registry **plus** an evidence string; unobserved axes are `=na`; rollups are recomputed
+from axis data.
 
 ```bash
-node .agentrig/eval/score.mjs save \
-  --scenario <id> --judge <model> \
-  --axis output_quality=1.0 --axis agent_behavior=0.5:AB3 --axis long_term_impact=1.0
-node .agentrig/eval/score.mjs report      # per-scenario and per-axis aggregation
+node .agentrig/eval/score.mjs save --type run --task <id> --scenario <id> --judge <model> \
+  --axis 'correctness=1.0' \
+  --axis 'scope=0.5:OQ-SCOPE-CHURN:left build artifacts in the diff' \
+  --axis 'tests=na'
+node .agentrig/eval/score.mjs report
 ```
 
-## Interpreting results
-- Compare aggregate scores **before and after** any prompt/skill/rule change. A change that lowers
-  the score is a regression even if it "feels" better.
-- A static score < 1.0 on a principle points at a missing or weak artifact — fix the artifact, then
-  re-audit.
+**Artifacts:** for each run, save `diff.patch`, a short `output` transcript, and `meta.json`
+(scenario, base_commit, variant, model, duration) next to the score so regressions are inspectable.
+
+## Comparing harness changes (A/B)
+To know whether a prompt/skill/rule change helped, run the **same** scenario before and after under
+different `--variant`s, then:
+
+```bash
+node .agentrig/eval/score.mjs compare --scenario <id>
+```
+
+A change that lowers the aggregate is a regression even if it "feels" better. A static score < 1.0
+on a principle points at a missing/weak artifact — fix the artifact, then re-audit.

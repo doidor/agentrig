@@ -1,6 +1,6 @@
 {
   "$schema": "agentrig-manifest/1",
-  "knowledgeVersion": "0.2.0",
+  "knowledgeVersion": "0.3.0",
   "description": "Declares which best-practice artifacts AgentRig installs into a target repo and where. `src` is relative to the knowledge/ root; `dest` is relative to the target repo root. `kind`: file | dir | template. Templates contain {{PLACEHOLDERS}} the agent fills from its investigation; deterministic installs substitute known values and leave the rest for the agent.",
   "artifacts": [
     { "id": "agents-md", "principle": 12, "src": "templates/AGENTS.md", "dest": "AGENTS.md", "kind": "template", "merge": "markers" },
@@ -24,10 +24,12 @@
     { "id": "mcp", "principle": 11, "src": "templates/mcp/mcp.json", "dest": ".mcp.json", "kind": "file" },
     { "id": "worktree-script", "principle": 7, "src": "templates/scripts/repair-worktrees.sh", "dest": "scripts/repair-worktrees.sh", "kind": "file", "mode": "0755" },
     { "id": "eval-rubric", "principle": 6, "src": "templates/eval/RUBRIC.md", "dest": ".agentrig/eval/RUBRIC.md", "kind": "file" },
+    { "id": "eval-axes", "principle": 6, "src": "templates/eval/axes.json", "dest": ".agentrig/eval/axes.json", "kind": "file" },
     { "id": "eval-checks", "principle": 6, "src": "templates/eval/checks.json", "dest": ".agentrig/eval/checks.json", "kind": "file" },
     { "id": "eval-static-audit", "principle": 6, "src": "templates/eval/static-audit.mjs", "dest": ".agentrig/eval/static-audit.mjs", "kind": "file", "mode": "0755" },
     { "id": "eval-score", "principle": 6, "src": "templates/eval/score.mjs", "dest": ".agentrig/eval/score.mjs", "kind": "file", "mode": "0755" },
     { "id": "eval-scenarios", "principle": 6, "src": "templates/eval/scenarios", "dest": ".agentrig/eval/scenarios", "kind": "dir" },
+    { "id": "eval-sandbox", "principle": 6, "src": "templates/eval/sandbox", "dest": ".agentrig/eval/sandbox", "kind": "dir" },
     { "id": "dashboard", "principle": 3, "src": "templates/dashboard/dashboard.mjs", "dest": ".agentrig/dashboard/dashboard.mjs", "kind": "file", "mode": "0755" }
   ]
 }
