@@ -6,6 +6,7 @@ import { install, baseVars } from "../core/install.js";
 import { resolveSrc } from "../core/knowledge.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
+import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { buildUpdatePrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
 import { renderAudit } from "./eval.js";
@@ -84,16 +85,20 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
     if (pre.ok) {
       log.ok(`agent ready (${pre.detail})`);
       log.step("reconciling repo-specific content…");
+      const monitor = new ActivityMonitor().start();
       const convo = await provider.startConversation({
         cwd: repoRoot,
         ...(options.model ? { model: options.model } : {}),
         systemMessage: SYSTEM_MESSAGE,
+        onEvent: monitor.handle,
       });
       try {
         const summary = await convo.send(buildUpdatePrompt([...changed, ...templates]));
+        monitor.stop();
         log.ok("reconciliation complete");
         if (options.verbose) log.info(color.dim(summary));
       } finally {
+        monitor.stop();
         await convo.end();
       }
     } else {

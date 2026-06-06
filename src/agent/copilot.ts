@@ -7,6 +7,17 @@ import type {
   PreflightResult,
 } from "./provider.js";
 
+function summarizeArgs(args: Record<string, unknown> | undefined): string | undefined {
+  if (!args) return undefined;
+  for (const key of ["command", "path", "filePath", "pattern", "query", "url", "prompt"]) {
+    const v = args[key];
+    if (typeof v === "string" && v.length > 0) {
+      return `${key}=${v.length > 60 ? v.slice(0, 57) + "…" : v}`;
+    }
+  }
+  return undefined;
+}
+
 /**
  * AgentProvider backed by the GitHub Copilot SDK. Spawns the Copilot CLI runtime over stdio and
  * uses the logged-in user's credentials by default.
@@ -15,7 +26,10 @@ export class CopilotProvider implements AgentProvider {
   readonly name = "copilot";
 
   async preflight(): Promise<PreflightResult> {
-    const client = new CopilotClient({ logLevel: "none" });
+    const client = new CopilotClient({
+      logLevel: "none",
+      env: { ...process.env, NODE_NO_WARNINGS: "1" },
+    });
     try {
       await client.start();
       const status = await client.getAuthStatus();
@@ -34,6 +48,7 @@ export class CopilotProvider implements AgentProvider {
     const client = new CopilotClient({
       workingDirectory: options.cwd,
       logLevel: "none",
+      env: { ...process.env, NODE_NO_WARNINGS: "1" },
     });
     await client.start();
 
@@ -43,14 +58,37 @@ export class CopilotProvider implements AgentProvider {
       ...(options.systemMessage ? { systemMessage: { content: options.systemMessage } } : {}),
     });
 
-    if (options.onEvent) {
-      session.on("assistant.message", (event) => {
-        const content = event.data?.content;
-        if (content) options.onEvent!({ type: "assistant", text: content });
+    const emit = options.onEvent;
+    if (emit) {
+      session.on("assistant.intent", (event) => {
+        const intent = (event.data as { intent?: string } | undefined)?.intent;
+        if (intent) emit({ type: "intent", text: intent });
+      });
+      session.on("assistant.reasoning", (event) => {
+        const content = (event.data as { content?: string } | undefined)?.content;
+        if (content) emit({ type: "reasoning", text: content });
       });
       session.on("tool.execution_start", (event) => {
-        const name = (event.data as { name?: string } | undefined)?.name;
-        if (name) options.onEvent!({ type: "tool", text: name });
+        const data = event.data as { toolName?: string; arguments?: Record<string, unknown> } | undefined;
+        if (data?.toolName) {
+          const detail = summarizeArgs(data.arguments);
+          emit({ type: "tool_start", text: data.toolName, ...(detail ? { detail } : {}) });
+        }
+      });
+      session.on("tool.execution_complete", (event) => {
+        const data = event.data as { success?: boolean; error?: { message?: string } } | undefined;
+        emit({
+          type: "tool_done",
+          text: data?.success === false ? data.error?.message ?? "failed" : "ok",
+          ok: data?.success !== false,
+        });
+      });
+      session.on("assistant.message", (event) => {
+        const content = event.data?.content;
+        if (content) emit({ type: "assistant", text: content });
+      });
+      session.on("session.compaction_start", () => {
+        emit({ type: "compaction", text: "compacting context…" });
       });
     }
 

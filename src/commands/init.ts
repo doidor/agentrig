@@ -3,6 +3,7 @@ import { loadManifest } from "../core/knowledge.js";
 import { install, baseVars } from "../core/install.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
+import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { buildInvestigatePrompt, buildTailorPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
 import { renderAudit } from "./eval.js";
@@ -34,6 +35,7 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
 
   // Phase 1 (optional): agentic investigation, keeping one conversation for context continuity.
   let convo = null as Awaited<ReturnType<typeof provider.startConversation>> | null;
+  let monitor: ActivityMonitor | null = null;
   if (!options.skipAgent) {
     const pre = await provider.preflight();
     if (!pre.ok) {
@@ -43,15 +45,15 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
     }
     log.ok(`agent ready (${pre.detail})`);
     log.step("investigating the repository…");
+    monitor = new ActivityMonitor().start();
     convo = await provider.startConversation({
       cwd: repoRoot,
       ...(options.model ? { model: options.model } : {}),
       systemMessage: SYSTEM_MESSAGE,
-      onEvent: (e) => {
-        if (e.type === "tool") log.progress(e.text);
-      },
+      onEvent: monitor.handle,
     });
     const investigation = await convo.send(buildInvestigatePrompt());
+    monitor.stop();
     log.ok("investigation written to .agentrig/context.md");
     if (options.verbose) log.info(color.dim(investigation));
   } else {
@@ -66,7 +68,9 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
   // Phase 3 (optional): agent tailors the installed files to the repo.
   if (convo) {
     log.step("tailoring the harness to this repository…");
+    monitor?.start();
     const summary = await convo.send(buildTailorPrompt(manifest));
+    monitor?.stop();
     log.ok("tailoring complete");
     if (options.verbose) log.info(color.dim(summary));
     await convo.end();

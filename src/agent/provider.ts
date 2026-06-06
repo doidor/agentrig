@@ -1,6 +1,19 @@
+export type AgentEventType =
+  | "intent"
+  | "reasoning"
+  | "tool_start"
+  | "tool_done"
+  | "assistant"
+  | "compaction";
+
 export interface AgentEvent {
-  type: "assistant" | "tool" | "reasoning";
+  type: AgentEventType;
+  /** Primary label, e.g. the tool name or a short text. */
   text: string;
+  /** Optional secondary detail, e.g. a summary of tool arguments. */
+  detail?: string;
+  /** For tool_done: whether the tool succeeded. */
+  ok?: boolean;
 }
 
 export interface ConversationOptions {

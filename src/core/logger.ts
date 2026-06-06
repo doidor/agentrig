@@ -14,54 +14,19 @@ let verbose = false;
 export function setVerbose(v: boolean): void {
   verbose = v;
 }
-
-let progressActive = false;
-let progressCount = 0;
-
-function flushProgress(): void {
-  if (progressActive) {
-    process.stderr.write("\n");
-    progressActive = false;
-  }
+export function isVerbose(): boolean {
+  return verbose;
 }
 
 export const log = {
-  info: (msg: string) => {
-    flushProgress();
-    console.log(msg);
-  },
-  step: (msg: string) => {
-    flushProgress();
-    console.log(`${color.cyan("›")} ${msg}`);
-  },
-  ok: (msg: string) => {
-    flushProgress();
-    console.log(`${color.green("✔")} ${msg}`);
-  },
-  warn: (msg: string) => {
-    flushProgress();
-    console.warn(`${color.yellow("!")} ${msg}`);
-  },
-  error: (msg: string) => {
-    flushProgress();
-    console.error(`${color.red("✗")} ${msg}`);
-  },
+  info: (msg: string) => console.log(msg),
+  step: (msg: string) => console.log(`${color.cyan("›")} ${msg}`),
+  ok: (msg: string) => console.log(`${color.green("✔")} ${msg}`),
+  warn: (msg: string) => console.warn(`${color.yellow("!")} ${msg}`),
+  error: (msg: string) => console.error(`${color.red("✗")} ${msg}`),
   debug: (msg: string) => {
     if (verbose) console.error(color.dim(`  ${msg}`));
   },
-  /** Lightweight inline progress: a dim dot per agent tool call, on one line. */
-  progress: (label: string) => {
-    if (verbose) {
-      console.error(color.dim(`  · ${label}`));
-      return;
-    }
-    if (!progressActive) {
-      process.stderr.write(color.dim("  working "));
-      progressActive = true;
-      progressCount = 0;
-    }
-    progressCount++;
-    process.stderr.write(color.dim("."));
-    if (progressCount % 50 === 0) process.stderr.write(color.dim("\n  working "));
-  },
+  /** A dim, indented activity line (written to stderr so it doesn't pollute --json stdout). */
+  activity: (msg: string) => console.error(color.dim(`  ${msg}`)),
 };

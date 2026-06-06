@@ -1,6 +1,7 @@
 import { auditHarness, type AuditReport } from "../core/audit.js";
 import { isInstalled } from "../core/state.js";
 import { color, log } from "../core/logger.js";
+import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { buildDynamicEvalPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
 
@@ -58,18 +59,20 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   }
   log.ok(`agent ready (${pre.detail})`);
   log.step("running dynamic harness evaluation (this calls the model)…");
+  log.info(color.dim("  live activity below; this can take several minutes.\n"));
+  const monitor = new ActivityMonitor().start();
   const convo = await provider.startConversation({
     cwd: repoRoot,
     ...(options.model ? { model: options.model } : {}),
     systemMessage: SYSTEM_MESSAGE,
-    onEvent: (e) => {
-      if (e.type === "tool") log.progress(e.text);
-    },
+    onEvent: monitor.handle,
   });
   try {
     const summary = await convo.send(buildDynamicEvalPrompt());
+    monitor.stop();
     log.info("\n" + summary);
   } finally {
+    monitor.stop();
     await convo.end();
   }
   log.ok("dynamic eval complete — see `node .agentrig/eval/score.mjs report`");
