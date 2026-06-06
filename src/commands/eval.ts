@@ -1,8 +1,12 @@
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { auditHarness, type AuditReport } from "../core/audit.js";
+import { join } from "../core/fsutil.js";
 import { isInstalled } from "../core/state.js";
 import { color, log } from "../core/logger.js";
 import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
+import { AgentTimeoutError } from "../agent/provider.js";
 import { buildDynamicEvalPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
 
 export function renderAudit(report: AuditReport): void {
@@ -25,6 +29,8 @@ export interface EvalOptions {
   model?: string;
   min?: number;
   verbose?: boolean;
+  scenario?: string;
+  timeoutMinutes?: number;
 }
 
 export async function evalCommand(repoRoot: string, options: EvalOptions): Promise<number> {
@@ -58,23 +64,51 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
     return 1;
   }
   log.ok(`agent ready (${pre.detail})`);
-  log.step("running dynamic harness evaluation (this calls the model)…");
-  log.info(color.dim("  live activity below; this can take several minutes.\n"));
+  const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
+  log.step(`running dynamic harness evaluation — ${scopeLabel} (this calls the model)…`);
+  log.info(color.dim("  Scores are saved per-scenario to .agentrig/eval/results/ as they complete."));
+  log.info(color.dim("  Live activity below; this can take many minutes.\n"));
+
   const monitor = new ActivityMonitor().start();
-  const convo = await provider.startConversation({
+  const conversationOptions = {
     cwd: repoRoot,
-    ...(options.model ? { model: options.model } : {}),
     systemMessage: SYSTEM_MESSAGE,
     onEvent: monitor.handle,
-  });
+    ...(options.model ? { model: options.model } : {}),
+    ...(options.timeoutMinutes ? { maxMs: options.timeoutMinutes * 60 * 1000 } : {}),
+  };
+  const convo = await provider.startConversation(conversationOptions);
+  let timedOut = false;
   try {
-    const summary = await convo.send(buildDynamicEvalPrompt());
+    const summary = await convo.send(buildDynamicEvalPrompt(options.scenario));
     monitor.stop();
     log.info("\n" + summary);
+  } catch (err) {
+    monitor.stop();
+    if (err instanceof AgentTimeoutError) {
+      timedOut = true;
+      log.warn(`agent stopped: ${err.message}.`);
+      log.warn("Any scenarios that finished were still saved — showing them below.");
+    } else {
+      throw err;
+    }
   } finally {
     monitor.stop();
     await convo.end();
   }
-  log.ok("dynamic eval complete — see `node .agentrig/eval/score.mjs report`");
-  return 0;
+
+  // Always surface whatever was saved, even on timeout.
+  log.info("");
+  renderSavedDynamicResults(repoRoot);
+  log.info(color.dim("\n  Re-run a single scenario with: agentrig eval --dynamic --scenario <id>"));
+  log.info(color.dim("  Raise the cap with: --timeout <minutes>"));
+  return timedOut ? 1 : 0;
+}
+
+/** Run the installed score.mjs aggregator and print its report (best-effort). */
+function renderSavedDynamicResults(repoRoot: string): void {
+  const scoreScript = join(repoRoot, ".agentrig", "eval", "score.mjs");
+  if (!existsSync(scoreScript)) return;
+  const res = spawnSync(process.execPath, [scoreScript, "report"], { encoding: "utf8" });
+  if (res.stdout) process.stdout.write(res.stdout);
 }

@@ -1,10 +1,11 @@
 import { CopilotClient, approveAll } from "@github/copilot-sdk";
 import type { CopilotSession } from "@github/copilot-sdk";
-import type {
-  AgentConversation,
-  AgentProvider,
-  ConversationOptions,
-  PreflightResult,
+import {
+  AgentTimeoutError,
+  type AgentConversation,
+  type AgentProvider,
+  type ConversationOptions,
+  type PreflightResult,
 } from "./provider.js";
 
 function summarizeArgs(args: Record<string, unknown> | undefined): string | undefined {
@@ -92,12 +93,58 @@ export class CopilotProvider implements AgentProvider {
       });
     }
 
-    const timeoutMs = options.timeoutMs ?? 15 * 60 * 1000;
+    const inactivityMs = options.inactivityMs ?? 5 * 60 * 1000;
+    const maxMs = options.maxMs ?? 45 * 60 * 1000;
 
     return {
-      async send(prompt: string): Promise<string> {
-        const result = await session.sendAndWait({ prompt }, timeoutMs);
-        return result?.data?.content ?? "";
+      // Wait for the turn to go idle, but only abort on genuine inactivity (no events for
+      // inactivityMs) or an absolute cap. This keeps long, productive multi-agent runs alive
+      // instead of killing them at a fixed total timeout.
+      send(prompt: string): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+          let finalContent = "";
+          let lastActivity = Date.now();
+          const startedAt = Date.now();
+          let settled = false;
+
+          const offActivity = session.on(() => {
+            lastActivity = Date.now();
+          });
+          const offMessage = session.on("assistant.message", (event) => {
+            const content = event.data?.content;
+            if (content) finalContent = content;
+          });
+          const offIdle = session.on("session.idle", () => finish(() => resolve(finalContent)));
+
+          const watch = setInterval(() => {
+            const idleFor = Date.now() - lastActivity;
+            const totalFor = Date.now() - startedAt;
+            if (idleFor >= inactivityMs) {
+              finish(() => {
+                void session.abort().catch(() => undefined);
+                reject(new AgentTimeoutError("no agent activity for " + Math.round(inactivityMs / 1000) + "s", "inactivity"));
+              });
+            } else if (totalFor >= maxMs) {
+              finish(() => {
+                void session.abort().catch(() => undefined);
+                reject(new AgentTimeoutError("exceeded max turn time of " + Math.round(maxMs / 60000) + "m", "absolute"));
+              });
+            }
+          }, 5000);
+          if (watch.unref) watch.unref();
+
+          function finish(action: () => void): void {
+            if (settled) return;
+            settled = true;
+            clearInterval(watch);
+            offActivity();
+            offMessage();
+            offIdle();
+            action();
+          }
+
+          session.send({ prompt }).catch((err) => finish(() => reject(err)));
+        });
       },
       async end(): Promise<void> {
         await session.disconnect().catch(() => undefined);

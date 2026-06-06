@@ -74,17 +74,25 @@ Re-read \`.agentrig/context.md\` first for repo context. Summarize what you merg
 you resolved.`;
 }
 
-export function buildDynamicEvalPrompt(): string {
+export function buildDynamicEvalPrompt(scenarioId?: string): string {
+  const scope = scenarioId
+    ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}.md\``
+    : "each scenario in \`.agentrig/eval/scenarios/*.md\`";
   return `# Task — Run the harness dynamic evaluation
 
-Run the behavioral evaluation described in \`.agents/skills/harness-eval/SKILL.md\` (Layer B).
+Run the behavioral evaluation described in \`.agents/skills/harness-eval/SKILL.md\` (Layer B) for
+${scope}.
 
-For each scenario in \`.agentrig/eval/scenarios/*.md\`:
+For each scenario, in order:
 1. Execute the scenario task through this repo's harness.
 2. Score the result against \`.agentrig/eval/RUBRIC.md\` as an independent judge. For any axis below
    1.0, record an issue code and one line of evidence.
-3. Persist the score with \`node .agentrig/eval/score.mjs save ...\` (never hand-edit the JSON).
+3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`
+   (never hand-edit the JSON) BEFORE starting the next scenario, so progress is never lost if the
+   run is interrupted.
+4. Keep each scenario focused and time-boxed. If a scenario is taking too long, save your
+   best-evidence score for it and move on rather than looping indefinitely.
 
-When all scenarios are scored, run \`node .agentrig/eval/score.mjs report\` and summarize the
-aggregate, calling out the weakest axes.`;
+When every scenario in scope is scored, run \`node .agentrig/eval/score.mjs report\` and summarize
+the aggregate, calling out the weakest axes.`;
 }

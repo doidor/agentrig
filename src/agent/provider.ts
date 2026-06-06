@@ -16,12 +16,28 @@ export interface AgentEvent {
   ok?: boolean;
 }
 
+/** Thrown when a turn is aborted by the inactivity watchdog or the absolute cap. */
+export class AgentTimeoutError extends Error {
+  constructor(
+    message: string,
+    readonly kind: "inactivity" | "absolute",
+  ) {
+    super(message);
+    this.name = "AgentTimeoutError";
+  }
+}
+
 export interface ConversationOptions {
   cwd: string;
   model?: string;
   systemMessage?: string;
-  /** Per-message wait timeout in ms. Defaults to a generous value for long agentic steps. */
-  timeoutMs?: number;
+  /**
+   * Abort the turn if no events arrive for this long. Productive long runs (which emit a steady
+   * stream of events) are never killed — only genuine stalls. Defaults to 5 minutes.
+   */
+  inactivityMs?: number;
+  /** Absolute safety cap on a single turn regardless of activity. Defaults to 45 minutes. */
+  maxMs?: number;
   onEvent?: (event: AgentEvent) => void;
 }
 
