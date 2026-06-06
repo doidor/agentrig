@@ -1,0 +1,26 @@
+---
+globs: ["**/*"]
+description: What an AI reviewer should and should not flag. Keeps review high-signal.
+priority: 2
+---
+
+# Code review rules (reflex)
+
+When reviewing a diff, keep signal high. **Do NOT:**
+- Suggest adding comments/JSDoc/docstrings to self-explanatory code.
+- Comment on formatting/style handled by a formatter or linter.
+- Flag missing imports or type errors the compiler/build already catches.
+- Suggest adding `console.log`/`print`/debug statements.
+- Claim the build will fail when CI is green.
+- Bikeshed naming when the existing name is clear enough.
+- Re-review unchanged lines or restate what the diff obviously does.
+
+**DO flag (these are the point of review):**
+- Correctness bugs, logic errors, off-by-ones, unhandled edge cases.
+- Security issues (see `security.md`) and unsafe input handling.
+- Concurrency/race conditions and resource leaks.
+- Missing or wrong tests for changed behavior.
+- Public API/contract breaks and likely regressions.
+
+Score findings by confidence and **only surface blocking issues plus genuinely useful suggestions**.
+If you would request changes, give a concrete, testable reason.

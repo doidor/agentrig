@@ -20,6 +20,8 @@
     { "id": "skill-fix-ci", "principle": 4, "src": "templates/skills/fix-ci", "dest": ".agents/skills/fix-ci", "kind": "dir" },
     { "id": "skill-skill-improver", "principle": 8, "src": "templates/skills/skill-improver", "dest": ".agents/skills/skill-improver", "kind": "dir" },
     { "id": "skill-harness-eval", "principle": 6, "src": "templates/skills/harness-eval", "dest": ".agents/skills/harness-eval", "kind": "dir" },
+    { "id": "skill-verify-loop", "principle": 5, "src": "templates/skills/verify-loop", "dest": ".agents/skills/verify-loop", "kind": "dir" },
+    { "id": "skill-authoring", "principle": 4, "src": "templates/skills/skill-authoring", "dest": ".agents/skills/skill-authoring", "kind": "dir" },
     { "id": "rules", "principle": 4, "src": "templates/rules", "dest": ".agents/rules", "kind": "dir" },
     { "id": "wiki", "principle": 8, "src": "templates/wiki", "dest": ".agents/wiki", "kind": "dir" },
     { "id": "mcp", "principle": 11, "src": "templates/mcp/mcp.json", "dest": ".mcp.json", "kind": "file" },

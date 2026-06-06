@@ -117,6 +117,15 @@
       "weight": 1
     },
     {
+      "id": "default-rules",
+      "principle": 4,
+      "title": "Security + code-review reflex rules installed",
+      "type": "dir-min",
+      "path": ".agents/rules",
+      "min": 4,
+      "weight": 1
+    },
+    {
       "id": "self-verify",
       "principle": 5,
       "title": "Self-verify-before-handoff skill",
@@ -170,6 +179,14 @@
       "title": "Tiered memory / wiki",
       "type": "path-exists",
       "path": ".agents/wiki/README.md",
+      "weight": 1
+    },
+    {
+      "id": "wiki-router",
+      "principle": 8,
+      "title": "Wiki index/router + troubleshooting present",
+      "type": "path-exists",
+      "path": ".agents/wiki/index.md",
       "weight": 1
     },
     {
