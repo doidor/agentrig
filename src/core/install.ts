@@ -1,8 +1,43 @@
-import { writeFileSync } from "node:fs";
-import { basename } from "node:path";
+import { writeFileSync, existsSync, statSync, readdirSync, readFileSync, chmodSync, copyFileSync } from "node:fs";
+import { basename, dirname, relative } from "node:path";
 import { copyPath, ensureDir, readText, substitute, join } from "./fsutil.js";
 import { resolveSrc, type Artifact, type Manifest } from "./knowledge.js";
 import type { InstalledArtifact } from "./state.js";
+
+export interface AddOnlyResult {
+  added: string[];   // repo-relative paths that were newly copied
+  drifted: string[]; // repo-relative paths that exist and differ from canonical (left untouched)
+}
+
+/**
+ * Add-only refresh: copy any canonical file that does not exist in the destination, and report
+ * (without overwriting) existing files whose content drifted from canonical. Works for a single
+ * file or a directory tree. Used by `update` so tailored content is never clobbered.
+ */
+export function addOnlyCopy(repoRoot: string, src: string, dest: string, mode?: string, apply = true): AddOnlyResult {
+  const result: AddOnlyResult = { added: [], drifted: [] };
+  const rel = (p: string) => relative(repoRoot, p) || p;
+
+  const walk = (s: string, d: string): void => {
+    if (statSync(s).isDirectory()) {
+      for (const entry of readdirSync(s)) walk(join(s, entry), join(d, entry));
+      return;
+    }
+    if (!existsSync(d)) {
+      if (apply) {
+        ensureDir(dirname(d));
+        copyFileSync(s, d);
+        if (mode) chmodSync(d, parseInt(mode, 8));
+      }
+      result.added.push(rel(d));
+    } else if (!readFileSync(s).equals(readFileSync(d))) {
+      result.drifted.push(rel(d));
+    }
+  };
+
+  if (existsSync(src)) walk(src, dest);
+  return result;
+}
 
 export interface InstallOptions {
   dryRun?: boolean;

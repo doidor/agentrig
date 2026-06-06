@@ -1,8 +1,8 @@
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { writeState, readState, type AgentRigState } from "../core/state.js";
-import { loadManifest } from "../core/knowledge.js";
-import { install, baseVars } from "../core/install.js";
+import { loadManifest, refreshPolicy } from "../core/knowledge.js";
+import { install, baseVars, addOnlyCopy } from "../core/install.js";
 import { linkSurfaces } from "../core/surfaces.js";
 import { resolveSrc } from "../core/knowledge.js";
 import { auditHarness } from "../core/audit.js";
@@ -38,52 +38,67 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
     return 1;
   }
   const manifest = loadManifest();
-
-  // Determine which non-template artifacts have drifted from canonical.
-  const changed: string[] = [];
+  const versionBump = state.knowledgeVersion !== manifest.knowledgeVersion;
   const refreshable = manifest.artifacts.filter((a) => a.kind !== "template");
-  for (const artifact of refreshable) {
-    if (artifact.kind === "dir") {
-      // For directories, refresh on any knowledge version bump (coarse but predictable).
-      if (state.knowledgeVersion !== manifest.knowledgeVersion) changed.push(artifact.dest);
-      continue;
-    }
-    const srcHash = hashFile(resolveSrc(artifact.src));
-    const destHash = hashFile(join(repoRoot, artifact.dest));
-    if (srcHash !== destHash) changed.push(artifact.dest);
-  }
   const templates = manifest.artifacts.filter((a) => a.kind === "template").map((a) => a.dest);
+
+  // Split by refresh policy. `overwrite` = AgentRig-owned machinery/docs (replace to stay current);
+  // `preserve` = tailorable content (add-only; never clobber existing files).
+  const toOverwrite: typeof refreshable = [];
+  for (const a of refreshable.filter((a) => refreshPolicy(a) === "overwrite")) {
+    if (a.kind === "dir") {
+      if (versionBump) toOverwrite.push(a);
+    } else if (hashFile(resolveSrc(a.src)) !== hashFile(join(repoRoot, a.dest))) {
+      toOverwrite.push(a);
+    }
+  }
+
+  // Add-only refresh for preserved artifacts: classify first (apply only when not a dry run).
+  const added: string[] = [];
+  const drifted: string[] = [];
+  for (const a of refreshable.filter((a) => refreshPolicy(a) === "preserve")) {
+    const r = addOnlyCopy(repoRoot, resolveSrc(a.src), join(repoRoot, a.dest), a.mode, !options.dryRun);
+    added.push(...r.added);
+    drifted.push(...r.drifted);
+  }
 
   log.info(color.bold(`AgentRig — updating harness (knowledge ${state.knowledgeVersion} → ${manifest.knowledgeVersion})\n`));
 
-  if (changed.length === 0 && state.knowledgeVersion === manifest.knowledgeVersion) {
-    log.ok("already up to date — no canonical files changed.");
+  if (toOverwrite.length === 0 && added.length === 0 && drifted.length === 0 && !versionBump) {
+    log.ok("already up to date — nothing to refresh.");
     return 0;
   }
 
   if (options.dryRun) {
-    log.step("dry run — would refresh these canonical files:");
-    for (const c of changed) log.info(`  ${c}`);
-    log.info("\n  And ask the agent to reconcile templates:");
+    if (toOverwrite.length) {
+      log.step("dry run — would overwrite (AgentRig-owned):");
+      for (const a of toOverwrite) log.info(`  ${a.dest}`);
+    }
+    if (added.length) {
+      log.step("dry run — would add new files:");
+      for (const f of added) log.info(`  ${f}`);
+    }
+    if (drifted.length) {
+      log.step("dry run — preserved (local edits kept); agent would reconcile canonical drift:");
+      for (const f of drifted) log.info(color.dim(`  ${f}`));
+    }
+    log.step("dry run — agent would reconcile templates:");
     for (const t of templates) log.info(color.dim(`  ${t}`));
     return 0;
   }
 
-  // Deterministically re-copy the changed non-template artifacts (preserves none of the local edits
-  // on those files — they are AgentRig-owned). Templates are left to the agent.
-  log.step("refreshing canonical artifacts…");
-  const onlyChanged = {
-    ...manifest,
-    artifacts: manifest.artifacts.filter((a) => a.kind !== "template" && changed.includes(a.dest)),
-  };
-  const { installed } = install(repoRoot, onlyChanged, { vars: baseVars(repoRoot) });
-  log.ok(`refreshed ${installed.length} artifacts`);
+  // Apply: overwrite machinery (preserved files were already add-only-applied above).
+  log.step("refreshing harness…");
+  const onlyOverwrite = { ...manifest, artifacts: toOverwrite };
+  const { installed } = install(repoRoot, onlyOverwrite, { vars: baseVars(repoRoot) });
+  log.ok(`overwrote ${installed.length} owned file(s); added ${added.length} new file(s); preserved ${drifted.length} edited file(s)`);
 
   // Ensure vendor-surface symlinks exist (added in later knowledge versions).
   const surfaces = linkSurfaces(repoRoot);
   if (surfaces.created.length) log.ok(`linked surfaces: ${surfaces.created.join(", ")} → .agents`);
 
-  // Agent reconciles templates + any repo-specific content.
+  // The agent reconciles templates plus any preserved files whose canonical version drifted.
+  const reconcileList = [...drifted, ...templates];
   if (!options.skipAgent) {
     const provider = getProvider();
     const pre = await provider.preflight();
@@ -98,7 +113,7 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
         onEvent: monitor.handle,
       });
       try {
-        const summary = await convo.send(buildUpdatePrompt([...changed, ...templates]));
+        const summary = await convo.send(buildUpdatePrompt(reconcileList));
         monitor.stop();
         log.ok("reconciliation complete");
         if (options.verbose) log.info(color.dim(summary));
@@ -107,18 +122,24 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
         await convo.end();
       }
     } else {
-      log.warn(`agent unavailable (${pre.detail}); skipped reconciliation of templates.`);
+      log.warn(`agent unavailable (${pre.detail}); skipped reconciliation.`);
     }
+  } else if (drifted.length) {
+    log.warn(`--skip-agent: ${drifted.length} edited file(s) were preserved; canonical updates to them were NOT applied.`);
+    log.warn("Run `agentrig update` (with the agent) to reconcile them, or diff against the templates manually.");
   }
 
-  // Merge installed records (replace entries with same id).
+  // Merge installed records: every refreshable artifact is present/current after update.
+  const now = new Date().toISOString();
   const byId = new Map(state.installed.map((i) => [i.id, i]));
-  for (const i of installed) byId.set(i.id, i);
+  for (const a of refreshable) {
+    byId.set(a.id, { id: a.id, dest: a.dest, knowledgeVersion: manifest.knowledgeVersion, installedAt: now });
+  }
   const newState: AgentRigState = {
     ...state,
     agentrigVersion: pkg.version,
     knowledgeVersion: manifest.knowledgeVersion,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
     installed: [...byId.values()],
   };
   writeState(repoRoot, newState);

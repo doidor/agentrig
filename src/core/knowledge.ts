@@ -3,6 +3,7 @@ import { readText } from "./fsutil.js";
 import { knowledgeRoot } from "./paths.js";
 
 export type ArtifactKind = "file" | "dir" | "template";
+export type RefreshPolicy = "overwrite" | "preserve";
 
 export interface Artifact {
   id: string;
@@ -12,6 +13,19 @@ export interface Artifact {
   kind: ArtifactKind;
   merge?: string;
   mode?: string;
+  /**
+   * How `agentrig update` refreshes this artifact:
+   * - `overwrite`: AgentRig-owned machinery/docs — replace it to stay current.
+   * - `preserve`: tailorable content — add-only (copy files that don't exist, never clobber
+   *   existing ones; canonical drift on existing files is handed to the agent reconcile).
+   * Default when omitted: `dir` → `preserve`, `file` → `overwrite`.
+   */
+  refresh?: RefreshPolicy;
+}
+
+/** Effective refresh policy for an artifact (applies the kind-based default). */
+export function refreshPolicy(a: Artifact): RefreshPolicy {
+  return a.refresh ?? (a.kind === "dir" ? "preserve" : "overwrite");
 }
 
 export interface Manifest {
