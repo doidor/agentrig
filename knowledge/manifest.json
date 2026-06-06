@@ -5,6 +5,7 @@
   "artifacts": [
     { "id": "agents-md", "principle": 12, "src": "templates/AGENTS.md", "dest": "AGENTS.md", "kind": "template", "merge": "markers" },
     { "id": "principles", "principle": 12, "src": "PRINCIPLES.md", "dest": ".agentrig/PRINCIPLES.md", "kind": "file" },
+    { "id": "agents-package-example", "principle": 12, "src": "templates/AGENTS.package.example.md", "dest": ".agentrig/AGENTS.package.example.md", "kind": "file" },
     { "id": "state-machine", "principle": 1, "src": "templates/harness/state-machine.yml", "dest": ".agentrig/harness/state-machine.yml", "kind": "file" },
     { "id": "orchestration", "principle": 1, "src": "templates/harness/ORCHESTRATION.md", "dest": ".agentrig/harness/ORCHESTRATION.md", "kind": "file" },
     { "id": "role-developer-yml", "principle": 2, "src": "templates/agents/developer.yml", "dest": ".agentrig/agents/developer.yml", "kind": "file" },

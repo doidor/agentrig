@@ -44,11 +44,19 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
   varied model; reviewer differs from developer on purpose). See `.agentrig/agents/README.md` to add
   new agent types.
 - **Skills (procedural memory):** `.agents/skills/`
+<!-- AGENTRIG:skills-inventory:start -->
+{{SKILLS_INVENTORY}}
+<!-- AGENTRIG:skills-inventory:end -->
 - **Rules (reflexes, glob-scoped):** `.agents/rules/`
-- **Memory / wiki:** `.agents/wiki/`
+- **Memory / wiki:** `.agents/wiki/` (see `index.md` for what belongs where)
 - **Tooling (MCP):** `.mcp.json`
+- **Surfaces:** `.claude` / `.copilot` / `.opencode` / `.codex` symlink to `.agents` so any vendor CLI
+  sees the same skills/rules/wiki.
+- **Orchestration contract:** `.agentrig/harness/ORCHESTRATION.md`
 - **Dashboard:** `agentrig dashboard` (or `node .agentrig/dashboard/dashboard.mjs`) — agent roster,
   live GitHub tasks per harness label, harness score, and eval status. `--html` for a web view.
 - **Evaluate the harness itself:** `agentrig eval --static` or `node .agentrig/eval/static-audit.mjs`;
   see `.agentrig/eval/RUBRIC.md`.
+- **Package-local instructions:** drop an `AGENTS.md` in a subpackage to add scope-specific rules;
+  it augments this root file. See `.agentrig/AGENTS.package.example.md`.
 <!-- AGENTRIG:harness:end -->

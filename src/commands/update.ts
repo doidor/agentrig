@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { writeState, readState, type AgentRigState } from "../core/state.js";
 import { loadManifest } from "../core/knowledge.js";
 import { install, baseVars } from "../core/install.js";
+import { linkSurfaces } from "../core/surfaces.js";
 import { resolveSrc } from "../core/knowledge.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
@@ -77,6 +78,10 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
   };
   const { installed } = install(repoRoot, onlyChanged, { vars: baseVars(repoRoot) });
   log.ok(`refreshed ${installed.length} artifacts`);
+
+  // Ensure vendor-surface symlinks exist (added in later knowledge versions).
+  const surfaces = linkSurfaces(repoRoot);
+  if (surfaces.created.length) log.ok(`linked surfaces: ${surfaces.created.join(", ")} → .agents`);
 
   // Agent reconciles templates + any repo-specific content.
   if (!options.skipAgent) {

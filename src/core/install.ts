@@ -28,12 +28,33 @@ export function baseVars(repoRoot: string): Record<string, string> {
   };
 }
 
+/** Build the skills-inventory markdown block from the manifest (deterministic, no agent). */
+export function skillsInventory(manifest: Manifest): string {
+  const lines: string[] = [];
+  for (const artifact of manifest.artifacts) {
+    const m = /^\.agents\/skills\/([^/]+)$/.exec(artifact.dest);
+    if (!m) continue;
+    const skillMd = readText(join(resolveSrc(artifact.src), "SKILL.md"));
+    const desc = skillMd ? extractFrontmatterValue(skillMd, "description") : null;
+    lines.push(`- \`${m[1]}\`${desc ? ` — ${desc}` : ""}`);
+  }
+  return lines.length ? lines.join("\n") : "_(no skills installed)_";
+}
+
+function extractFrontmatterValue(text: string, key: string): string | null {
+  if (!text.startsWith("---")) return null;
+  const end = text.indexOf("\n---", 3);
+  const fm = end < 0 ? text : text.slice(0, end);
+  const match = fm.match(new RegExp("^\\s*" + key + "\\s*:\\s*(.+)\\s*$", "m"));
+  return match ? match[1]!.trim() : null;
+}
+
 /**
  * Deterministically lay down the canonical harness artifacts. This guarantees a baseline harness
  * (and a passing audit) regardless of the agent; the agent then tailors content afterwards.
  */
 export function install(repoRoot: string, manifest: Manifest, options: InstallOptions = {}): InstallResult {
-  const vars = options.vars ?? baseVars(repoRoot);
+  const vars = { SKILLS_INVENTORY: skillsInventory(manifest), ...(options.vars ?? baseVars(repoRoot)) };
   const installed: InstalledArtifact[] = [];
   const plan: InstallPlanItem[] = [];
   const now = new Date().toISOString();

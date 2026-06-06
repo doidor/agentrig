@@ -224,6 +224,14 @@
       "weight": 1
     },
     {
+      "id": "surfaces",
+      "principle": 11,
+      "title": "Vendor surfaces mirror one canonical source",
+      "type": "path-exists",
+      "path": ".claude",
+      "weight": 1
+    },
+    {
       "id": "agents-critical-rules",
       "principle": 12,
       "title": "AGENTS.md leads with Critical Rules",
@@ -239,6 +247,15 @@
       "type": "file-contains",
       "path": "AGENTS.md",
       "patterns": ["What this repository is"],
+      "weight": 1
+    },
+    {
+      "id": "agents-skills-inventory",
+      "principle": 12,
+      "title": "AGENTS.md lists the installed skills",
+      "type": "file-contains",
+      "path": "AGENTS.md",
+      "patterns": ["AGENTRIG:skills-inventory"],
       "weight": 1
     }
   ]

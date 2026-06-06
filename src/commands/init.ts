@@ -1,6 +1,7 @@
 import { writeState, readState, type AgentRigState } from "../core/state.js";
 import { loadManifest } from "../core/knowledge.js";
 import { install, baseVars } from "../core/install.js";
+import { linkSurfaces } from "../core/surfaces.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
 import { ActivityMonitor } from "../core/activity.js";
@@ -64,6 +65,10 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
   log.step("installing canonical harness artifacts…");
   const { installed } = install(repoRoot, manifest, { vars: baseVars(repoRoot) });
   log.ok(`installed ${installed.length} artifacts`);
+
+  // Mirror the canonical source to every vendor surface (.claude/.copilot/.opencode/.codex).
+  const surfaces = linkSurfaces(repoRoot);
+  if (surfaces.created.length) log.ok(`linked surfaces: ${surfaces.created.join(", ")} → .agents`);
 
   // Phase 3 (optional): agent tailors the installed files to the repo.
   if (convo) {
