@@ -1,0 +1,7 @@
+# Reviewer role (principle 2). Deliberately a DIFFERENT model family than the developer
+# to mitigate single-model bias — divergent verdicts surface problems neither model alone catches.
+role: reviewer
+model: gpt-5
+model_tier: high
+allowed_tools: [read, grep, glob, bash]
+prompt: agents/reviewer.md

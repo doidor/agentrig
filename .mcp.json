@@ -1,0 +1,12 @@
+{
+  "$comment": "AgentRig MCP config (principle 11). The same servers should be mirrored to .vscode/mcp.json and .github/copilot/mcp.json so every vendor CLI sees the same tools.",
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
