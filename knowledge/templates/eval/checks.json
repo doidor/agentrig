@@ -12,6 +12,32 @@
       "weight": 1
     },
     {
+      "id": "trigger-taxonomy",
+      "principle": 1,
+      "title": "Transition trigger taxonomy declared",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["triggers:", "event_to_state"],
+      "weight": 1
+    },
+    {
+      "id": "orchestration-doc",
+      "principle": 1,
+      "title": "Orchestration contract documented",
+      "type": "path-exists",
+      "path": ".agentrig/harness/ORCHESTRATION.md",
+      "weight": 1
+    },
+    {
+      "id": "model-tiers",
+      "principle": 2,
+      "title": "Model tiers defined for cost/quality routing",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["model_tiers:", "premium"],
+      "weight": 1
+    },
+    {
       "id": "roles-distinct-models",
       "principle": 2,
       "title": "Specialized roles run different models",
@@ -45,6 +71,15 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["labels:", "state_map"],
+      "weight": 1
+    },
+    {
+      "id": "reconciliation",
+      "principle": 3,
+      "title": "Reconciliation + recovery policy declared",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["reconciliation:", "recovery:", "claim_grace_seconds"],
       "weight": 1
     },
     {
