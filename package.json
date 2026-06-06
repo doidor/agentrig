@@ -1,0 +1,43 @@
+{
+  "name": "agentrig",
+  "version": "0.1.0",
+  "description": "AgentRig — an agentic meta-harness. A CLI that investigates a repository and installs (and evaluates) a best-practice agent harness.",
+  "type": "module",
+  "bin": {
+    "agentrig": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "knowledge",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "start": "node dist/cli.js",
+    "selftest": "node dist/cli.js eval --static . || true"
+  },
+  "keywords": [
+    "agent",
+    "harness",
+    "copilot",
+    "agentic",
+    "scaffold",
+    "evaluation",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@github/copilot-sdk": "^1.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.0"
+  }
+}

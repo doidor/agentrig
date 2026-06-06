@@ -1,0 +1,6 @@
+# Judge role (principle 2, 6). Independent, rubric-driven scoring before merge.
+role: judge
+model: claude-opus-4.5
+model_tier: high
+allowed_tools: [read, grep, glob, bash]
+prompt: agents/judge.md

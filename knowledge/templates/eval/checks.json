@@ -1,0 +1,160 @@
+{
+  "$schema": "agentrig-harness-checks/1",
+  "description": "Deterministic harness audit checks. Each maps a principle to a structural check scored 0 / 0.5 / 1.0. Consumed by both `agentrig eval --static` and `node .agentrig/eval/static-audit.mjs`.",
+  "checks": [
+    {
+      "id": "state-machine",
+      "principle": 1,
+      "title": "Workflow is an explicit state machine",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["states:", "transitions:"],
+      "weight": 1
+    },
+    {
+      "id": "roles-distinct-models",
+      "principle": 2,
+      "title": "Specialized roles run different models",
+      "type": "roles-distinct-models",
+      "developer": ".agentrig/agents/developer.yml",
+      "reviewer": ".agentrig/agents/reviewer.yml",
+      "key": "model",
+      "weight": 1
+    },
+    {
+      "id": "role-prompts",
+      "principle": 2,
+      "title": "Roles have dedicated prompts",
+      "type": "path-exists",
+      "path": ".agentrig/agents/developer.md",
+      "weight": 1
+    },
+    {
+      "id": "system-of-record",
+      "principle": 3,
+      "title": "GitHub labels mirror DAG state",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["labels:", "state_map"],
+      "weight": 1
+    },
+    {
+      "id": "skills-present",
+      "principle": 4,
+      "title": "Skills directory has procedural memory",
+      "type": "dir-min",
+      "path": ".agents/skills",
+      "min": 3,
+      "weight": 1
+    },
+    {
+      "id": "skill-frontmatter",
+      "principle": 4,
+      "title": "Skills declare description + allowed-tools",
+      "type": "frontmatter-keys",
+      "path": ".agents/skills/self-verify/SKILL.md",
+      "keys": ["description", "allowed-tools"],
+      "weight": 1
+    },
+    {
+      "id": "rules-present",
+      "principle": 4,
+      "title": "Glob-scoped rules with priority order",
+      "type": "path-exists",
+      "path": ".agents/rules/README.md",
+      "weight": 1
+    },
+    {
+      "id": "self-verify",
+      "principle": 5,
+      "title": "Self-verify-before-handoff skill",
+      "type": "path-exists",
+      "path": ".agents/skills/self-verify/SKILL.md",
+      "weight": 1
+    },
+    {
+      "id": "eval-rubric",
+      "principle": 6,
+      "title": "Rubric-driven evaluation present",
+      "type": "path-exists",
+      "path": ".agentrig/eval/RUBRIC.md",
+      "weight": 1
+    },
+    {
+      "id": "eval-harness-skill",
+      "principle": 6,
+      "title": "Harness-eval skill present",
+      "type": "path-exists",
+      "path": ".agents/skills/harness-eval/SKILL.md",
+      "weight": 1
+    },
+    {
+      "id": "worktrees",
+      "principle": 7,
+      "title": "Hermetic per-agent worktree script",
+      "type": "path-exists",
+      "path": "scripts/repair-worktrees.sh",
+      "weight": 1
+    },
+    {
+      "id": "wiki",
+      "principle": 8,
+      "title": "Tiered memory / wiki",
+      "type": "path-exists",
+      "path": ".agents/wiki/README.md",
+      "weight": 1
+    },
+    {
+      "id": "skill-improver",
+      "principle": 8,
+      "title": "Skill-improver closes the feedback loop",
+      "type": "path-exists",
+      "path": ".agents/skills/skill-improver/SKILL.md",
+      "weight": 1
+    },
+    {
+      "id": "human-gates",
+      "principle": 9,
+      "title": "Human-only gates declared",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["human_only", "human"],
+      "weight": 1
+    },
+    {
+      "id": "hard-limits",
+      "principle": 10,
+      "title": "Hard limits and safety nets",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["limits:", "max_diff_chars", "runaway_token_cap"],
+      "weight": 1
+    },
+    {
+      "id": "mcp",
+      "principle": 11,
+      "title": "Tooling neutrality via MCP",
+      "type": "path-exists",
+      "path": ".mcp.json",
+      "weight": 1
+    },
+    {
+      "id": "agents-critical-rules",
+      "principle": 12,
+      "title": "AGENTS.md leads with Critical Rules",
+      "type": "file-contains",
+      "path": "AGENTS.md",
+      "patterns": ["Critical Rules"],
+      "weight": 1
+    },
+    {
+      "id": "agents-context",
+      "principle": 12,
+      "title": "AGENTS.md captures repo context",
+      "type": "file-contains",
+      "path": "AGENTS.md",
+      "patterns": ["What this repository is"],
+      "weight": 1
+    }
+  ]
+}

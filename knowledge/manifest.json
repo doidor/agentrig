@@ -1,0 +1,29 @@
+{
+  "$schema": "agentrig-manifest/1",
+  "knowledgeVersion": "0.1.0",
+  "description": "Declares which best-practice artifacts AgentRig installs into a target repo and where. `src` is relative to the knowledge/ root; `dest` is relative to the target repo root. `kind`: file | dir | template. Templates contain {{PLACEHOLDERS}} the agent fills from its investigation; deterministic installs substitute known values and leave the rest for the agent.",
+  "artifacts": [
+    { "id": "agents-md", "principle": 12, "src": "templates/AGENTS.md", "dest": "AGENTS.md", "kind": "template", "merge": "markers" },
+    { "id": "principles", "principle": 12, "src": "PRINCIPLES.md", "dest": ".agentrig/PRINCIPLES.md", "kind": "file" },
+    { "id": "state-machine", "principle": 1, "src": "templates/harness/state-machine.yml", "dest": ".agentrig/harness/state-machine.yml", "kind": "file" },
+    { "id": "role-developer-yml", "principle": 2, "src": "templates/agents/developer.yml", "dest": ".agentrig/agents/developer.yml", "kind": "file" },
+    { "id": "role-developer-md", "principle": 2, "src": "templates/agents/developer.md", "dest": ".agentrig/agents/developer.md", "kind": "file" },
+    { "id": "role-reviewer-yml", "principle": 2, "src": "templates/agents/reviewer.yml", "dest": ".agentrig/agents/reviewer.yml", "kind": "file" },
+    { "id": "role-reviewer-md", "principle": 2, "src": "templates/agents/reviewer.md", "dest": ".agentrig/agents/reviewer.md", "kind": "file" },
+    { "id": "role-judge-yml", "principle": 2, "src": "templates/agents/judge.yml", "dest": ".agentrig/agents/judge.yml", "kind": "file" },
+    { "id": "role-judge-md", "principle": 2, "src": "templates/agents/judge.md", "dest": ".agentrig/agents/judge.md", "kind": "file" },
+    { "id": "skill-self-verify", "principle": 5, "src": "templates/skills/self-verify", "dest": ".agents/skills/self-verify", "kind": "dir" },
+    { "id": "skill-fix-ci", "principle": 4, "src": "templates/skills/fix-ci", "dest": ".agents/skills/fix-ci", "kind": "dir" },
+    { "id": "skill-skill-improver", "principle": 8, "src": "templates/skills/skill-improver", "dest": ".agents/skills/skill-improver", "kind": "dir" },
+    { "id": "skill-harness-eval", "principle": 6, "src": "templates/skills/harness-eval", "dest": ".agents/skills/harness-eval", "kind": "dir" },
+    { "id": "rules", "principle": 4, "src": "templates/rules", "dest": ".agents/rules", "kind": "dir" },
+    { "id": "wiki", "principle": 8, "src": "templates/wiki", "dest": ".agents/wiki", "kind": "dir" },
+    { "id": "mcp", "principle": 11, "src": "templates/mcp/mcp.json", "dest": ".mcp.json", "kind": "file" },
+    { "id": "worktree-script", "principle": 7, "src": "templates/scripts/repair-worktrees.sh", "dest": "scripts/repair-worktrees.sh", "kind": "file", "mode": "0755" },
+    { "id": "eval-rubric", "principle": 6, "src": "templates/eval/RUBRIC.md", "dest": ".agentrig/eval/RUBRIC.md", "kind": "file" },
+    { "id": "eval-checks", "principle": 6, "src": "templates/eval/checks.json", "dest": ".agentrig/eval/checks.json", "kind": "file" },
+    { "id": "eval-static-audit", "principle": 6, "src": "templates/eval/static-audit.mjs", "dest": ".agentrig/eval/static-audit.mjs", "kind": "file", "mode": "0755" },
+    { "id": "eval-score", "principle": 6, "src": "templates/eval/score.mjs", "dest": ".agentrig/eval/score.mjs", "kind": "file", "mode": "0755" },
+    { "id": "eval-scenarios", "principle": 6, "src": "templates/eval/scenarios", "dest": ".agentrig/eval/scenarios", "kind": "dir" }
+  ]
+}

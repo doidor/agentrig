@@ -1,0 +1,54 @@
+# AgentRig harness state machine
+# Principle 1 (explicit state machine), 3 (system of record), 9 (human gates), 10 (hard limits).
+# The DAG is the contract. Agents do not invent transitions; reviewers cannot skip gates.
+
+version: 1
+
+states:
+  - name: ingested        # issue/task picked up
+  - name: queued          # ready for an agent
+  - name: implementing    # developer role is working
+  - name: reviewing       # reviewer role is judging the diff
+  - name: judging         # independent judge scores against the rubric
+  - name: ready_to_merge  # all gates green
+  - name: merged
+  - name: closed
+  - name: parked          # self-parked: needs a human (low reversibility)
+
+transitions:
+  - from: ingested        to: queued           trigger: auto
+  - from: queued          to: implementing     trigger: agent      role: developer
+  - from: implementing    to: reviewing        trigger: agent      role: developer   gate: self_verify_passed
+  - from: reviewing       to: judging          trigger: agent      role: reviewer
+  - from: reviewing       to: implementing     trigger: agent      role: reviewer    reason: changes_requested
+  - from: judging         to: ready_to_merge   trigger: agent      role: judge       gate: rubric_passed
+  - from: judging         to: implementing     trigger: agent      role: judge       reason: below_threshold
+  - from: ready_to_merge  to: merged           trigger: human      gate: human_approval   # principle 9
+  - from: any             to: parked           trigger: auto       reason: low_reversibility_or_stuck
+  - from: any             to: closed           trigger: human
+
+# Principle 3: GitHub labels mirror DAG state. Human-only labels must never be applied by an agent.
+labels:
+  state_map:
+    queued: agentrig-ready
+    implementing: agentrig-started
+    reviewing: agentrig-in-review
+    ready_to_merge: agentrig-approved
+  human_only:
+    - acknowledge-breaking-change
+    - override-protected-files
+
+# Principle 10: hard limits and safety nets.
+limits:
+  max_concurrent_agents: 4
+  max_review_iterations: 5
+  max_diff_chars: 50000
+  runaway_token_cap: 5000000
+  recovery_scan_seconds: 120
+  requeue_if_stuck_hours: 4
+
+hooks:
+  pre_pr:
+    - self-verify
+  pre_merge:
+    - harness-eval
