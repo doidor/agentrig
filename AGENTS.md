@@ -54,8 +54,13 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
   varied model; reviewer differs from developer on purpose). See `.agentrig/agents/README.md` to add
   new agent types.
 - **Skills (procedural memory):** `.agents/skills/`
-- **Rules (reflexes, glob-scoped):** `.agents/rules/`
-- **Memory / wiki:** `.agents/wiki/`
+<!-- AGENTRIG:skills-inventory:start -->
+- `self-verify`, `verify-loop`, `fix-ci`, `skill-improver`, `skill-authoring`, `harness-eval`
+<!-- AGENTRIG:skills-inventory:end -->
+- **Rules (reflexes, glob-scoped):** `.agents/rules/` (security, code-review, coding-standards, no-debug-logging)
+- **Memory / wiki:** `.agents/wiki/` (index router + troubleshooting + entry template)
+- **Orchestration contract:** `.agentrig/harness/ORCHESTRATION.md`
+- **Surfaces:** `.claude`/`.copilot`/`.opencode`/`.codex` → `.agents`
 - **Tooling (MCP):** `.mcp.json`
 - **Dashboard:** `agentrig dashboard` (or `node .agentrig/dashboard/dashboard.mjs`) — agent roster,
   live GitHub tasks per harness label, harness score, and eval status. `--html` for a web view.

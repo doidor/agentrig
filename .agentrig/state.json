@@ -1,9 +1,9 @@
 {
-  "agentrigVersion": "0.2.0",
-  "knowledgeVersion": "0.2.0",
+  "agentrigVersion": "0.3.0",
+  "knowledgeVersion": "0.3.0",
   "provider": "copilot",
   "createdAt": "2026-06-06T09:19:15.895Z",
-  "updatedAt": "2026-06-06T09:19:15.895Z",
+  "updatedAt": "2026-06-06T19:56:13.024Z",
   "installed": [
     {
       "id": "agents-md",
@@ -20,8 +20,8 @@
     {
       "id": "state-machine",
       "dest": ".agentrig/harness/state-machine.yml",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "role-developer-yml",
@@ -80,38 +80,38 @@
     {
       "id": "skill-self-verify",
       "dest": ".agents/skills/self-verify",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "skill-fix-ci",
       "dest": ".agents/skills/fix-ci",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "skill-skill-improver",
       "dest": ".agents/skills/skill-improver",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "skill-harness-eval",
       "dest": ".agents/skills/harness-eval",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "rules",
       "dest": ".agents/rules",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "wiki",
       "dest": ".agents/wiki",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "mcp",
@@ -122,20 +122,20 @@
     {
       "id": "worktree-script",
       "dest": "scripts/repair-worktrees.sh",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "eval-rubric",
       "dest": ".agentrig/eval/RUBRIC.md",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "eval-checks",
       "dest": ".agentrig/eval/checks.json",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "eval-static-audit",
@@ -146,20 +146,56 @@
     {
       "id": "eval-score",
       "dest": ".agentrig/eval/score.mjs",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "eval-scenarios",
       "dest": ".agentrig/eval/scenarios",
-      "knowledgeVersion": "0.2.0",
-      "installedAt": "2026-06-06T09:17:26.755Z"
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     },
     {
       "id": "dashboard",
       "dest": ".agentrig/dashboard/dashboard.mjs",
       "knowledgeVersion": "0.2.0",
       "installedAt": "2026-06-06T09:17:26.755Z"
+    },
+    {
+      "id": "agents-package-example",
+      "dest": ".agentrig/AGENTS.package.example.md",
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
+    },
+    {
+      "id": "orchestration",
+      "dest": ".agentrig/harness/ORCHESTRATION.md",
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
+    },
+    {
+      "id": "skill-verify-loop",
+      "dest": ".agents/skills/verify-loop",
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
+    },
+    {
+      "id": "skill-authoring",
+      "dest": ".agents/skills/skill-authoring",
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
+    },
+    {
+      "id": "eval-axes",
+      "dest": ".agentrig/eval/axes.json",
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
+    },
+    {
+      "id": "eval-sandbox",
+      "dest": ".agentrig/eval/sandbox",
+      "knowledgeVersion": "0.3.0",
+      "installedAt": "2026-06-06T19:56:13.015Z"
     }
   ]
 }

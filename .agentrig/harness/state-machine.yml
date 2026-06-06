@@ -52,3 +52,54 @@ hooks:
     - self-verify
   pre_merge:
     - harness-eval
+
+# --- Trigger taxonomy (principle 1) ------------------------------------------
+# Every transition above is driven by one of these trigger kinds. Making the kind explicit keeps
+# orchestration debuggable: agents only drive `agent` transitions; everything else is automation.
+triggers:
+  kinds:
+    agent: "An agent role performs the work and reports the result."
+    script: "A poller/reconciler script asserts state from GitHub on a cadence."
+    auto: "A deterministic, immediate transition (no work, e.g. legacy normalization)."
+    event: "A GitHub webhook event maps directly to a state (see event_to_state)."
+    human: "A person performs a low-reversibility action (e.g. merge approval)."
+
+# Reactive transitions: GitHub webhook events map straight to a state (low latency), while the
+# pollers below repair anything missed (self-healing). Adopted from epichan.
+event_to_state:
+  "pull_request.review_comment": implementing   # reviewer asked for changes -> back to dev
+  "check_suite.completed.failure": implementing  # CI went red -> fix it
+  "pull_request.synchronize": reviewing          # new commits pushed -> re-review
+  "conflict_detected": implementing
+
+# Concurrency-safe transitions: a state change must declare the status it expects to replace
+# (compare-and-set). A mismatch (409) means another agent/poller already moved it — skip, don't
+# clobber. This is what prevents double-work in a multi-agent pool.
+transitions_policy:
+  require_expected_status: true   # every transition passes --expected-status; 409 => safe skip
+
+# --- Reconciliation & recovery (principle 3, 10) -----------------------------
+# GitHub is the system of record; pollers re-assert engine state from it on a cadence, and a
+# recovery sweep re-queues abandoned work. Latency vs. cost is tuned per cadence.
+reconciliation:
+  poll_ready_issues_seconds: 60     # ingest newly-ready issues
+  poll_task_prs_seconds: 300        # route open task PRs by live health
+  reconcile_merged_seconds: 120     # only mark merged once GitHub says merged
+recovery:
+  enabled: true
+  scan_seconds: 120
+  claim_grace_seconds: 300          # don't reclaim a task until the claim has had time to start
+  stuck_after_hours: 4              # past this with no progress -> requeue
+  requeue_to: queued
+
+# Progress visibility: post a GitHub comment on these lifecycle events so humans can follow along.
+issue_comments:
+  on: [task_created, state_transition, task_failed, pr_opened]
+
+# --- Model tiers (principle 2) -----------------------------------------------
+# Roles reference a tier, not a hardcoded model, so you can re-route cost/quality in one place.
+# Keep adjacent pipeline roles on DIFFERENT model families (single-model-bias mitigation).
+model_tiers:
+  cheap:    { models: [claude-haiku-4.5, gpt-5-mini], use: "triage, high-volume analysis" }
+  standard: { models: [claude-sonnet-4.5, gpt-5.4],   use: "implementation" }
+  premium:  { models: [claude-opus-4.5, gpt-5],       use: "review, judging, auditing" }

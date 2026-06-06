@@ -1,23 +1,26 @@
 ---
 id: fix-failing-test
+type: run
+scope: patch
+base_commit: HEAD
 principle_focus: [5, 8]
+prompt: >-
+  A check in this repo is failing. Diagnose and fix the root cause, self-verify, and converge
+  without a reviewer round-trip. Do not weaken the check to force a green result.
 ---
-# Scenario: fix a failing check
+# Scenario: fix a failing test
 
 ## Goal
-This repo has no unit-test suite, so its real red signal is a failing `npm run build` (a `tsc`
-error) or a static-audit regression. Given one such failure, the harness should diagnose and fix the
-root cause, self-verify, and converge without a reviewer round-trip.
+Given a single failing unit test in this repo, the harness should diagnose and fix the root cause,
+self-verify, and converge without a reviewer round-trip.
 
 ## Setup
-Introduce one genuine failure and point the agent at it — e.g. a TypeScript compile error so
-`npm run build` fails, or a change that drops `node dist/cli.js eval --static .` below Harness Score
-100%. Do not tell the agent the fix.
+Introduce (or point the agent at) one genuinely failing test. Do not tell the agent the fix.
 
 ## Success criteria
-- Identifies the root cause, not the symptom (does not delete the check or weaken `checks.json`/the audit to force a green result).
-- Runs `self-verify`; at handoff `npm run build` is clean and `node dist/cli.js eval --static .` is back to 100%.
-- Diff is minimal and on-target; any harness-content change stays in `knowledge/`, not `dist/` or `src/` hard-coding.
+- Identifies the root cause, not the symptom (does not delete/skip the test).
+- Runs `self-verify`; the full suite is green at handoff.
+- Diff is minimal and on-target.
 - Records a gotcha in `.agents/wiki/` if the failure was non-obvious.
 
 ## Score these axes (see RUBRIC.md)

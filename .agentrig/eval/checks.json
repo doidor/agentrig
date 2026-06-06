@@ -12,6 +12,32 @@
       "weight": 1
     },
     {
+      "id": "trigger-taxonomy",
+      "principle": 1,
+      "title": "Transition trigger taxonomy declared",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["triggers:", "event_to_state"],
+      "weight": 1
+    },
+    {
+      "id": "orchestration-doc",
+      "principle": 1,
+      "title": "Orchestration contract documented",
+      "type": "path-exists",
+      "path": ".agentrig/harness/ORCHESTRATION.md",
+      "weight": 1
+    },
+    {
+      "id": "model-tiers",
+      "principle": 2,
+      "title": "Model tiers defined for cost/quality routing",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["model_tiers:", "premium"],
+      "weight": 1
+    },
+    {
       "id": "roles-distinct-models",
       "principle": 2,
       "title": "Specialized roles run different models",
@@ -45,6 +71,15 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["labels:", "state_map"],
+      "weight": 1
+    },
+    {
+      "id": "reconciliation",
+      "principle": 3,
+      "title": "Reconciliation + recovery policy declared",
+      "type": "file-contains",
+      "path": ".agentrig/harness/state-machine.yml",
+      "patterns": ["reconciliation:", "recovery:", "claim_grace_seconds"],
       "weight": 1
     },
     {
@@ -82,6 +117,15 @@
       "weight": 1
     },
     {
+      "id": "default-rules",
+      "principle": 4,
+      "title": "Security + code-review reflex rules installed",
+      "type": "dir-min",
+      "path": ".agents/rules",
+      "min": 4,
+      "weight": 1
+    },
+    {
       "id": "self-verify",
       "principle": 5,
       "title": "Self-verify-before-handoff skill",
@@ -95,6 +139,22 @@
       "title": "Rubric-driven evaluation present",
       "type": "path-exists",
       "path": ".agentrig/eval/RUBRIC.md",
+      "weight": 1
+    },
+    {
+      "id": "eval-axes",
+      "principle": 6,
+      "title": "Validated axis/issue-code registry present",
+      "type": "path-exists",
+      "path": ".agentrig/eval/axes.json",
+      "weight": 1
+    },
+    {
+      "id": "eval-sandbox",
+      "principle": 6,
+      "title": "Eval sandbox guardrails present",
+      "type": "path-exists",
+      "path": ".agentrig/eval/sandbox/eval-rules.md",
       "weight": 1
     },
     {
@@ -119,6 +179,14 @@
       "title": "Tiered memory / wiki",
       "type": "path-exists",
       "path": ".agents/wiki/README.md",
+      "weight": 1
+    },
+    {
+      "id": "wiki-router",
+      "principle": 8,
+      "title": "Wiki index/router + troubleshooting present",
+      "type": "path-exists",
+      "path": ".agents/wiki/index.md",
       "weight": 1
     },
     {
@@ -156,6 +224,14 @@
       "weight": 1
     },
     {
+      "id": "surfaces",
+      "principle": 11,
+      "title": "Vendor surfaces mirror one canonical source",
+      "type": "path-exists",
+      "path": ".claude",
+      "weight": 1
+    },
+    {
       "id": "agents-critical-rules",
       "principle": 12,
       "title": "AGENTS.md leads with Critical Rules",
@@ -171,6 +247,15 @@
       "type": "file-contains",
       "path": "AGENTS.md",
       "patterns": ["What this repository is"],
+      "weight": 1
+    },
+    {
+      "id": "agents-skills-inventory",
+      "principle": 12,
+      "title": "AGENTS.md lists the installed skills",
+      "type": "file-contains",
+      "path": "AGENTS.md",
+      "patterns": ["AGENTRIG:skills-inventory"],
       "weight": 1
     }
   ]

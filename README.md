@@ -48,18 +48,18 @@ Run with `--skip-agent` to install the canonical harness deterministically with 
 
 | Principle | Artifact |
 |----------:|----------|
-| 1  Explicit state machine | `.agentrig/harness/state-machine.yml` |
-| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` (each on a different model; reviewer differs from developer) + `README.md` for adding new roles |
-| 3  System of record | label↔state map in the state machine + MCP GitHub server + `agentrig dashboard` |
-| 4  Skills & rules | `.agents/skills/*/SKILL.md`, `.agents/rules/` |
-| 5  Self-verify before handoff | `.agents/skills/self-verify/` |
-| 6  Rubric-driven evaluation | `.agentrig/eval/` + `.agents/skills/harness-eval/` |
-| 7  Hermetic worktrees | `scripts/repair-worktrees.sh` |
-| 8  Continuous self-improvement | `.agents/wiki/` + `.agents/skills/skill-improver/` |
+| 1  Explicit state machine | `.agentrig/harness/state-machine.yml` + `ORCHESTRATION.md` (trigger taxonomy, event_to_state, reconciliation/recovery, CAS transitions) |
+| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` on distinct `model_tiers` (cheap/standard/premium) + `README.md` |
+| 3  System of record | label↔state map + reconciliation/recovery cadences + MCP GitHub server + `agentrig dashboard` |
+| 4  Skills & rules | `.agents/skills/*/SKILL.md` (incl. `verify-loop`, `skill-authoring`), `.agents/rules/` (security, code-review, …, priority-ordered) |
+| 5  Self-verify before handoff | `.agents/skills/self-verify/` + generalized `verify-loop/` |
+| 6  Rubric-driven evaluation | `.agentrig/eval/` (axes.json registry, multi-rubric lifecycle, sandbox, A/B) + `.agents/skills/harness-eval/` |
+| 7  Hermetic worktrees | `scripts/repair-worktrees.sh` (add + safe archive-before-reset repair) |
+| 8  Continuous self-improvement | `.agents/wiki/` (index router + troubleshooting + entry template) + `skill-improver` |
 | 9  Human-in-the-loop | human-only gates in the state machine |
-| 10 Hard limits | `limits:` block in the state machine |
-| 11 Tooling neutrality (MCP) | `.mcp.json` |
-| 12 Instructions are source of truth | `AGENTS.md` with a Critical Rules block |
+| 10 Hard limits | `limits:` + `runaway_token_cap` in the state machine |
+| 11 Tooling neutrality (MCP) | `.mcp.json` + `.claude`/`.copilot`/`.opencode`/`.codex` → `.agents` symlinks |
+| 12 Instructions are source of truth | `AGENTS.md` (Critical Rules + auto-generated skills inventory) + package-local AGENTS.md |
 
 ## Evaluating the harness itself
 
@@ -74,16 +74,21 @@ This is a first-class feature, not an afterthought. Every installed harness incl
   ```
 
 - **Dynamic behavioral eval (agentic, independent judge).** Runs benchmark scenarios
-  (`.agentrig/eval/scenarios/*.md`) through the harness and scores the results against
-  `.agentrig/eval/RUBRIC.md` with an **independent judge model** on Output Quality / Agent Behavior /
-  Long-Term Impact. Any axis below `1.0` requires an issue code plus evidence. Results are persisted
-  by `score.mjs` (never hand-edited) so you can compare scores **before and after** any prompt, skill,
-  or rule change.
+  (`.agentrig/eval/scenarios/*.md`) through the harness and scores the results with an **independent
+  judge model**. Scoring is rigorous, modeled on epichan: a registry (`axes.json`) of bounded
+  **issue codes per axis**, strict `0/0.5/1.0` tiers, mandatory evidence, confidence-gated rollups
+  recomputed from the axis data, and three **lifecycle rubrics** (`spec` / `run` / `review`) linked
+  by task id. `score.mjs` validates everything and never lets a judge invent codes.
 
   ```bash
-  agentrig eval --dynamic
+  agentrig eval --dynamic --scenario add-small-feature --timeout 60
   node .agentrig/eval/score.mjs report
+  node .agentrig/eval/score.mjs compare --scenario add-small-feature   # A/B a harness change
   ```
+
+  Run the **same scenario** before and after a prompt/skill/rule change under different
+  `--variant`s, then `compare` — a change that lowers the score is a regression even if it "feels"
+  better. Runs are sandboxed (`eval/sandbox/eval-rules.md`): no push, no PR, no merge.
 
 ## Dashboard
 
