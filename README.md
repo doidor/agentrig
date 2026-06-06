@@ -49,8 +49,8 @@ Run with `--skip-agent` to install the canonical harness deterministically with 
 | Principle | Artifact |
 |----------:|----------|
 | 1  Explicit state machine | `.agentrig/harness/state-machine.yml` |
-| 2  Specialized roles, varied models | `.agentrig/agents/{developer,reviewer,judge}.{yml,md}` (reviewer runs a *different* model than the developer) |
-| 3  System of record | label↔state map in the state machine + MCP GitHub server |
+| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` (each on a different model; reviewer differs from developer) + `README.md` for adding new roles |
+| 3  System of record | label↔state map in the state machine + MCP GitHub server + `agentrig dashboard` |
 | 4  Skills & rules | `.agents/skills/*/SKILL.md`, `.agents/rules/` |
 | 5  Self-verify before handoff | `.agents/skills/self-verify/` |
 | 6  Rubric-driven evaluation | `.agentrig/eval/` + `.agents/skills/harness-eval/` |
@@ -85,6 +85,26 @@ This is a first-class feature, not an afterthought. Every installed harness incl
   node .agentrig/eval/score.mjs report
   ```
 
+## Dashboard
+
+`agentrig dashboard` gives you a single-glance view of the harness — installed into every repo as a
+dependency-free script (`.agentrig/dashboard/dashboard.mjs`), so it runs with or without the global
+CLI:
+
+- **Agent roster** — every role and the model it runs on.
+- **Live GitHub tasks** — open issues/PRs carrying each harness label, grouped by workflow state and
+  showing assignees, fetched via the `gh` CLI (degrades gracefully when `gh` is absent/unauthed).
+- **Harness Score** — the latest static-audit score and any weak principles.
+- **Evals** — the latest dynamic-eval summary.
+- **Limits** — the hard caps from the state machine.
+
+```bash
+agentrig dashboard                 # terminal view
+agentrig dashboard --json          # machine-readable
+agentrig dashboard --html dash.html  # self-contained web page
+agentrig dashboard --no-tasks      # offline (skip gh lookups)
+```
+
 ## Editing the best practices
 
 All best practices are plain text under [`knowledge/`](knowledge/). Edit `PRINCIPLES.md`, the
@@ -104,6 +124,7 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 | `agentrig init [path]` | Investigate + install a tailored harness |
 | `agentrig update [path]` | Re-sync the latest best practices |
 | `agentrig eval [path] [--static\|--dynamic] [--min N] [--json]` | Evaluate the harness |
+| `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
 
 Common options: `--model <id>`, `--dry-run`, `--skip-agent`, `--verbose`.

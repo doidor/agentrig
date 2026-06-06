@@ -5,6 +5,7 @@ import { initCommand } from "./commands/init.js";
 import { updateCommand } from "./commands/update.js";
 import { evalCommand } from "./commands/eval.js";
 import { doctorCommand } from "./commands/doctor.js";
+import { dashboardCommand } from "./commands/dashboard.js";
 import pkg from "./version.js";
 
 interface ParsedArgs {
@@ -19,6 +20,7 @@ const BOOLEAN_FLAGS = new Set([
   "static",
   "dynamic",
   "json",
+  "no-tasks",
   "verbose",
   "yes",
   "help",
@@ -62,6 +64,9 @@ ${color.bold("Commands:")}
                      --static   (default) deterministic structural audit, no model
                      --dynamic  run benchmark scenarios via the agent + judge
   doctor [path]    Quick health check (installed? agent reachable? score?)
+  dashboard [path] Show agent roster, live GitHub tasks, harness score, and evals
+                     --html [file]  write a self-contained HTML dashboard
+                     --no-tasks     skip live GitHub lookups (offline)
 
 ${color.bold("Options:")}
   --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.5, gpt-5)
@@ -69,8 +74,10 @@ ${color.bold("Options:")}
   --skip-agent     Install/update the canonical harness without the agentic steps
   --static         (eval) deterministic audit only
   --dynamic        (eval) run dynamic behavioral eval
-  --json           Machine-readable output (eval/doctor)
+  --json           Machine-readable output (eval/doctor/dashboard)
   --min <pct>      (eval --static) exit non-zero if Harness Score < pct
+  --html [file]    (dashboard) write an HTML page instead of terminal output
+  --no-tasks       (dashboard) skip live GitHub task lookups
   --verbose        Verbose logging
   -h, --help       Show this help
   -v, --version    Show version
@@ -129,6 +136,12 @@ async function main(): Promise<number> {
       }
       case "doctor":
         return await doctorCommand(repoRoot, { json: Boolean(flags.json) });
+      case "dashboard":
+        return dashboardCommand(repoRoot, {
+          json: Boolean(flags.json),
+          noTasks: Boolean(flags["no-tasks"]),
+          ...(flags.html != null ? { html: flags.html } : {}),
+        });
       default:
         log.error(`Unknown command: ${command}`);
         console.log(`\n${HELP}`);

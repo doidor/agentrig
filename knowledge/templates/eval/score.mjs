@@ -60,7 +60,8 @@ if (cmd === "save") {
 if (cmd === "report") {
   const asJson = args.includes("--json");
   if (!existsSync(resultsDir)) {
-    console.log("No results yet. Run `score.mjs save ...` first.");
+    if (asJson) console.log(JSON.stringify({ overall: 0, scenarios: [], axes: [] }, null, 2));
+    else console.log("No results yet. Run `score.mjs save ...` first.");
     process.exit(0);
   }
   const records = readdirSync(resultsDir)

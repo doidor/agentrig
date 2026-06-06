@@ -16,7 +16,7 @@ states:
   - name: parked          # self-parked: needs a human (low reversibility)
 
 transitions:
-  - from: ingested        to: queued           trigger: auto
+  - from: ingested        to: queued           trigger: agent      role: triager     gate: human_approval
   - from: queued          to: implementing     trigger: agent      role: developer
   - from: implementing    to: reviewing        trigger: agent      role: developer   gate: self_verify_passed
   - from: reviewing       to: judging          trigger: agent      role: reviewer

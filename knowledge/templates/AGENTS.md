@@ -40,12 +40,15 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 ## The harness
 <!-- AGENTRIG:harness:start -->
 - **Workflow / state machine:** `.agentrig/harness/state-machine.yml`
-- **Roles & models:** `.agentrig/agents/` (developer, reviewer, judge — reviewer runs a different
-  model than the developer on purpose)
+- **Agent roles & models:** `.agentrig/agents/` (triager, developer, reviewer, judge — each on a
+  varied model; reviewer differs from developer on purpose). See `.agentrig/agents/README.md` to add
+  new agent types.
 - **Skills (procedural memory):** `.agents/skills/`
 - **Rules (reflexes, glob-scoped):** `.agents/rules/`
 - **Memory / wiki:** `.agents/wiki/`
 - **Tooling (MCP):** `.mcp.json`
+- **Dashboard:** `agentrig dashboard` (or `node .agentrig/dashboard/dashboard.mjs`) — agent roster,
+  live GitHub tasks per harness label, harness score, and eval status. `--html` for a web view.
 - **Evaluate the harness itself:** `agentrig eval --static` or `node .agentrig/eval/static-audit.mjs`;
   see `.agentrig/eval/RUBRIC.md`.
 <!-- AGENTRIG:harness:end -->

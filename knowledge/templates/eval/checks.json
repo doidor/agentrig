@@ -22,6 +22,15 @@
       "weight": 1
     },
     {
+      "id": "roles-roster",
+      "principle": 2,
+      "title": "Multiple specialized agent roles installed",
+      "type": "dir-min",
+      "path": ".agentrig/agents",
+      "min": 6,
+      "weight": 1
+    },
+    {
       "id": "role-prompts",
       "principle": 2,
       "title": "Roles have dedicated prompts",
@@ -36,6 +45,14 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["labels:", "state_map"],
+      "weight": 1
+    },
+    {
+      "id": "dashboard",
+      "principle": 3,
+      "title": "Harness dashboard surfaces GitHub task state",
+      "type": "path-exists",
+      "path": ".agentrig/dashboard/dashboard.mjs",
       "weight": 1
     },
     {

@@ -22,16 +22,20 @@ contract; agents do not invent transitions and reviewers cannot skip gates.
 **Artifact:** `.agentrig/harness/state-machine.yml`.
 
 ## 2. Specialize roles, vary models
-Route each state to a *role* (`developer`, `reviewer`, `judge`), each with a short prompt and its
-own `model_tier`. Run the reviewer on a **different model than the developer** — single-model-bias
-mitigation matters more than any prompt tweak.
-**Artifact:** `.agentrig/agents/{developer,reviewer,judge}.{yml,md}` with distinct models.
+Route each state to a *role* (`triager`, `developer`, `reviewer`, `judge`), each with a short prompt
+and its own `model_tier`. Run the reviewer on a **different model than the developer** — single-model
+-bias mitigation matters more than any prompt tweak. The roster is extensible: add new agent types
+(`designer`, `security-reviewer`, …) by dropping a `<role>.{yml,md}` in and wiring a transition.
+**Artifact:** `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` (+ `README.md`) with
+distinct models.
 
 ## 3. Externalize state in a system of record
 GitHub is the source of truth. Labels are the contract, not decoration. Pollers reconcile the
 engine against GitHub on a cadence; events drive reactive transitions. If the engine crashes,
-GitHub still tells you the truth.
-**Artifact:** labels/state mapping in the state machine + MCP GitHub server.
+GitHub still tells you the truth. A **dashboard** surfaces the live picture: which tasks sit in which
+state (by label), who they're assigned to, plus harness score and eval status.
+**Artifact:** labels/state mapping in the state machine + MCP GitHub server +
+`.agentrig/dashboard/dashboard.mjs` (`agentrig dashboard`).
 
 ## 4. Skills are procedural memory; rules are reflexes
 Skills (`SKILL.md` with YAML frontmatter for triggers, `allowed-tools`, `argument-hint`) encode

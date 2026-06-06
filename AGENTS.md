@@ -34,11 +34,12 @@ node dist/cli.js eval --static .            # audits against canonical checks
 # In a throwaway repo:
 node dist/cli.js init --skip-agent /tmp/x   # deterministic install → expect Harness Score 100%
 node /tmp/x/.agentrig/eval/static-audit.mjs # installed audit script runs standalone
+node dist/cli.js dashboard /tmp/x --no-tasks # roster + score + evals (offline)
 ```
 
 ## Directory map
 - `src/cli.ts` — arg parsing + command dispatch.
-- `src/commands/` — `init`, `update`, `eval`, `doctor`.
+- `src/commands/` — `init`, `update`, `eval`, `doctor`, `dashboard`.
 - `src/agent/` — `AgentProvider` interface + `CopilotProvider` + factory. **Only place the SDK is imported.**
 - `src/core/` — `knowledge` (manifest/principles loader), `install` (deterministic copy + `{{VAR}}`
   substitution), `audit` (deterministic harness scoring), `state` (`.agentrig/state.json`), `fsutil`,
@@ -47,8 +48,10 @@ node /tmp/x/.agentrig/eval/static-audit.mjs # installed audit script runs standa
 - `knowledge/` — **editable best practices** shipped with the package:
   - `PRINCIPLES.md` — the 12 principles.
   - `manifest.json` — what gets installed and where.
-  - `templates/` — every artifact installed into a target repo, including the **eval kit**
-    (`templates/eval/`: `RUBRIC.md`, `checks.json`, `static-audit.mjs`, `score.mjs`, `scenarios/`).
+  - `templates/` — every artifact installed into a target repo, including the agent roster
+    (`templates/agents/`: triager/developer/reviewer/judge on varied models), the **eval kit**
+    (`templates/eval/`: `RUBRIC.md`, `checks.json`, `static-audit.mjs`, `score.mjs`, `scenarios/`),
+    and the **dashboard** (`templates/dashboard/dashboard.mjs`).
 
 ## How the harness self-evaluation works (the emphasis)
 Installed into every target repo under `.agentrig/eval/` and `.agents/skills/harness-eval/`:
