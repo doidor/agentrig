@@ -138,14 +138,19 @@ Set `AGENTRIG_PROVIDER` to choose the agent backend (default `copilot`).
 ## Requirements
 
 - Node.js ≥ 20.
-- For agentic steps: GitHub Copilot access. Sign in once with the `copilot` CLI, or set `GH_TOKEN`.
-  Deterministic commands (`eval --static`, `doctor`, `init --skip-agent`) need no model.
+- For agentic steps, pick a provider:
+  - **Copilot (default):** GitHub Copilot access — sign in once with the `copilot` CLI, or set `GH_TOKEN`.
+  - **Claude (`AGENTRIG_PROVIDER=claude`):** install the optional `@anthropic-ai/claude-agent-sdk`
+    and set `ANTHROPIC_API_KEY`.
+- Deterministic commands (`eval --static`, `doctor`, `dashboard`, `init --skip-agent`) need no model.
 
 ## Provider neutrality
 
-Model access is behind the `AgentProvider` interface (`src/agent/provider.ts`). Today AgentRig ships
-a `CopilotProvider` built on `@github/copilot-sdk`; a Claude SDK provider can be added without
-touching command logic.
+Model access is behind the `AgentProvider` interface (`src/agent/provider.ts`), and the SDK is only
+imported under `src/agent/`. Two backends ship today, selected by `AGENTRIG_PROVIDER`:
+- `copilot` (default) — `CopilotProvider` on `@github/copilot-sdk`.
+- `claude` — `ClaudeProvider` on the optional `@anthropic-ai/claude-agent-sdk` (`query()` + session
+  resume for multi-turn context). Install the SDK and set `ANTHROPIC_API_KEY` to use it.
 
 ## License
 
