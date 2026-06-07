@@ -20,6 +20,7 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
     "start": "node dist/cli.js",
+    "test": "npm run build && node --test test/*.test.mjs",
     "selftest": "node dist/cli.js eval --static . || true"
   },
   "keywords": [
