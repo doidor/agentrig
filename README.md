@@ -110,6 +110,24 @@ agentrig dashboard --html dash.html  # self-contained web page
 agentrig dashboard --no-tasks      # offline (skip gh lookups)
 ```
 
+## Engine (MVP)
+
+`agentrig run` is a minimal orchestration engine that puts the harness to work: it ingests open
+GitHub issues carrying the ready label, **claims** each (swaps it to the started label), and
+**implements** it in a hermetic git worktree via the developer agent (which runs `self-verify`),
+then posts a summary comment back to the issue. It deliberately **stops short of pushing, opening a
+PR, or merging** — those low-reversibility steps stay human- or later-stage-gated. The full DAG it
+works toward is documented in `.agentrig/harness/ORCHESTRATION.md`.
+
+```bash
+agentrig run --dry-run             # list the ready issues it would process (no model calls)
+agentrig run                       # one tick: implement up to `max_concurrent_agents` issues
+agentrig run --watch --interval 120  # poll every 120s
+agentrig run --max 2 --label needs-agent
+```
+
+Requires `gh` (authenticated) and a git repo.
+
 ## Editing the best practices
 
 All best practices are plain text under [`knowledge/`](knowledge/). Edit `PRINCIPLES.md`, the
@@ -129,6 +147,7 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 | `agentrig init [path]` | Investigate + install a tailored harness |
 | `agentrig update [path]` | Re-sync the latest best practices |
 | `agentrig eval [path] [--static\|--dynamic] [--min N] [--json]` | Evaluate the harness |
+| `agentrig run [path] [--once\|--watch] [--max N] [--dry-run]` | Engine (MVP): ingest ready issues, implement each in a worktree |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
 

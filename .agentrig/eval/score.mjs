@@ -160,9 +160,17 @@ if (cmd === "report" || cmd === "compare") {
     if (rows.length === 0) {
       console.log("  No results yet. Run `score.mjs save ...` first.");
     } else {
+      const byType = new Map();
       for (const r of rows) {
-        const v = r.variant ? ` [${r.variant}]` : "";
-        console.log(`  ${r.pass ? "PASS" : "FAIL"}  ${(r.type + "/" + r.scenario + v).padEnd(34)} ${r.aggregate.toFixed(2)}  (${r.judge})`);
+        if (!byType.has(r.type)) byType.set(r.type, []);
+        byType.get(r.type).push(r);
+      }
+      for (const [type, group] of byType) {
+        console.log(`  ${type.toUpperCase()}`);
+        for (const r of group) {
+          const v = r.variant ? ` [${r.variant}]` : "";
+          console.log(`    ${r.pass ? "PASS" : "FAIL"}  ${(r.scenario + v).padEnd(30)} ${r.aggregate.toFixed(2)}  (${r.judge})`);
+        }
       }
       console.log("\n  Per-axis means (observed only):");
       for (const [name, v] of axisAgg) console.log(`    ${name.padEnd(22)} ${round(v.sum / v.n).toFixed(2)}`);
