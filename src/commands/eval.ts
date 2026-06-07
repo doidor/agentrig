@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { auditHarness, type AuditReport } from "../core/audit.js";
 import { join } from "../core/fsutil.js";
@@ -8,6 +8,12 @@ import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { AgentTimeoutError } from "../agent/provider.js";
 import { buildDynamicEvalPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
+
+/** Best-effort current git HEAD sha of the repo (for replayable run metadata). */
+function gitHead(repoRoot: string): string | null {
+  const res = spawnSync("git", ["-C", repoRoot, "rev-parse", "HEAD"], { encoding: "utf8" });
+  return res.status === 0 ? res.stdout.trim() : null;
+}
 
 export function renderAudit(report: AuditReport): void {
   log.info(color.bold("AgentRig — harness audit"));
@@ -65,8 +71,25 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   }
   log.ok(`agent ready (${pre.detail})`);
   const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
+
+  // Create a per-run artifacts directory + meta.json (CLI-owned; the agent fills diff/output).
+  const runId = `run-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  const artifactsDirAbs = join(repoRoot, ".agentrig", "eval", "results", "runs", runId);
+  const artifactsDirRel = join(".agentrig", "eval", "results", "runs", runId);
+  mkdirSync(artifactsDirAbs, { recursive: true });
+  const startedAt = new Date().toISOString();
+  const meta: Record<string, unknown> = {
+    runId,
+    startedAt,
+    provider: provider.name,
+    model: options.model ?? null,
+    scenario: options.scenario ?? "all",
+    gitHead: gitHead(repoRoot),
+  };
+  writeFileSync(join(artifactsDirAbs, "meta.json"), JSON.stringify(meta, null, 2));
+
   log.step(`running dynamic harness evaluation — ${scopeLabel} (this calls the model)…`);
-  log.info(color.dim("  Scores are saved per-scenario to .agentrig/eval/results/ as they complete."));
+  log.info(color.dim(`  Run ${runId}; scores + artifacts under ${artifactsDirRel}/`));
   log.info(color.dim("  Live activity below; this can take many minutes.\n"));
 
   const monitor = new ActivityMonitor().start();
@@ -80,7 +103,7 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   const convo = await provider.startConversation(conversationOptions);
   let timedOut = false;
   try {
-    const summary = await convo.send(buildDynamicEvalPrompt(options.scenario));
+    const summary = await convo.send(buildDynamicEvalPrompt(options.scenario, { runId, artifactsDir: artifactsDirRel }));
     monitor.stop();
     log.info("\n" + summary);
   } catch (err) {
@@ -97,10 +120,19 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
     await convo.end();
   }
 
+  // Finalize the run metadata.
+  const finishedAt = new Date().toISOString();
+  meta.finishedAt = finishedAt;
+  meta.durationMs = Date.parse(finishedAt) - Date.parse(startedAt);
+  meta.timedOut = timedOut;
+  meta.artifacts = readdirSync(artifactsDirAbs).filter((f) => f !== "meta.json");
+  writeFileSync(join(artifactsDirAbs, "meta.json"), JSON.stringify(meta, null, 2));
+
   // Always surface whatever was saved, even on timeout.
   log.info("");
   renderSavedDynamicResults(repoRoot);
-  log.info(color.dim("\n  Re-run a single scenario with: agentrig eval --dynamic --scenario <id>"));
+  log.info(color.dim(`\n  Run artifacts: ${artifactsDirRel}/ (meta.json + any diff/output the run saved)`));
+  log.info(color.dim("  Re-run a single scenario with: agentrig eval --dynamic --scenario <id>"));
   log.info(color.dim("  Raise the cap with: --timeout <minutes>"));
   return timedOut ? 1 : 0;
 }

@@ -74,20 +74,30 @@ Re-read \`.agentrig/context.md\` first for repo context. Summarize what you merg
 you resolved.`;
 }
 
-export function buildDynamicEvalPrompt(scenarioId?: string): string {
+export interface DynamicRunContext {
+  runId: string;
+  artifactsDir: string;
+}
+
+export function buildDynamicEvalPrompt(scenarioId?: string, run?: DynamicRunContext): string {
   const scope = scenarioId
     ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}.md\``
     : "each scenario in \`.agentrig/eval/scenarios/*.md\`";
+  const runLine = run
+    ? `\nTag every score with \`--run ${run.runId}\`. For each scenario, also save artifacts into
+\`${run.artifactsDir}\`: \`diff.patch\` (the produced change, e.g. \`git -C <worktree> diff > ${run.artifactsDir}/<scenario>.diff.patch\`)
+and \`<scenario>.output.md\` (a short transcript/summary). These make regressions inspectable.\n`
+    : "";
   return `# Task — Run the harness dynamic evaluation
 
 Run the behavioral evaluation described in \`.agents/skills/harness-eval/SKILL.md\` (Layer B) for
 ${scope}.
-
+${runLine}
 For each scenario, in order:
 1. Execute the scenario task through this repo's harness.
 2. Score the result against \`.agentrig/eval/RUBRIC.md\` as an independent judge. For any axis below
    1.0, record an issue code and one line of evidence.
-3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`
+3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`${run ? ` --run ${run.runId}` : ""}
    (never hand-edit the JSON) BEFORE starting the next scenario, so progress is never lost if the
    run is interrupted.
 4. Keep each scenario focused and time-boxed. If a scenario is taking too long, save your
