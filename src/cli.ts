@@ -16,6 +16,7 @@ interface ParsedArgs {
 
 const BOOLEAN_FLAGS = new Set([
   "dry-run",
+  "diff",
   "skip-agent",
   "static",
   "dynamic",
@@ -60,6 +61,7 @@ ${color.bold("Usage:")} agentrig <command> [path] [options]
 ${color.bold("Commands:")}
   init [path]      Investigate the repo and install a best-practice agent harness
   update [path]    Re-sync the latest best practices into an existing harness
+                     --diff     show how your preserved files differ from canonical
   eval [path]      Evaluate the harness itself
                      --static   (default) deterministic structural audit, no model
                      --dynamic  run benchmark scenarios via the agent + judge
@@ -122,6 +124,7 @@ async function main(): Promise<number> {
       case "update":
         return await updateCommand(repoRoot, {
           dryRun: Boolean(flags["dry-run"]),
+          diff: Boolean(flags.diff),
           ...(model ? { model } : {}),
           verbose: Boolean(flags.verbose),
           skipAgent: Boolean(flags["skip-agent"]),

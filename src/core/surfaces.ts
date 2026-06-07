@@ -35,7 +35,13 @@ export function linkSurfaces(repoRoot: string): SurfaceLinkResult {
       continue;
     }
     try {
-      symlinkSync(CANONICAL_SURFACE, target, "dir");
+      // Junctions work for directories on Windows without elevation (and need an absolute target);
+      // relative symlinks are portable elsewhere.
+      if (process.platform === "win32") {
+        symlinkSync(join(repoRoot, CANONICAL_SURFACE), target, "junction");
+      } else {
+        symlinkSync(CANONICAL_SURFACE, target, "dir");
+      }
       created.push(dir);
     } catch (err) {
       skipped.push({ dir, reason: `symlink failed: ${(err as Error).message}` });

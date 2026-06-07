@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { writeState, readState, type AgentRigState } from "../core/state.js";
 import { loadManifest, refreshPolicy } from "../core/knowledge.js";
 import { install, baseVars, addOnlyCopy } from "../core/install.js";
@@ -16,6 +17,7 @@ import pkg from "../version.js";
 
 export interface UpdateOptions {
   dryRun?: boolean;
+  diff?: boolean;
   model?: string;
   verbose?: boolean;
   skipAgent?: boolean;
@@ -26,16 +28,42 @@ function hashFile(path: string): string | null {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+/** Read-only: show how preserved (tailorable) files differ from the latest canonical version. */
+function diffPreserved(repoRoot: string): number {
+  const manifest = loadManifest();
+  const preserved = manifest.artifacts.filter((a) => a.kind !== "template" && refreshPolicy(a) === "preserve");
+  let any = false;
+  for (const a of preserved) {
+    const { drifted } = addOnlyCopy(repoRoot, resolveSrc(a.src), join(repoRoot, a.dest), a.mode, false);
+    for (const relPath of drifted) {
+      any = true;
+      const repoFile = join(repoRoot, relPath);
+      // Map the drifted repo-relative path back to its canonical source file.
+      const sub = relPath.slice(a.dest.length).replace(/^\//, "");
+      const canonical = sub ? join(resolveSrc(a.src), sub) : resolveSrc(a.src);
+      log.info(color.bold(`\n• ${relPath}`) + color.dim("  (preserved; canonical drifted)"));
+      const res = spawnSync("diff", ["-u", "--label", "canonical", canonical, "--label", relPath, repoFile], { encoding: "utf8" });
+      log.info(res.stdout ? res.stdout.trimEnd() : color.dim("  (binary or unreadable diff)"));
+    }
+  }
+  if (!any) log.ok("no preserved files have drifted from canonical.");
+  return 0;
+}
+
 /**
- * Re-sync the latest canonical best practices into a repo. Files whose installed content differs
- * from the latest canonical content are refreshed; the agent then reconciles repo customizations.
- * Templates (AGENTS.md) are never overwritten deterministically — they are handed to the agent.
+ * Re-sync the latest canonical best practices into a repo. Machinery files are overwritten;
+ * tailorable artifacts are refreshed add-only (new files added, existing ones preserved) with any
+ * canonical drift handed to the agent reconcile. Templates (AGENTS.md) are reconciled by the agent.
  */
 export async function updateCommand(repoRoot: string, options: UpdateOptions): Promise<number> {
   const state = readState(repoRoot);
   if (!state) {
     log.error("No AgentRig harness here. Run `agentrig init` first.");
     return 1;
+  }
+  if (options.diff) {
+    log.info(color.bold("AgentRig — drift of preserved files vs canonical\n"));
+    return diffPreserved(repoRoot);
   }
   const manifest = loadManifest();
   const versionBump = state.knowledgeVersion !== manifest.knowledgeVersion;
