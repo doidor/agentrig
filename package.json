@@ -9,8 +9,17 @@
   "files": [
     "dist",
     "knowledge",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/microsoft/agentrig.git"
+  },
+  "homepage": "https://github.com/microsoft/agentrig#readme",
+  "bugs": {
+    "url": "https://github.com/microsoft/agentrig/issues"
+  },
   "engines": {
     "node": ">=20.0.0"
   },
@@ -18,7 +27,8 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
     "start": "node dist/cli.js",
     "test": "npm run build && node --test test/*.test.mjs",
     "selftest": "node dist/cli.js eval --static . || true"

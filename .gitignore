@@ -1,7 +1,8 @@
-node_modules/
-dist/
-*.log
-.DS_Store
-.agentrig/eval/results/
 .agentrig/dashboard/dashboard.html
+.agentrig/eval/results/
 .agents/wiki/*.local.md
+.DS_Store
+*.log
+*.tgz
+dist/
+node_modules/
