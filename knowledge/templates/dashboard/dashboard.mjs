@@ -207,11 +207,15 @@ function renderTerminal(d) {
   }
 
   console.log(`\n${bold("Evals")} ${dim("(dynamic)")}`);
-  if (!d.evals.scenarios.length) {
+  const evalRows = d.evals.results || d.evals.scenarios || [];
+  if (!evalRows.length) {
     console.log(dim("  no dynamic eval runs yet — `agentrig eval --dynamic`"));
   } else {
-    console.log(`  overall ${bold(d.evals.overall.toFixed(2))} across ${d.evals.scenarios.length} scenario(s)`);
-    for (const s of d.evals.scenarios) console.log(`    ${s.pass ? green("PASS") : red("FAIL")} ${s.scenario.padEnd(24)} ${s.aggregate.toFixed(2)} ${dim("(" + s.judge + ")")}`);
+    console.log(`  overall ${bold(d.evals.overall.toFixed(2))} across ${evalRows.length} result(s)`);
+    for (const s of evalRows) {
+      const label = `${s.type ? s.type + "/" : ""}${s.scenario}${s.variant ? " [" + s.variant + "]" : ""}`;
+      console.log(`    ${s.pass ? green("PASS") : red("FAIL")} ${label.padEnd(28)} ${s.aggregate.toFixed(2)} ${dim("(" + s.judge + ")")}`);
+    }
   }
 
   if (Object.keys(d.limits).length) {
@@ -234,7 +238,8 @@ function renderHtml(d) {
       return `<div class="state"><h4>${esc(state)} <span class="muted">${esc(info.label)} · ${info.items.length}</span></h4><ul>${items || '<li class="muted">none</li>'}</ul></div>`;
     }).join("");
   }
-  const evalRows = d.evals.scenarios.map((s) => `<tr><td>${s.pass ? "✅" : "❌"}</td><td>${esc(s.scenario)}</td><td>${s.aggregate.toFixed(2)}</td><td class="muted">${esc(s.judge)}</td></tr>`).join("");
+  const evalList = d.evals.results || d.evals.scenarios || [];
+  const evalRows = evalList.map((s) => `<tr><td>${s.pass ? "✅" : "❌"}</td><td>${esc((s.type ? s.type + "/" : "") + s.scenario + (s.variant ? " [" + s.variant + "]" : ""))}</td><td>${s.aggregate.toFixed(2)}</td><td class="muted">${esc(s.judge)}</td></tr>`).join("");
   const limits = Object.entries(d.limits).map(([k, v]) => `<code>${esc(k)}=${esc(v)}</code>`).join(" ");
   return `<!doctype html><html><head><meta charset="utf-8"><title>AgentRig dashboard</title>
 <style>

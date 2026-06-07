@@ -1,9 +1,9 @@
 {
-  "agentrigVersion": "0.3.1",
+  "agentrigVersion": "0.3.2",
   "knowledgeVersion": "0.3.0",
   "provider": "copilot",
   "createdAt": "2026-06-06T09:19:15.895Z",
-  "updatedAt": "2026-06-06T20:05:44.273Z",
+  "updatedAt": "2026-06-07T18:36:04.496Z",
   "installed": [
     {
       "id": "agents-md",
@@ -15,187 +15,187 @@
       "id": "principles",
       "dest": ".agentrig/PRINCIPLES.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "state-machine",
       "dest": ".agentrig/harness/state-machine.yml",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-developer-yml",
       "dest": ".agentrig/agents/developer.yml",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-developer-md",
       "dest": ".agentrig/agents/developer.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-reviewer-yml",
       "dest": ".agentrig/agents/reviewer.yml",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-reviewer-md",
       "dest": ".agentrig/agents/reviewer.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-judge-yml",
       "dest": ".agentrig/agents/judge.yml",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-judge-md",
       "dest": ".agentrig/agents/judge.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-triager-yml",
       "dest": ".agentrig/agents/triager.yml",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "role-triager-md",
       "dest": ".agentrig/agents/triager.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "roles-readme",
       "dest": ".agentrig/agents/README.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "skill-self-verify",
       "dest": ".agents/skills/self-verify",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "skill-fix-ci",
       "dest": ".agents/skills/fix-ci",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "skill-skill-improver",
       "dest": ".agents/skills/skill-improver",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "skill-harness-eval",
       "dest": ".agents/skills/harness-eval",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "rules",
       "dest": ".agents/rules",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "wiki",
       "dest": ".agents/wiki",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "mcp",
       "dest": ".mcp.json",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "worktree-script",
       "dest": "scripts/repair-worktrees.sh",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-rubric",
       "dest": ".agentrig/eval/RUBRIC.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-checks",
       "dest": ".agentrig/eval/checks.json",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-static-audit",
       "dest": ".agentrig/eval/static-audit.mjs",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-score",
       "dest": ".agentrig/eval/score.mjs",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-scenarios",
       "dest": ".agentrig/eval/scenarios",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "dashboard",
       "dest": ".agentrig/dashboard/dashboard.mjs",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "agents-package-example",
       "dest": ".agentrig/AGENTS.package.example.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "orchestration",
       "dest": ".agentrig/harness/ORCHESTRATION.md",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "skill-verify-loop",
       "dest": ".agents/skills/verify-loop",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "skill-authoring",
       "dest": ".agents/skills/skill-authoring",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-axes",
       "dest": ".agentrig/eval/axes.json",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     },
     {
       "id": "eval-sandbox",
       "dest": ".agentrig/eval/sandbox",
       "knowledgeVersion": "0.3.0",
-      "installedAt": "2026-06-06T20:05:44.273Z"
+      "installedAt": "2026-06-07T18:36:04.496Z"
     }
   ]
 }
