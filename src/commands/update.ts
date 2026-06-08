@@ -119,7 +119,7 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
   // Apply: overwrite machinery (preserved files were already add-only-applied above).
   log.step("refreshing harness…");
   const onlyOverwrite = { ...manifest, artifacts: toOverwrite };
-  const { installed } = install(repoRoot, onlyOverwrite, { vars: baseVars(repoRoot) });
+  const { installed } = install(repoRoot, onlyOverwrite, { vars: baseVars(repoRoot), preserve: false });
   log.ok(`overwrote ${installed.length} owned file(s); added ${added.length} new file(s); preserved ${drifted.length} edited file(s)`);
 
   // Ensure vendor-surface symlinks exist (added in later knowledge versions).

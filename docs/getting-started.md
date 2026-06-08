@@ -40,10 +40,28 @@ scripts/                   ← hermetic per-agent worktree script, etc.
 
 ### Flags worth knowing
 
+- `--force` — overwrite existing user files (`AGENTS.md`, `.mcp.json`, hand-tailored rules). **Off by default**: `init` is non-destructive, so you can safely run it on a repo that already has agent content; the existing files are reported as "preserved" in the summary.
 - `--skip-agent` — install the canonical harness deterministically without any agentic exploration. Use this in CI or for reproducible installs.
-- `--dry-run` — show every file that would be written, without writing anything.
+- `--dry-run` — show every file that would be written, preserved, or overwritten, without writing anything.
 - `--yes` — non-interactive mode (no prompts).
 - `--model <id>` — pick the model for the investigation step (e.g. `claude-sonnet-4.5`, `gpt-5`).
+
+### Adopting AgentRig in a repo that already has an agent harness
+
+If your repo already has an `AGENTS.md`, a `.mcp.json`, custom rules in `.agents/rules/`, etc., `init` will:
+
+1. **Preserve** every file you've already written — the SHA stays identical.
+2. **Add** the rest of the canonical harness around what you have (skills, the `.agentrig/` machinery, projection symlinks, scripts).
+3. **Compile** your existing `AGENTS.md` into the projected surfaces — so Copilot / Claude / Cursor / Codex all see the content you've already curated.
+
+Preserved files are listed in the install summary:
+
+```text
+✔ installed 30 artifact(s)
+  preserved 2 existing file(s) — pass --force to overwrite:
+    · AGENTS.md
+    · .mcp.json
+```
 
 ## 2. Review the output
 
