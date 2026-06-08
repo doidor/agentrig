@@ -6,15 +6,24 @@ are automatic. You never edit the version by hand.
 
 ## One-time setup
 
-1. **npm token** with publish rights for the `@doidor` scope (Granular Access Token scoped to the
-   package/scope, **Read and write**; or a classic **Automation** token). Add it as the repo secret
-   **`NPM_TOKEN`** (Settings → Secrets and variables → Actions).
+1. **Configure a Trusted Publisher on npmjs.com** (this replaces an `NPM_TOKEN` secret — publishing is
+   tokenless via OIDC):
+   - npmjs.com → **Packages → `@doidor/agentrig` → Settings → Trusted Publisher**.
+   - Choose **GitHub Actions** and set: organization/owner `doidor`, repository `agentrig`, workflow
+     filename **`release.yml`** (leave *Environment* blank unless you use one).
+   - For maximum security, then set **Publishing access → "Require two-factor authentication and
+     disallow tokens"** so only this workflow can publish.
 2. **Allow Actions to open PRs:** Settings → Actions → General → Workflow permissions →
    enable *"Allow GitHub Actions to create and approve pull requests"* (the release workflow opens
-   the "Version Packages" PR).
-3. Public access + provenance are already configured (`publishConfig.access: "public"`,
-   `NPM_CONFIG_PROVENANCE: "true"` in the workflow). If the repo/package is **private**, remove the
-   `NPM_CONFIG_PROVENANCE` env from `release.yml` (provenance requires a public package).
+   the "Version Packages" PR using the built-in `GITHUB_TOKEN`).
+3. Public access is already configured (`publishConfig.access: "public"`), and **provenance is
+   generated automatically** under trusted publishing — no flag or secret needed.
+
+> **First publish of a brand-new package name:** a Trusted Publisher is configured on the *package's*
+> settings page, so the package must exist. If npmjs.com won't let you add the publisher yet, do one
+> bootstrap publish to create it — `npm login` then `npm publish --access public` locally (or a
+> one-time token) — then add the Trusted Publisher. Every release after that is tokenless via the
+> workflow. (Existing package: just add the Trusted Publisher and you're done.)
 
 ## Day-to-day: how a release happens
 
@@ -27,7 +36,8 @@ are automatic. You never edit the version by hand.
    **"Version Packages"** PR that bumps `package.json`, writes `CHANGELOG.md` from the changesets,
    and deletes the consumed changeset files.
 3. **Merge the "Version Packages" PR.** The workflow runs again, sees the bumped version, and
-   **publishes to npm** (`changeset publish`, with provenance) and pushes the `vX.Y.Z` git tag.
+   **publishes to npm** via `changeset publish` — authenticated **tokenlessly via OIDC** (npm
+   trusted publishing), with **automatic provenance**, and pushes the `vX.Y.Z` git tag.
 
 That's it — no manual `npm version` or `npm publish`.
 
