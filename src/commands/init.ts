@@ -2,6 +2,7 @@ import { writeState, readState, type AgentRigState } from "../core/state.js";
 import { loadManifest } from "../core/knowledge.js";
 import { install, baseVars } from "../core/install.js";
 import { linkSurfaces } from "../core/surfaces.js";
+import { compileSurfaces } from "../core/compile.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
 import { ActivityMonitor } from "../core/activity.js";
@@ -80,6 +81,10 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
     if (options.verbose) log.info(color.dim(summary));
     await convo.end();
   }
+
+  // Phase 4: project the canonical source into every agent surface (local + remote).
+  const compiled = compileSurfaces(repoRoot);
+  log.ok(`compiled ${compiled.generated.length} agent-surface file(s) (Copilot, Claude, Cursor, MCP, setup-steps)`);
 
   // Record state.
   const now = new Date().toISOString();

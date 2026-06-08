@@ -6,15 +6,17 @@ import { execFileSync } from "node:child_process";
 import { loadManifest } from "../dist/core/knowledge.js";
 import { install, baseVars } from "../dist/core/install.js";
 import { linkSurfaces } from "../dist/core/surfaces.js";
+import { compileSurfaces } from "../dist/core/compile.js";
 
 export const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const cli = join(repoRoot, "dist", "cli.js");
 
-/** Install the canonical harness into a fresh temp repo exactly as `init` does (install + surfaces). */
+/** Install the canonical harness into a fresh temp repo exactly as `init` does (install + surfaces + compile). */
 export function freshInstall() {
   const dir = makeRepo();
   install(dir, loadManifest(), { vars: baseVars(dir) });
   linkSurfaces(dir);
+  compileSurfaces(dir);
   return dir;
 }
 

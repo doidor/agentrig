@@ -232,6 +232,48 @@
       "weight": 1
     },
     {
+      "id": "copilot-instructions",
+      "principle": 11,
+      "title": "GitHub Copilot instructions projected (remote + IDE)",
+      "type": "path-exists",
+      "path": ".github/copilot-instructions.md",
+      "weight": 1
+    },
+    {
+      "id": "github-instructions",
+      "principle": 11,
+      "title": "Path-scoped .github/instructions projected from rules",
+      "type": "dir-min",
+      "path": ".github/instructions",
+      "min": 1,
+      "weight": 1
+    },
+    {
+      "id": "claude-md",
+      "principle": 11,
+      "title": "CLAUDE.md projected for Claude Code",
+      "type": "path-exists",
+      "path": "CLAUDE.md",
+      "weight": 1
+    },
+    {
+      "id": "cursor-rules",
+      "principle": 11,
+      "title": "Cursor rules (.cursor/rules) projected from rules",
+      "type": "dir-min",
+      "path": ".cursor/rules",
+      "min": 1,
+      "weight": 1
+    },
+    {
+      "id": "copilot-setup-steps",
+      "principle": 11,
+      "title": "Copilot coding-agent environment scaffolded",
+      "type": "path-exists",
+      "path": ".github/workflows/copilot-setup-steps.yml",
+      "weight": 1
+    },
+    {
       "id": "agents-critical-rules",
       "principle": 12,
       "title": "AGENTS.md leads with Critical Rules",

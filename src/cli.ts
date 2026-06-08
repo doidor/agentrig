@@ -6,6 +6,7 @@ import { updateCommand } from "./commands/update.js";
 import { evalCommand } from "./commands/eval.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { dashboardCommand } from "./commands/dashboard.js";
+import { compileCommand } from "./commands/compile.js";
 import pkg from "./version.js";
 
 interface ParsedArgs {
@@ -62,6 +63,9 @@ ${color.bold("Commands:")}
   init [path]      Investigate the repo and install a best-practice agent harness
   update [path]    Re-sync the latest best practices into an existing harness
                      --diff     show how your preserved files differ from canonical
+  compile [path]   Project AGENTS.md + rules into every agent surface (local + remote):
+                   copilot-instructions, .github/instructions, CLAUDE.md, .cursor/rules,
+                   MCP, and copilot-setup-steps.yml
   eval [path]      Evaluate the harness itself
                      --static   (default) deterministic structural audit, no model
                      --dynamic  run benchmark scenarios via the agent + judge
@@ -143,6 +147,8 @@ async function main(): Promise<number> {
       }
       case "doctor":
         return await doctorCommand(repoRoot, { json: Boolean(flags.json) });
+      case "compile":
+        return compileCommand(repoRoot, { json: Boolean(flags.json) });
       case "dashboard":
         return dashboardCommand(repoRoot, {
           json: Boolean(flags.json),

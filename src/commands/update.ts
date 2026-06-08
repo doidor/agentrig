@@ -5,6 +5,7 @@ import { writeState, readState, type AgentRigState } from "../core/state.js";
 import { loadManifest, refreshPolicy } from "../core/knowledge.js";
 import { install, baseVars, addOnlyCopy } from "../core/install.js";
 import { linkSurfaces } from "../core/surfaces.js";
+import { compileSurfaces } from "../core/compile.js";
 import { resolveSrc } from "../core/knowledge.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
@@ -124,6 +125,10 @@ export async function updateCommand(repoRoot: string, options: UpdateOptions): P
   // Ensure vendor-surface symlinks exist (added in later knowledge versions).
   const surfaces = linkSurfaces(repoRoot);
   if (surfaces.created.length) log.ok(`linked surfaces: ${surfaces.created.join(", ")} → .agents`);
+
+  // Re-project the canonical source into every agent surface (local + remote).
+  const compiled = compileSurfaces(repoRoot);
+  log.ok(`compiled ${compiled.generated.length} agent-surface file(s)`);
 
   // The agent reconciles templates plus any preserved files whose canonical version drifted.
   const reconcileList = [...drifted, ...templates];

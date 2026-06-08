@@ -1,0 +1,15 @@
+{
+  "$comment": "AgentRig: MCP servers for the Copilot coding agent. Add these in Settings → Copilot → coding agent if not auto-loaded.",
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
