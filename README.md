@@ -67,6 +67,12 @@ One canonical source → every agent's native format (`agentrig compile`, also r
 Edit the **source** (`AGENTS.md`, `.agents/rules/`) and re-run `agentrig compile` — never hand-edit
 the generated files. Commit them so remote agents (and teammates' tools) pick them up.
 
+> **`copilot-setup-steps.yml` is authored per-repo.** During `agentrig init`, the agent inspects
+> your real stack (runtimes/versions, package manager, install commands, caching, services) and
+> writes a genuine setup workflow so the GitHub Copilot **cloud agent** has a ready environment — not
+> a generic stub. After the first scaffold it's yours; `compile`/`update` won't overwrite it.
+> (With `--skip-agent`, a heuristic scaffold is generated as a fallback.)
+
 ## What gets installed
 
 | Principle | Artifact |
@@ -86,7 +92,9 @@ the generated files. Commit them so remote agents (and teammates' tools) pick th
 
 ## Evaluating the harness itself
 
-This is a first-class feature, not an afterthought. Every installed harness includes two layers:
+This is a first-class feature, not an afterthought — and it's **repo-specific and runnable by you**.
+The eval kit installs into your repo (`.agentrig/eval/`) and is tailored to it during `init`, so you
+can measure whether AgentRig actually helps *here*. Two layers:
 
 - **Static audit (deterministic, no model).** Maps each principle to a structural check in
   `.agentrig/eval/checks.json`, scored `0 / 0.5 / 1.0`, producing a **Harness Score**.
@@ -98,20 +106,29 @@ This is a first-class feature, not an afterthought. Every installed harness incl
 
 - **Dynamic behavioral eval (agentic, independent judge).** Runs benchmark scenarios
   (`.agentrig/eval/scenarios/*.md`) through the harness and scores the results with an **independent
-  judge model**. Scoring is rigorous, modeled on epichan: a registry (`axes.json`) of bounded
-  **issue codes per axis**, strict `0/0.5/1.0` tiers, mandatory evidence, confidence-gated rollups
-  recomputed from the axis data, and three **lifecycle rubrics** (`spec` / `run` / `review`) linked
-  by task id. `score.mjs` validates everything and never lets a judge invent codes.
+  judge model**. Scoring is rigorous: a registry (`axes.json`) of bounded **issue codes per axis**,
+  strict `0/0.5/1.0` tiers, mandatory evidence, confidence-gated rollups recomputed from the axis
+  data, and three **lifecycle rubrics** (`spec` / `run` / `review`). `score.mjs` validates everything
+  and never lets a judge invent codes. Runs are sandboxed (no push, no PR, no merge).
 
   ```bash
   agentrig eval --dynamic --scenario add-small-feature --timeout 60
   node .agentrig/eval/score.mjs report
-  node .agentrig/eval/score.mjs compare --scenario add-small-feature   # A/B a harness change
   ```
 
-  Run the **same scenario** before and after a prompt/skill/rule change under different
-  `--variant`s, then `compare` — a change that lowers the score is a regression even if it "feels"
-  better. Runs are sandboxed (`eval/sandbox/eval-rules.md`): no push, no PR, no merge.
+### Does the harness actually help? (harness lift)
+
+Prove the harness earns its keep in *your* repo by running a scenario **with** and **without** it:
+
+```bash
+agentrig eval --dynamic --scenario <id> --variant harness    # harness ON
+agentrig eval --dynamic --scenario <id> --variant baseline   # bare agent, no AGENTS.md/rules/skills
+node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
+```
+
+`compare --baseline` prints the per-axis and aggregate **delta** with a `HELPS`/`HURTS` verdict — so
+you can see, and track over time, whether installing AgentRig measurably improves agent behavior here
+(and whether each rule/skill/prompt change is a real improvement or a regression).
 
 ## Dashboard
 
@@ -153,7 +170,7 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 | `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces |
 | `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote) |
 | `agentrig update [path]` | Re-sync the latest best practices (re-compiles surfaces) |
-| `agentrig eval [path] [--static\|--dynamic] [--min N] [--json]` | Evaluate the harness |
+| `agentrig eval [path] [--static\|--dynamic] [--scenario id] [--variant name] [--min N]` | Evaluate the harness (incl. harness-lift) |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
 
