@@ -1,5 +1,14 @@
 # @doidor/agentrig
 
+## 0.8.0
+
+### Minor Changes
+
+- [#6](https://github.com/doidor/agentrig/pull/6) [`b85dced`](https://github.com/doidor/agentrig/commit/b85dced9616811a2f9f618bfa6cea7beef1b28d1) Thanks [@doidor](https://github.com/doidor)! - First public release as the scoped package `@doidor/agentrig`: a meta-harness CLI that installs
+  best-practice agent harnesses into any repo and projects them to every agent surface (local +
+  remote). Includes automated Changesets releases with npm provenance, Node >= 22, and CI/release
+  status badges.
+
 ## 0.7.0
 
 ### Minor Changes
