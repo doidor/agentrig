@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { writeState, readState, type AgentRigState } from "../core/state.js";
 import { loadManifest } from "../core/knowledge.js";
 import { install, baseVars } from "../core/install.js";
@@ -19,6 +21,11 @@ export interface InitOptions {
   yes?: boolean;
   verbose?: boolean;
   skipAgent?: boolean;
+  /**
+   * Overwrite existing files at the destination. Off by default: `init` is non-destructive
+   * and preserves any AGENTS.md / .agents/rules / .mcp.json the user already has.
+   */
+  force?: boolean;
 }
 
 export async function initCommand(repoRoot: string, options: InitOptions): Promise<number> {
@@ -30,7 +37,16 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
   if (options.dryRun) {
     const { plan } = install(repoRoot, manifest, { dryRun: true });
     log.step("dry run — would install:");
-    for (const item of plan) log.info(`  ${color.dim(`P${item.principle}`)} ${item.dest} (${item.kind})`);
+    const preservedPreview: string[] = [];
+    for (const item of plan) {
+      const exists = item.kind !== "dir" && existsSync(join(repoRoot, item.dest));
+      const status = exists ? (options.force ? color.yellow("(OVERWRITE)") : color.dim("(preserve existing)")) : color.dim("(new)");
+      if (exists && !options.force) preservedPreview.push(item.dest);
+      log.info(`  ${color.dim(`P${item.principle}`)} ${item.dest} ${status}`);
+    }
+    if (preservedPreview.length) {
+      log.info(color.dim(`\n  ${preservedPreview.length} existing file(s) would be preserved; pass --force to overwrite.`));
+    }
     log.info("\n  Agent prompts that would run:");
     log.info(color.dim("  1) investigate → .agentrig/context.md"));
     log.info(color.dim("  2) tailor AGENTS.md / rules / scenarios to the repo"));
@@ -65,9 +81,17 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
   }
 
   // Phase 2: deterministic install of the canonical harness (guarantees a baseline + passing audit).
-  log.step("installing canonical harness artifacts…");
-  const { installed } = install(repoRoot, manifest, { vars: baseVars(repoRoot) });
-  log.ok(`installed ${installed.length} artifacts`);
+  // Preserve any existing user content by default (AGENTS.md, .mcp.json, .agents/rules/, etc.).
+  // `--force` opts into the original overwriting behavior.
+  log.step(options.force ? "installing canonical harness artifacts (overwriting existing)…" : "installing canonical harness artifacts (preserving existing files)…");
+  const { installed, preserved } = install(repoRoot, manifest, { vars: baseVars(repoRoot), preserve: !options.force });
+  log.ok(`installed ${installed.length} artifact(s)`);
+  if (preserved.length) {
+    log.info(color.dim(`  preserved ${preserved.length} existing file(s) — pass --force to overwrite:`));
+    const shown = preserved.slice(0, 10);
+    for (const p of shown) log.info(color.dim(`    · ${p}`));
+    if (preserved.length > shown.length) log.info(color.dim(`    · …and ${preserved.length - shown.length} more`));
+  }
 
   // Mirror the canonical source to every vendor surface (.claude/.copilot/.opencode/.codex).
   const surfaces = linkSurfaces(repoRoot);

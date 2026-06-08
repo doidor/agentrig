@@ -42,6 +42,13 @@ export function addOnlyCopy(repoRoot: string, src: string, dest: string, mode?: 
 export interface InstallOptions {
   dryRun?: boolean;
   vars?: Record<string, string>;
+  /**
+   * When true (the default), existing destination files are left untouched and reported in
+   * `preserved`. This makes `init` safe to run on a repo that already has agent content. Set
+   * to false to clobber existing files (`init --force`, or `update` for overwrite-policy
+   * artifacts where refreshing is the whole point).
+   */
+  preserve?: boolean;
 }
 
 export interface InstallPlanItem {
@@ -54,6 +61,8 @@ export interface InstallPlanItem {
 export interface InstallResult {
   installed: InstalledArtifact[];
   plan: InstallPlanItem[];
+  /** Repo-relative paths whose existing content was preserved (skipped). */
+  preserved: string[];
 }
 
 /** Default template variables derived without an agent. The agent fills the rest later. */
@@ -87,11 +96,18 @@ function extractFrontmatterValue(text: string, key: string): string | null {
 /**
  * Deterministically lay down the canonical harness artifacts. This guarantees a baseline harness
  * (and a passing audit) regardless of the agent; the agent then tailors content afterwards.
+ *
+ * By default (`preserve: true`) existing destination files/dirs are left untouched and reported
+ * via `preserved`, so `init` is safe to run on a repo that already has agent content. Pass
+ * `preserve: false` to overwrite everything (used by `init --force` and by `update` for
+ * overwrite-policy machinery refresh).
  */
 export function install(repoRoot: string, manifest: Manifest, options: InstallOptions = {}): InstallResult {
   const vars = { SKILLS_INVENTORY: skillsInventory(manifest), ...(options.vars ?? baseVars(repoRoot)) };
+  const preserve = options.preserve !== false;
   const installed: InstalledArtifact[] = [];
   const plan: InstallPlanItem[] = [];
+  const preserved: string[] = [];
   const now = new Date().toISOString();
 
   for (const artifact of manifest.artifacts) {
@@ -102,11 +118,28 @@ export function install(repoRoot: string, manifest: Manifest, options: InstallOp
     const dest = join(repoRoot, artifact.dest);
 
     if (artifact.kind === "template") {
+      if (preserve && existsSync(dest)) {
+        preserved.push(artifact.dest);
+        continue;
+      }
       const text = readText(src);
       if (text == null) throw new Error(`template source missing: ${artifact.src}`);
       ensureDir(join(dest, ".."));
       writeFileSync(dest, substitute(text, vars));
+    } else if (artifact.kind === "dir") {
+      if (preserve) {
+        // Recursively copy only files that don't already exist; report the rest as preserved.
+        const addOnly = addOnlyCopy(repoRoot, src, dest, artifact.mode);
+        if (addOnly.drifted.length) preserved.push(...addOnly.drifted);
+      } else {
+        copyPath(src, dest, artifact.mode);
+      }
     } else {
+      // kind: "file"
+      if (preserve && existsSync(dest)) {
+        preserved.push(artifact.dest);
+        continue;
+      }
       copyPath(src, dest, artifact.mode);
     }
 
@@ -118,5 +151,5 @@ export function install(repoRoot: string, manifest: Manifest, options: InstallOp
     });
   }
 
-  return { installed, plan };
+  return { installed, plan, preserved };
 }

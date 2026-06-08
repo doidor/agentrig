@@ -188,14 +188,14 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 
 | Command | Description |
 |---------|-------------|
-| `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces |
+| `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces. **Non-destructive by default** — preserves existing AGENTS.md / .mcp.json / .agents/rules; `--force` to overwrite |
 | `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote) |
 | `agentrig update [path]` | Re-sync the latest best practices (re-compiles surfaces) |
 | `agentrig eval [path] [--static\|--rubric] [--scenario id] [--variant name]` | Evaluate the harness (default: agentic; `--rubric` shows what's measured) |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
 
-Common options: `--model <id>`, `--dry-run`, `--skip-agent`, `--verbose`.
+Common options: `--model <id>`, `--dry-run`, `--skip-agent`, `--force` (init only), `--verbose`.
 Set `AGENTRIG_PROVIDER` to choose the agent backend (default `copilot`).
 
 ## Requirements
