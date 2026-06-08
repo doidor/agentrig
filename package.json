@@ -1,6 +1,6 @@
 {
   "name": "@doidor/agentrig",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "AgentRig — an agentic meta-harness. A CLI that investigates a repository and installs (and evaluates) a best-practice agent harness.",
   "type": "module",
   "bin": {
@@ -37,7 +37,11 @@
     "selftest": "node dist/cli.js eval --static . || true",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "docs:sync": "node scripts/sync-principles-to-docs.mjs",
+    "docs:dev": "npm run docs:sync && markbook dev",
+    "docs:build": "npm run docs:sync && markbook build",
+    "docs:preview": "markbook preview"
   },
   "keywords": [
     "agent",
@@ -64,6 +68,8 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
+    "@doidor/markbook": "^0.1.2",
+    "@doidor/markbook-core": "^0.1.2",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   }

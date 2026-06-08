@@ -2,11 +2,12 @@
 
 [![CI](https://github.com/doidor/agentrig/actions/workflows/ci.yml/badge.svg)](https://github.com/doidor/agentrig/actions/workflows/ci.yml)
 [![Release](https://github.com/doidor/agentrig/actions/workflows/release.yml/badge.svg)](https://github.com/doidor/agentrig/actions/workflows/release.yml)
+[![Docs](https://github.com/doidor/agentrig/actions/workflows/docs.yml/badge.svg)](https://doidor.github.io/agentrig)
 [![npm](https://img.shields.io/npm/v/@doidor/agentrig)](https://www.npmjs.com/package/@doidor/agentrig)
 [![node](https://img.shields.io/node/v/@doidor/agentrig)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**An agentic meta-harness — a harness of harnesses.**
+**An agentic meta-harness — a harness of harnesses.** [Read the docs →](https://doidor.github.io/agentrig)
 
 AgentRig is a lightweight CLI that installs a **best-practice agent harness** into any repository and
 then **projects it into every agent's native format** — so *any* agent benefits without lock-in,
