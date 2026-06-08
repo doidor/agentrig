@@ -190,7 +190,7 @@ Set `AGENTRIG_PROVIDER` to choose the agent backend (default `copilot`).
 
 ## Requirements
 
-- Node.js ≥ 20.
+- Node.js ≥ 22 (Node 20 is EOL; tested on the current LTS lines, 22 and 24).
 - For agentic steps, pick a provider:
   - **Copilot (default):** GitHub Copilot access — sign in once with the `copilot` CLI, or set `GH_TOKEN`.
   - **Claude (`AGENTRIG_PROVIDER=claude`):** install the optional `@anthropic-ai/claude-agent-sdk`

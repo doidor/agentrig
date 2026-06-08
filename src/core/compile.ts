@@ -82,7 +82,7 @@ function detectSetup(repoRoot: string): { name: string; steps: string } {
       steps: `      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "${cache}"
       - name: Install dependencies
         run: ${install}`,
