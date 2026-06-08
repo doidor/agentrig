@@ -1,5 +1,5 @@
 {
-  "name": "agentrig",
+  "name": "@doidor/agentrig",
   "version": "0.5.3",
   "description": "AgentRig — an agentic meta-harness. A CLI that investigates a repository and installs (and evaluates) a best-practice agent harness.",
   "type": "module",
@@ -12,13 +12,16 @@
     "README.md",
     "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/microsoft/agentrig.git"
+    "url": "git+https://github.com/doidor/agentrig.git"
   },
-  "homepage": "https://github.com/microsoft/agentrig#readme",
+  "homepage": "https://github.com/doidor/agentrig#readme",
   "bugs": {
-    "url": "https://github.com/microsoft/agentrig/issues"
+    "url": "https://github.com/doidor/agentrig/issues"
   },
   "engines": {
     "node": ">=22.0.0"

@@ -13,7 +13,9 @@ function loadVersion(): string {
     if (text) {
       try {
         const json = JSON.parse(text) as { name?: string; version?: string };
-        if (json.name === "agentrig" && json.version) return json.version;
+        if (json.version && (json.name === "@doidor/agentrig" || json.name === "agentrig")) {
+          return json.version;
+        }
       } catch {
         /* ignore */
       }

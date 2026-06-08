@@ -1,13 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
-import { makeRepo, cleanup, runCli } from "./helpers.mjs";
+import { existsSync, readFileSync } from "node:fs";
+import { makeRepo, cleanup, runCli, repoRoot } from "./helpers.mjs";
 
-test("--version prints a semver", () => {
+test("--version matches package.json (and is a semver)", () => {
   const r = runCli(["--version"]);
   assert.equal(r.status, 0);
   assert.match(r.stdout.trim(), /^\d+\.\d+\.\d+$/);
+  const pkg = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
+  assert.equal(r.stdout.trim(), pkg.version, "CLI --version must equal package.json version");
 });
 
 test("--help exits 0 and lists commands", () => {

@@ -16,11 +16,14 @@ You keep **one** source of truth (`AGENTS.md` + rules + skills); AgentRig compil
 evolve, and ships a way to **evaluate the harness itself**.
 
 ```bash
-npx agentrig init        # investigate this repo, install a tailored harness, compile all surfaces
-npx agentrig compile     # re-project AGENTS.md + rules into every agent surface (local + remote)
-npx agentrig eval        # score the harness (deterministic, no model needed)
-npx agentrig update      # pull in the latest best practices
+npx @doidor/agentrig init        # investigate this repo, install a tailored harness, compile all surfaces
+npx @doidor/agentrig compile     # re-project AGENTS.md + rules into every agent surface (local + remote)
+npx @doidor/agentrig eval        # score the harness (deterministic, no model needed)
+npx @doidor/agentrig update      # pull in the latest best practices
 ```
+
+> Or install it globally — `npm i -g @doidor/agentrig` — and run `agentrig <command>`.
+> Examples below use the `agentrig` command for brevity.
 
 ---
 
@@ -204,6 +207,11 @@ imported under `src/agent/`. Two backends ship today, selected by `AGENTRIG_PROV
 - `copilot` (default) — `CopilotProvider` on `@github/copilot-sdk`.
 - `claude` — `ClaudeProvider` on the optional `@anthropic-ai/claude-agent-sdk` (`query()` + session
   resume for multi-turn context). Install the SDK and set `ANTHROPIC_API_KEY` to use it.
+
+## Releasing
+
+Publishing to npm is automated via GitHub Actions on each published GitHub Release — see
+[`RELEASING.md`](RELEASING.md) (requires an `NPM_TOKEN` repo secret).
 
 ## License
 
