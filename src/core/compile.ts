@@ -17,29 +17,22 @@ interface Rule {
   body: string;
 }
 
-/** Extract a section from AGENTS.md: prefer the AGENTRIG marker block, fall back to a `## Heading`. */
-function extractAgentsSection(text: string, marker: string, heading: string): string {
-  const start = `<!-- AGENTRIG:${marker}:start -->`;
-  const end = `<!-- AGENTRIG:${marker}:end -->`;
-  const si = text.indexOf(start);
-  const ei = text.indexOf(end);
-  if (si >= 0 && ei > si) return text.slice(si + start.length, ei).trim();
-  // Heading fallback: from "## <heading>" to the next "## ".
-  const h = new RegExp(`^##\\s+${heading}.*$`, "mi");
-  const m = h.exec(text);
-  if (!m) return "";
-  const after = text.slice(m.index + m[0].length);
-  const nextH = after.search(/^##\s+/m);
-  return (nextH < 0 ? after : after.slice(0, nextH)).trim();
-}
-
-/** Drop lines still containing unfilled {{PLACEHOLDER}} template tokens. */
-function dropPlaceholders(text: string): string {
-  return text
+/**
+ * Project the full AGENTS.md body for downstream surfaces:
+ *  - drop the H1 title (the projected file supplies its own),
+ *  - strip the `<!-- AGENTRIG:…:start/end -->` marker comments (they're for AGENTS.md update-protection),
+ *  - drop lines that still contain unfilled `{{PLACEHOLDER}}` template tokens,
+ *  - collapse the blank-line runs created by stripping markers.
+ * Anything the user adds to AGENTS.md flows through unchanged.
+ */
+function projectAgentsBody(agents: string): string {
+  const noTitle = agents.replace(/^#\s+.*\n+/, "");
+  const noMarkers = noTitle.replace(/<!--\s*AGENTRIG:[\w-]+:(start|end)\s*-->/g, "");
+  const noPlaceholders = noMarkers
     .split("\n")
     .filter((l) => !/\{\{[A-Z0-9_]+\}\}/.test(l))
-    .join("\n")
-    .trim();
+    .join("\n");
+  return noPlaceholders.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function parseGlobs(raw: string | undefined): string[] {
@@ -137,21 +130,19 @@ export function compileSurfaces(repoRoot: string): CompileResult {
     return result;
   }
   const agents = readFileSync(agentsPath, "utf8");
-  const critical = extractAgentsSection(agents, "critical-rules", "Critical Rules");
-  const context = dropPlaceholders(extractAgentsSection(agents, "context", "What this repository is"));
+  const body = projectAgentsBody(agents);
   const rules = loadRules(repoRoot);
 
   // --- GitHub Copilot (remote coding agent + IDE): repo-wide custom instructions ---
+  // Mirror the full AGENTS.md body so anything the user adds there flows through.
   write(repoRoot, ".github/copilot-instructions.md", [
     GEN_MD,
     "",
     "# Copilot instructions",
     "",
-    critical || "See AGENTS.md for the project's agent instructions.",
+    body || "See AGENTS.md for the project's agent instructions.",
     "",
-    context ? "## About this repository\n\n" + context + "\n" : "",
-    "The full agent guide is in [AGENTS.md](../AGENTS.md). Path-specific rules live in",
-    "`.github/instructions/`.",
+    "_Path-specific rules live in `.github/instructions/`._",
   ].join("\n"), result);
 
   // --- GitHub path-scoped instructions, one per rule (applyTo = the rule's globs) ---
@@ -181,7 +172,8 @@ export function compileSurfaces(repoRoot: string): CompileResult {
     ].join("\n"), result);
   }
 
-  // --- Claude Code: CLAUDE.md imports AGENTS.md + inlines the critical rules ---
+  // --- Claude Code: CLAUDE.md @-imports AGENTS.md (Claude resolves natively) and inlines the full
+  // body so tools that read CLAUDE.md directly also see everything in AGENTS.md.
   write(repoRoot, "CLAUDE.md", [
     GEN_MD,
     "",
@@ -189,7 +181,7 @@ export function compileSurfaces(repoRoot: string): CompileResult {
     "",
     "@AGENTS.md",
     "",
-    critical ? "## Critical rules\n\n" + critical : "",
+    body,
   ].join("\n"), result);
 
   // --- MCP: project .mcp.json to the surfaces that read their own location ---
