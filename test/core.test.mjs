@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync, appendFileSync, rmSync, readFileSync, lstatSync } from "node:fs";
+import { existsSync, writeFileSync, appendFileSync, rmSync, readFileSync, lstatSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { makeRepo, cleanup, repoRoot, freshInstall } from "./helpers.mjs";
 
@@ -91,5 +91,72 @@ test("skillsInventory lists installed skills from the manifest", () => {
   const inv = skillsInventory(loadManifest());
   for (const name of ["self-verify", "harness-eval", "verify-loop", "skill-authoring"]) {
     assert.ok(inv.includes(`\`${name}\``), `inventory should mention ${name}`);
+  }
+});
+
+test("install (preserve: true, default) keeps an existing AGENTS.md and reports it", () => {
+  const dir = makeRepo();
+  try {
+    const myAgentsBody = "# My curated AGENTS.md\n\nThis must not be overwritten.\n";
+    writeFileSync(join(dir, "AGENTS.md"), myAgentsBody);
+    const { preserved } = install(dir, loadManifest(), { vars: baseVars(dir) });
+    assert.equal(readFileSync(join(dir, "AGENTS.md"), "utf8"), myAgentsBody, "AGENTS.md content must be preserved verbatim");
+    assert.ok(preserved.includes("AGENTS.md"), "AGENTS.md should be reported as preserved");
+    assert.ok(existsSync(join(dir, ".mcp.json")), "non-existing artifacts should still be installed");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("install (preserve: true) keeps an existing .mcp.json", () => {
+  const dir = makeRepo();
+  try {
+    const myMcp = '{"mcpServers": {"custom": {"command": "my-server"}}}';
+    writeFileSync(join(dir, ".mcp.json"), myMcp);
+    const { preserved } = install(dir, loadManifest(), { vars: baseVars(dir) });
+    assert.equal(readFileSync(join(dir, ".mcp.json"), "utf8"), myMcp);
+    assert.ok(preserved.includes(".mcp.json"));
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("install (preserve: true) for a directory artifact keeps existing files but adds missing ones", () => {
+  const dir = makeRepo();
+  try {
+    const myRulePath = join(dir, ".agents/rules/my-team-rule.md");
+    const canonicalRulePath = join(dir, ".agents/rules/security.md");
+    const userPath = join(dir, ".agents/rules/coding-standards.md");
+    const userBody = "---\ndescription: my override\n---\n\n# my override\n";
+    // Pre-existing user content under a directory artifact's destination:
+    //   - my-team-rule.md is something only the user has
+    //   - coding-standards.md is something the canonical set ALSO has — user version should win
+    mkdirSync(join(dir, ".agents/rules"), { recursive: true });
+    writeFileSync(myRulePath, "# my team rule\n");
+    writeFileSync(userPath, userBody);
+    const { preserved } = install(dir, loadManifest(), { vars: baseVars(dir) });
+    // The user's bespoke file must remain untouched.
+    assert.equal(readFileSync(myRulePath, "utf8"), "# my team rule\n");
+    // The user's override of a canonical file must win.
+    assert.equal(readFileSync(userPath, "utf8"), userBody, "user override must beat canonical");
+    assert.ok(preserved.some((p) => p.endsWith("coding-standards.md")), "user override should be reported as preserved");
+    // The canonical file the user did NOT touch is still installed.
+    assert.ok(existsSync(canonicalRulePath), "canonical rules the user didn't override should be installed");
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("install (preserve: false) overwrites an existing AGENTS.md (i.e. `init --force` behavior)", () => {
+  const dir = makeRepo();
+  try {
+    writeFileSync(join(dir, "AGENTS.md"), "# my curated file\n");
+    const { preserved } = install(dir, loadManifest(), { vars: baseVars(dir), preserve: false });
+    const newBody = readFileSync(join(dir, "AGENTS.md"), "utf8");
+    assert.notEqual(newBody, "# my curated file\n", "AGENTS.md must be overwritten when preserve is false");
+    assert.match(newBody, /AGENTS/i, "must be the canonical template");
+    assert.equal(preserved.length, 0, "nothing should be reported as preserved");
+  } finally {
+    cleanup(dir);
   }
 });

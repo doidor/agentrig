@@ -15,6 +15,8 @@ npx @doidor/agentrig init
 
 That's it. One command turns a cold repo into one where Copilot (web + IDE), Claude Code, Cursor, Codex, OpenCode — *and* whatever you'll switch to next year — all read from the same canonical source and follow the same rules.
 
+> **Safe to run on existing repos.** `init` is non-destructive by default — if you already have an `AGENTS.md`, `.mcp.json`, or hand-tailored rules, those are preserved verbatim. The canonical machinery is still installed around what you have, and your existing `AGENTS.md` is compiled into every agent surface. Pass `--force` to overwrite. ([details →](./getting-started.html#adopting-agentrig-in-a-repo-that-already-has-an-agent-harness))
+
 ## Why a meta-harness?
 
 Most teams pick one agent ("we use Claude Code") and write a `CLAUDE.md` for it. Then someone joins who prefers Cursor. Then GitHub Copilot grows a coding-agent. Then the third agent gets a `.cursor/rules/` directory that drifts from `CLAUDE.md`. Then nobody knows which file an agent will actually read.

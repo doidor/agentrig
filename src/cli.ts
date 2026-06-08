@@ -61,7 +61,10 @@ const HELP = `${color.bold("agentrig")} — an agentic meta-harness (a harness o
 ${color.bold("Usage:")} agentrig <command> [path] [options]
 
 ${color.bold("Commands:")}
-  init [path]      Investigate the repo and install a best-practice agent harness
+  init [path]      Investigate the repo and install a best-practice agent harness.
+                     Non-destructive by default — existing AGENTS.md, .mcp.json, rules,
+                     skills, wiki entries, etc. are preserved.
+                     --force    overwrite existing user content with the canonical templates
   update [path]    Re-sync the latest best practices into an existing harness
                      --diff     show how your preserved files differ from canonical
   compile [path]   Project AGENTS.md + rules into every agent surface (local + remote):
@@ -81,6 +84,7 @@ ${color.bold("Commands:")}
 ${color.bold("Options:")}
   --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.5, gpt-5)
   --dry-run        Show what would happen without writing or calling the model
+  --force          (init) overwrite existing user files (off by default; init is non-destructive)
   --skip-agent     Install/update the canonical harness without the agentic steps
   --static         (eval) deterministic audit only
   --dynamic        (eval) run dynamic behavioral eval
@@ -126,6 +130,7 @@ async function main(): Promise<number> {
           yes: Boolean(flags.yes),
           verbose: Boolean(flags.verbose),
           skipAgent: Boolean(flags["skip-agent"]),
+          force: Boolean(flags.force),
         });
       case "update":
         return await updateCommand(repoRoot, {

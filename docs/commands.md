@@ -14,7 +14,7 @@ npx @doidor/agentrig <command> [path] [options]
 
 ## `init`
 
-Investigate the repo and install a best-practice agent harness.
+Investigate the repo and install a best-practice agent harness. **Non-destructive by default** — if you already have an `AGENTS.md`, `.mcp.json`, custom rules in `.agents/rules/`, etc., those are preserved and reported in the summary. Pass `--force` to opt into overwriting.
 
 ```bash
 npx @doidor/agentrig init [path]
@@ -22,13 +22,14 @@ npx @doidor/agentrig init [path]
 
 | Flag | Purpose |
 | --- | --- |
+| `--force` | Overwrite existing user content with the canonical templates. Off by default — `init` is safe to run on a repo that already has agent content. |
 | `--skip-agent` | Install the canonical harness deterministically — no agentic exploration. Use in CI or for reproducible installs. |
-| `--dry-run` | Print every file that would be written, without writing. |
+| `--dry-run` | Print every file that would be written or preserved, without writing. Shows `(new)`, `(preserve existing)`, or `(OVERWRITE)` per file. |
 | `--yes` | Non-interactive (skips all confirmation prompts). |
 | `--model <id>` | Model for the agentic investigation (e.g. `claude-sonnet-4.5`, `gpt-5`). |
 | `--verbose` | Stream the agent's exploration as it runs. |
 
-What lands in the repo: a full `.agentrig/`, `.agents/`, `AGENTS.md`, `.mcp.json`, projected surfaces for every agent ecosystem, plus a stack-aware `copilot-setup-steps.yml`. See [agent surfaces →](./agent-surfaces.html).
+What lands in the repo: a full `.agentrig/`, `.agents/`, `AGENTS.md` (unless preserved), `.mcp.json` (unless preserved), projected surfaces for every agent ecosystem, plus a stack-aware `copilot-setup-steps.yml`. See [agent surfaces →](./agent-surfaces.html).
 
 ## `update`
 
