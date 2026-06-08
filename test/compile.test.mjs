@@ -67,6 +67,27 @@ test("CLAUDE.md imports AGENTS.md", () => {
   }
 });
 
+test("compile mirrors arbitrary AGENTS.md additions into copilot-instructions.md and CLAUDE.md", () => {
+  const dir = freshInstall();
+  try {
+    appendFileSync(
+      join(dir, "AGENTS.md"),
+      "\n## My custom section\n\nUNIQUE_AGENTS_MARKER lives only in AGENTS.md before compile.\n",
+    );
+    compileSurfaces(dir);
+    const copilot = readFileSync(join(dir, ".github/copilot-instructions.md"), "utf8");
+    const claude = readFileSync(join(dir, "CLAUDE.md"), "utf8");
+    assert.match(copilot, /My custom section/);
+    assert.match(copilot, /UNIQUE_AGENTS_MARKER/);
+    assert.match(claude, /My custom section/);
+    assert.match(claude, /UNIQUE_AGENTS_MARKER/);
+    assert.doesNotMatch(copilot, /<!--\s*AGENTRIG:[\w-]+:(start|end)\s*-->/);
+    assert.doesNotMatch(claude, /<!--\s*AGENTRIG:[\w-]+:(start|end)\s*-->/);
+  } finally {
+    cleanup(dir);
+  }
+});
+
 test(".vscode/mcp.json uses the VS Code `servers` key", () => {
   const dir = freshInstall();
   try {
