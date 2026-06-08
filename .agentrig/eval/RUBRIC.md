@@ -69,6 +69,19 @@ under a `--variant`. `score.mjs compare` puts them side by side. **A change that
 a regression even if it "feels" better.** For deeper diffing, keep each run's `diff.patch` /
 `output` artifacts next to the score (see the `harness-eval` skill).
 
+### Harness lift — does it actually help? (with vs without)
+Prove the harness earns its keep in *your* repo by comparing a harness-on run to a harness-off
+baseline:
+
+```bash
+agentrig eval --dynamic --scenario <id> --variant harness    # harness ON
+agentrig eval --dynamic --scenario <id> --variant baseline   # bare agent, no AGENTS.md/rules/skills
+node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
+```
+
+`compare --baseline` prints the per-axis and aggregate **delta** and a `HELPS`/`HURTS` verdict. A
+positive aggregate delta means installing AgentRig improved agent behavior here.
+
 ### Threshold
 A scenario passes if its aggregate ≥ **0.8** (`passThreshold` in `axes.json`) with no observed axis
 at 0.

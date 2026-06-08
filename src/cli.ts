@@ -70,6 +70,7 @@ ${color.bold("Commands:")}
                      --static   (default) deterministic structural audit, no model
                      --dynamic  run benchmark scenarios via the agent + judge
                      --scenario <id>   run one scenario only (e.g. fix-failing-test)
+                     --variant <name>  label this run (use 'baseline' for a harness-OFF trial)
                      --timeout <min>   absolute cap per agent turn (default 45)
   doctor [path]    Quick health check (installed? agent reachable? score?)
   dashboard [path] Show agent roster, live GitHub tasks, harness score, and evals
@@ -141,6 +142,7 @@ async function main(): Promise<number> {
           ...(model ? { model } : {}),
           ...(flags.min != null ? { min: Number(flags.min) } : {}),
           ...(typeof flags.scenario === "string" ? { scenario: flags.scenario } : {}),
+          ...(typeof flags.variant === "string" ? { variant: flags.variant } : {}),
           ...(flags.timeout != null ? { timeoutMinutes: Number(flags.timeout) } : {}),
           verbose: Boolean(flags.verbose),
         });

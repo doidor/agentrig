@@ -52,6 +52,19 @@ repo-specific. Edit **only** the files listed below.
 3. **\`.agentrig/eval/scenarios/\`** — adjust the existing scenario files so the setup/success
    criteria reference this repo's real test/build commands and structure. Do not remove the axis
    lists.
+4. **\`.github/workflows/copilot-setup-steps.yml\`** — author a REAL, repo-specific setup workflow so
+   the GitHub Copilot **cloud/coding agent** has a ready environment (don't leave a generic stub).
+   Base it on your investigation:
+   - A single job named EXACTLY \`copilot-setup-steps\` on \`runs-on: ubuntu-latest\`, with
+     \`permissions: contents: read\`, triggered by \`workflow_dispatch\` + \`push\`/\`pull_request\`
+     filtered to this file.
+   - Steps that install the ACTUAL toolchain + dependencies you found: correct language runtime(s)
+     and version(s) (from \`.nvmrc\`/\`.tool-versions\`/\`engines\`/\`go.mod\`/\`pyproject.toml\`), the
+     correct package manager and install command (e.g. \`npm ci\`/\`pnpm i --frozen-lockfile\`/
+     \`pip install -e .\`/\`go mod download\`), dependency caching, and any system packages or
+     \`services\` (databases, etc.) the build/tests need. Keep it to env setup — not the task itself.
+   If you cannot determine the stack confidently, leave the generated scaffold and note what's
+   missing.
 
 Keep all YAML frontmatter and the AgentRig markers intact. Do not touch the state machine, role
 files, MCP config, or the eval scripts. When finished, summarize exactly which files you changed.`;
@@ -77,14 +90,22 @@ you resolved.`;
 export interface DynamicRunContext {
   runId: string;
   artifactsDir: string;
+  variant?: string;
 }
 
 export function buildDynamicEvalPrompt(scenarioId?: string, run?: DynamicRunContext): string {
   const scope = scenarioId
     ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}.md\``
     : "each scenario in \`.agentrig/eval/scenarios/*.md\`";
+  const variantFlag = run?.variant ? ` --variant ${run.variant}` : "";
+  const baselineNote =
+    run?.variant === "baseline"
+      ? `\n**This is a BASELINE trial (harness OFF).** Perform each task as a bare agent: do NOT read or
+follow \`AGENTS.md\`, \`.agents/rules/\`, \`.agents/skills/\`, or the compiled instruction surfaces.
+Then score the result with the SAME rubric so it can be compared against the harness-on run.\n`
+      : "";
   const runLine = run
-    ? `\nTag every score with \`--run ${run.runId}\`. For each scenario, also save artifacts into
+    ? `\nTag every score with \`--run ${run.runId}${variantFlag}\`. For each scenario, also save artifacts into
 \`${run.artifactsDir}\`: \`diff.patch\` (the produced change, e.g. \`git -C <worktree> diff > ${run.artifactsDir}/<scenario>.diff.patch\`)
 and \`<scenario>.output.md\` (a short transcript/summary). These make regressions inspectable.\n`
     : "";
@@ -92,12 +113,12 @@ and \`<scenario>.output.md\` (a short transcript/summary). These make regression
 
 Run the behavioral evaluation described in \`.agents/skills/harness-eval/SKILL.md\` (Layer B) for
 ${scope}.
-${runLine}
+${baselineNote}${runLine}
 For each scenario, in order:
 1. Execute the scenario task through this repo's harness.
 2. Score the result against \`.agentrig/eval/RUBRIC.md\` as an independent judge. For any axis below
    1.0, record an issue code and one line of evidence.
-3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`${run ? ` --run ${run.runId}` : ""}
+3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`${run ? ` --run ${run.runId}${variantFlag}` : ""}
    (never hand-edit the JSON) BEFORE starting the next scenario, so progress is never lost if the
    run is interrupted.
 4. Keep each scenario focused and time-boxed. If a scenario is taking too long, save your

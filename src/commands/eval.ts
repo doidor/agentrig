@@ -36,6 +36,7 @@ export interface EvalOptions {
   min?: number;
   verbose?: boolean;
   scenario?: string;
+  variant?: string;
   timeoutMinutes?: number;
 }
 
@@ -71,6 +72,7 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   }
   log.ok(`agent ready (${pre.detail})`);
   const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
+  const variant = options.variant ?? null;
 
   // Create a per-run artifacts directory + meta.json (CLI-owned; the agent fills diff/output).
   const runId = `run-${new Date().toISOString().replace(/[:.]/g, "-")}`;
@@ -84,11 +86,12 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
     provider: provider.name,
     model: options.model ?? null,
     scenario: options.scenario ?? "all",
+    variant,
     gitHead: gitHead(repoRoot),
   };
   writeFileSync(join(artifactsDirAbs, "meta.json"), JSON.stringify(meta, null, 2));
 
-  log.step(`running dynamic harness evaluation — ${scopeLabel} (this calls the model)…`);
+  log.step(`running dynamic harness evaluation — ${scopeLabel}${variant ? ` [variant: ${variant}]` : ""} (this calls the model)…`);
   log.info(color.dim(`  Run ${runId}; scores + artifacts under ${artifactsDirRel}/`));
   log.info(color.dim("  Live activity below; this can take many minutes.\n"));
 
@@ -103,7 +106,7 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   const convo = await provider.startConversation(conversationOptions);
   let timedOut = false;
   try {
-    const summary = await convo.send(buildDynamicEvalPrompt(options.scenario, { runId, artifactsDir: artifactsDirRel }));
+    const summary = await convo.send(buildDynamicEvalPrompt(options.scenario, { runId, artifactsDir: artifactsDirRel, ...(variant ? { variant } : {}) }));
     monitor.stop();
     log.info("\n" + summary);
   } catch (err) {

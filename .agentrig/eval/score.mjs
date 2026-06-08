@@ -127,7 +127,7 @@ if (cmd === "report" || cmd === "compare") {
   const records = loadRecords();
 
   if (cmd === "compare") {
-    compare(records, getOpt(args, "--scenario"), asJson);
+    compare(records, getOpt(args, "--scenario"), asJson, getOpt(args, "--baseline"));
     process.exit(0);
   }
 
@@ -201,7 +201,7 @@ function loadRecords() {
   return out;
 }
 
-function compare(records, scenario, asJson) {
+function compare(records, scenario, asJson, baseline) {
   if (!scenario) fail("compare requires --scenario <id>");
   const forScenario = records.filter((r) => r.scenario === scenario);
   const latestByVariant = new Map();
@@ -209,15 +209,49 @@ function compare(records, scenario, asJson) {
     latestByVariant.set(r.variant || "base", r);
   }
   const variants = [...latestByVariant.values()];
+
+  // Harness-lift mode: delta of every other variant vs the baseline.
+  let lift = null;
+  if (baseline) {
+    const base = latestByVariant.get(baseline);
+    if (!base) fail(`no results for baseline variant "${baseline}" on scenario "${scenario}"`);
+    lift = variants
+      .filter((r) => (r.variant || "base") !== baseline)
+      .map((r) => {
+        const axisDelta = {};
+        const baseAxes = Object.fromEntries((base.axes || []).filter((a) => a.confidence > 0).map((a) => [a.name, a.score]));
+        for (const a of (r.axes || []).filter((a) => a.confidence > 0)) {
+          if (baseAxes[a.name] !== undefined) axisDelta[a.name] = round(a.score - baseAxes[a.name]);
+        }
+        return { variant: r.variant || "base", aggregateDelta: round(r.aggregate - base.aggregate), axisDelta };
+      });
+  }
+
   if (asJson) {
-    console.log(JSON.stringify({ scenario, variants: variants.map((r) => ({ variant: r.variant || "base", aggregate: r.aggregate, pass: r.pass, judge: r.judge, categoryScores: r.categoryScores })) }, null, 2));
+    console.log(JSON.stringify({
+      scenario,
+      variants: variants.map((r) => ({ variant: r.variant || "base", aggregate: r.aggregate, pass: r.pass, judge: r.judge, categoryScores: r.categoryScores })),
+      ...(lift ? { baseline, lift } : {}),
+    }, null, 2));
     process.exit(0);
   }
+
   console.log(`AgentRig — variant comparison for "${scenario}"\n`);
   if (variants.length === 0) console.log("  No results for that scenario.");
   for (const r of variants) {
     console.log(`  ${(r.variant || "base").padEnd(12)} ${r.aggregate.toFixed(2)} ${r.pass ? "PASS" : "FAIL"}  (${r.judge})`);
     for (const [c, s] of Object.entries(r.categoryScores || {})) console.log(`      ${c.padEnd(20)} ${s.toFixed(2)}`);
+  }
+  if (lift) {
+    console.log(`\n  Harness lift vs baseline "${baseline}":`);
+    for (const l of lift) {
+      const sign = l.aggregateDelta > 0 ? "+" : "";
+      const verdict = l.aggregateDelta > 0 ? "HELPS" : l.aggregateDelta < 0 ? "HURTS" : "no change";
+      console.log(`    ${l.variant.padEnd(12)} aggregate ${sign}${l.aggregateDelta.toFixed(2)}  → harness ${verdict}`);
+      for (const [name, d] of Object.entries(l.axisDelta)) {
+        if (d !== 0) console.log(`        ${name.padEnd(20)} ${d > 0 ? "+" : ""}${d.toFixed(2)}`);
+      }
+    }
   }
   process.exit(0);
 }

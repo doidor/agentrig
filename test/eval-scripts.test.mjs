@@ -77,6 +77,22 @@ test("score.mjs report --json uses the results shape and compare groups variants
   }
 });
 
+test("compare --baseline computes harness lift (HELPS/HURTS delta)", () => {
+  const dir = freshInstall();
+  try {
+    runNode(score(dir), ["save", "--type", "run", "--scenario", "s", "--variant", "harness", "--judge", "m", "--axis", "correctness=1.0"], dir);
+    runNode(score(dir), ["save", "--type", "run", "--scenario", "s", "--variant", "baseline", "--judge", "m", "--axis", "correctness=0.5:OQ-CORRECT-PARTIAL:x"], dir);
+    const cmp = runNode(score(dir), ["compare", "--scenario", "s", "--baseline", "baseline", "--json"], dir);
+    const j = JSON.parse(cmp.stdout);
+    assert.equal(j.baseline, "baseline");
+    const harnessLift = j.lift.find((l) => l.variant === "harness");
+    assert.equal(harnessLift.aggregateDelta, 0.5, "harness should beat baseline by 0.5");
+    assert.equal(harnessLift.axisDelta.correctness, 0.5);
+  } finally {
+    cleanup(dir);
+  }
+});
+
 test("installed static-audit.mjs reports 100%", () => {
   const dir = freshInstall();
   try {

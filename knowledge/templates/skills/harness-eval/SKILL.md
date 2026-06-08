@@ -61,3 +61,23 @@ node .agentrig/eval/score.mjs compare --scenario <id>
 
 A change that lowers the aggregate is a regression even if it "feels" better. A static score < 1.0
 on a principle points at a missing/weak artifact — fix the artifact, then re-audit.
+
+## Does the harness actually help? (with vs without)
+The most important question for a consumer: *does installing AgentRig's harness make agents better
+in THIS repo?* Measure it by running the same scenarios twice and comparing:
+
+```bash
+# 1) Harness ON (the agent uses AGENTS.md + rules + skills as installed)
+agentrig eval --dynamic --scenario <id> --variant harness
+
+# 2) Baseline — harness OFF (a bare agent; ignore AGENTS.md/.agents/instructions surfaces)
+agentrig eval --dynamic --scenario <id> --variant baseline
+
+# 3) Report the lift (per-axis + aggregate delta + a HELPS/HURTS verdict)
+node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
+```
+
+For a rigorous baseline, run the harness-off trial in a sandbox/worktree with the harness + compiled
+surfaces moved aside (`AGENTS.md`, `.agents/`, `.github/instructions/`, `CLAUDE.md`, `.cursor/`), so
+the agent genuinely has no harness guidance. A positive aggregate delta means the harness helps in
+this repo; track it over time as you tune rules/skills/prompts.
