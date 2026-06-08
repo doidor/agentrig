@@ -216,8 +216,17 @@ imported under `src/agent/`. Two backends ship today, selected by `AGENTRIG_PROV
 
 ## Releasing
 
-Publishing to npm is automated via GitHub Actions on each published GitHub Release — see
-[`RELEASING.md`](RELEASING.md) (requires an `NPM_TOKEN` repo secret).
+Releases are automated by [Changesets](https://github.com/changesets/changesets) +
+[`.github/workflows/release.yml`](.github/workflows/release.yml). The day-to-day flow:
+
+1. `npx changeset` → pick **patch/minor/major** + a one-line summary; commit it with your PR.
+2. Merge to `main` → the workflow opens a **"Version Packages"** PR that bumps the version and
+   updates `CHANGELOG.md`.
+3. Merge that PR → the workflow publishes `@doidor/agentrig` to npm **tokenlessly via OIDC**
+   (npm Trusted Publishing), with **automatic provenance**, and pushes the `vX.Y.Z` git tag.
+
+No `NPM_TOKEN` secret, no manual `npm version`/`npm publish`. Setup (Trusted Publisher on
+npmjs.com, Actions PR permission) is in [`RELEASING.md`](RELEASING.md).
 
 ## License
 
