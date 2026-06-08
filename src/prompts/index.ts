@@ -106,32 +106,3 @@ For each scenario, in order:
 When every scenario in scope is scored, run \`node .agentrig/eval/score.mjs report\` and summarize
 the aggregate, calling out the weakest axes.`;
 }
-
-export interface IssueContext {
-  number: number;
-  title: string;
-  body: string;
-}
-
-export function buildImplementPrompt(issue: IssueContext, maxDiffChars: number): string {
-  return `# Task — implement issue #${issue.number}: ${issue.title}
-
-You are the **developer** agent in this repository's harness. Your current working directory is an
-isolated git worktree on branch \`agentrig/issue-${issue.number}\`. Implement the issue below.
-
-## Issue
-${issue.body || "(no description provided)"}
-
-## Rules
-- Follow \`AGENTS.md\` Critical Rules and the glob-scoped rules in \`.agents/rules/\`.
-- Make the smallest correct change. Keep the diff under ${maxDiffChars} characters; if it would be
-  larger, implement the most valuable slice and note what remains.
-- Run \`self-verify\` (the project's build/test/lint) and converge before finishing. Do not leave a
-  red build.
-- **Do NOT push, open a pull request, merge, or change any GitHub labels.** Leave your work committed
-  on the local branch in this worktree; a human or a later harness stage handles PR/merge.
-- Record any new gotcha in \`.agents/wiki/\`.
-
-When done, reply with a concise summary: what you changed (files), how you verified it, and anything
-left for review.`;
-}

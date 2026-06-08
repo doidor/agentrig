@@ -39,7 +39,7 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 ## Directory map
 <!-- AGENTRIG:dirmap:start -->
 - `src/cli.ts` — arg parsing + command dispatch.
-- `src/commands/` — one file per command: `init`, `update`, `eval`, `doctor`, `dashboard`, `run`.
+- `src/commands/` — one file per command: `init`, `update`, `eval`, `doctor`, `dashboard`.
 - `src/agent/` — `AgentProvider` interface + `CopilotProvider` + factory. **Only** place `@github/copilot-sdk` is imported.
 - `src/core/` — `audit` (harness scoring), `install` (copy + `{{VAR}}` substitution), `knowledge` (manifest/principles/checks loader), `state`, `fsutil`, `logger`, `paths`.
 - `src/prompts/` — agent prompt builders (investigate / tailor / update / dynamic-eval).

@@ -6,7 +6,6 @@ import { updateCommand } from "./commands/update.js";
 import { evalCommand } from "./commands/eval.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { dashboardCommand } from "./commands/dashboard.js";
-import { runCommand } from "./commands/run.js";
 import pkg from "./version.js";
 
 interface ParsedArgs {
@@ -23,8 +22,6 @@ const BOOLEAN_FLAGS = new Set([
   "dynamic",
   "json",
   "no-tasks",
-  "once",
-  "watch",
   "verbose",
   "yes",
   "help",
@@ -74,12 +71,6 @@ ${color.bold("Commands:")}
   dashboard [path] Show agent roster, live GitHub tasks, harness score, and evals
                      --html [file]  write a self-contained HTML dashboard
                      --no-tasks     skip live GitHub lookups (offline)
-  run [path]       Engine (MVP): ingest ready GitHub issues and implement each in
-                   a hermetic worktree via the agent (stops short of push/PR/merge)
-                     --once (default) | --watch [--interval <sec>]
-                     --max <n>    max issues per tick (default: limits.max_concurrent_agents)
-                     --label <l>  ready-issue label (default: the queued-state label)
-                     --dry-run    list what would be processed, no model calls
 
 ${color.bold("Options:")}
   --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.5, gpt-5)
@@ -157,17 +148,6 @@ async function main(): Promise<number> {
           json: Boolean(flags.json),
           noTasks: Boolean(flags["no-tasks"]),
           ...(flags.html != null ? { html: flags.html } : {}),
-        });
-      case "run":
-        return await runCommand(repoRoot, {
-          once: Boolean(flags.once),
-          watch: Boolean(flags.watch),
-          dryRun: Boolean(flags["dry-run"]),
-          ...(model ? { model } : {}),
-          ...(flags.max != null ? { max: Number(flags.max) } : {}),
-          ...(typeof flags.label === "string" ? { label: flags.label } : {}),
-          ...(flags.interval != null ? { intervalSec: Number(flags.interval) } : {}),
-          verbose: Boolean(flags.verbose),
         });
       default:
         log.error(`Unknown command: ${command}`);
