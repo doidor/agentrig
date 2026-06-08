@@ -6,3 +6,7 @@
 *.tgz
 dist/
 node_modules/
+# Markbook docsite build output + cache + generated page
+site/
+.markbook/
+docs/principles.md
