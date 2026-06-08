@@ -1,0 +1,56 @@
+name: Release
+
+# Automatic version bumping + npm publish via Changesets, using TOKENLESS OIDC
+# (npm Trusted Publishing) — no NPM_TOKEN secret required.
+#
+# On push to main, Changesets opens/updates a "Version Packages" PR that bumps the version and
+# updates CHANGELOG.md. Merging that PR publishes @doidor/agentrig to npm via OIDC.
+#
+# One-time setup (see RELEASING.md):
+#   1. Configure a Trusted Publisher for the package on npmjs.com → Package → Settings →
+#      Trusted Publisher → GitHub Actions: owner `doidor`, repo `agentrig`, workflow `release.yml`.
+#   2. Settings → Actions → General → Workflow permissions → allow Actions to create PRs.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the version PR branch + release tags
+  pull-requests: write # open/update the "Version Packages" PR
+  id-token: write # tokenless npm publish via OIDC (trusted publishing) + automatic provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing requires a recent npm CLI (>= 11.5.1); Node 22 ships an older one.
+      - name: Use an npm that supports trusted publishing
+        run: npm install -g npm@latest
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+      - name: Create Version PR or publish to npm (OIDC — no token)
+        uses: changesets/action@v1
+        with:
+          version: npm run version-packages
+          publish: npm run release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

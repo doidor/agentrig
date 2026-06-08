@@ -16,7 +16,7 @@
 ## About this repository
 
 AgentRig is an agentic *meta-harness* ("a harness of harnesses"): a Node.js/TypeScript CLI
-(`npx agentrig`) that uses an LLM agent to investigate any repository and install a best-practice
+(`npx @doidor/agentrig`) that uses an LLM agent to investigate any repository and install a best-practice
 autonomous-coding-agent harness into it, then keep it updated and evaluate the harness itself. `src/`
 is the CLI; `knowledge/` is the editable plain-text content that gets installed into target repos.
 The 12 principles it encodes live in `knowledge/PRINCIPLES.md`.

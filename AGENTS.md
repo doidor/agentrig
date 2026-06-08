@@ -84,4 +84,9 @@ This repo *is* AgentRig, so a few rules go beyond the generic harness ones above
 4. **Every command must degrade without a model.** `eval --static`, `doctor`, `dashboard`, and
    `init --skip-agent` must never require network/model access.
 5. **Bump `knowledgeVersion` (manifest) when templates change** so `agentrig update` migrates repos.
-6. This file and `.agentrig/` were produced by running `agentrig init` on AgentRig itself (dogfood).
+6. **Do NOT hand-edit `package.json`'s `version` or run `npm publish` manually.** Versions are
+   managed by Changesets: when you change something user-visible, run `npx changeset` and commit the
+   `.changeset/*.md` file with your PR. Merging to `main` opens a "Version Packages" PR; merging
+   that PR publishes `@doidor/agentrig` to npm **tokenlessly via OIDC** (npm Trusted Publishing),
+   with automatic provenance. See [`RELEASING.md`](RELEASING.md).
+7. This file and `.agentrig/` were produced by running `agentrig init` on AgentRig itself (dogfood).

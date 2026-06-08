@@ -34,7 +34,10 @@
     "prepublishOnly": "npm run clean && npm run build && npm test",
     "start": "node dist/cli.js",
     "test": "npm run build && node --test test/*.test.mjs",
-    "selftest": "node dist/cli.js eval --static . || true"
+    "selftest": "node dist/cli.js eval --static . || true",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "keywords": [
     "agent",
@@ -59,6 +62,8 @@
     }
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   }
