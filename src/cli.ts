@@ -21,6 +21,7 @@ const BOOLEAN_FLAGS = new Set([
   "skip-agent",
   "static",
   "dynamic",
+  "rubric",
   "json",
   "no-tasks",
   "verbose",
@@ -66,11 +67,11 @@ ${color.bold("Commands:")}
   compile [path]   Project AGENTS.md + rules into every agent surface (local + remote):
                    copilot-instructions, .github/instructions, CLAUDE.md, .cursor/rules,
                    MCP, and copilot-setup-steps.yml
-  eval [path]      Evaluate the harness itself
-                     --static   (default) deterministic structural audit, no model
-                     --dynamic  run benchmark scenarios via the agent + judge
+  eval [path]      Evaluate the harness itself (defaults to the full agentic, harness-on run)
+                     --static   fast deterministic structural audit, no model (use in CI)
+                     --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
                      --scenario <id>   run one scenario only (e.g. fix-failing-test)
-                     --variant <name>  label this run (use 'baseline' for a harness-OFF trial)
+                     --variant <name>  label this run (default 'harness'; use 'baseline' for harness-OFF)
                      --timeout <min>   absolute cap per agent turn (default 45)
   doctor [path]    Quick health check (installed? agent reachable? score?)
   dashboard [path] Show agent roster, live GitHub tasks, harness score, and evals
@@ -135,10 +136,12 @@ async function main(): Promise<number> {
           skipAgent: Boolean(flags["skip-agent"]),
         });
       case "eval": {
-        const mode = flags.dynamic ? "dynamic" : "static";
+        // Default to the full agentic, harness-on dynamic eval; `--static` for the fast no-model audit.
+        const mode = flags.static ? "static" : "dynamic";
         return await evalCommand(repoRoot, {
           mode,
           json: Boolean(flags.json),
+          rubric: Boolean(flags.rubric),
           ...(model ? { model } : {}),
           ...(flags.min != null ? { min: Number(flags.min) } : {}),
           ...(typeof flags.scenario === "string" ? { scenario: flags.scenario } : {}),

@@ -1,6 +1,6 @@
 {
   "name": "agentrig",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "AgentRig — an agentic meta-harness. A CLI that investigates a repository and installs (and evaluates) a best-practice agent harness.",
   "type": "module",
   "bin": {

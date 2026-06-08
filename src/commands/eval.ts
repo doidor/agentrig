@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { auditHarness, type AuditReport } from "../core/audit.js";
 import { join } from "../core/fsutil.js";
@@ -8,6 +8,47 @@ import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { AgentTimeoutError } from "../agent/provider.js";
 import { buildDynamicEvalPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
+
+/** Print what the dynamic eval measures: rubric types/axes/issue-codes + installed scenarios. */
+export function renderRubric(repoRoot: string, asJson: boolean): number {
+  const axesPath = join(repoRoot, ".agentrig", "eval", "axes.json");
+  const scenariosDir = join(repoRoot, ".agentrig", "eval", "scenarios");
+  if (!existsSync(axesPath)) {
+    log.error("No rubric found (.agentrig/eval/axes.json). Run `agentrig init` first.");
+    return 1;
+  }
+  const axes = JSON.parse(readFileSync(axesPath, "utf8"));
+  const scenarios: { id: string; type: string; scope: string }[] = [];
+  if (existsSync(scenariosDir)) {
+    for (const f of readdirSync(scenariosDir)) {
+      if (!f.endsWith(".md") || f === "README.md") continue;
+      const fm = readFileSync(join(scenariosDir, f), "utf8");
+      const get = (k: string) => (fm.match(new RegExp(`^${k}:\\s*(.+)$`, "m")) || [])[1]?.trim() ?? "";
+      scenarios.push({ id: get("id") || f.replace(/\.md$/, ""), type: get("type") || "run", scope: get("scope") || "" });
+    }
+  }
+
+  if (asJson) {
+    console.log(JSON.stringify({ passThreshold: axes.passThreshold, tiers: axes.tiers, types: axes.types, scenarios }, null, 2));
+    return 0;
+  }
+
+  log.info(color.bold("AgentRig — what the dynamic eval measures\n"));
+  log.info(color.dim(`  Source of truth: .agentrig/eval/axes.json + RUBRIC.md + scenarios/. Tiers ${(axes.tiers || [0, 0.5, 1]).join("/")}, pass ≥ ${axes.passThreshold}.\n`));
+  for (const [type, def] of Object.entries<{ label: string; categories: Record<string, Record<string, string[]>> }>(axes.types)) {
+    log.info(`  ${color.bold(type.toUpperCase())} — ${def.label}`);
+    for (const [cat, axesMap] of Object.entries(def.categories)) {
+      log.info(`    ${color.cyan(cat)}`);
+      for (const [axis, codes] of Object.entries(axesMap)) {
+        log.info(`      ${axis.padEnd(20)} ${color.dim(`codes: ${codes.join(", ")}`)}`);
+      }
+    }
+  }
+  log.info(`\n  ${color.bold("Scenarios")} (.agentrig/eval/scenarios/):`);
+  for (const s of scenarios) log.info(`    ${s.id.padEnd(22)} ${color.dim(`[${s.type}${s.scope ? ", " + s.scope : ""}]`)}`);
+  log.info(color.dim("\n  Run them: agentrig eval --dynamic [--scenario <id>]"));
+  return 0;
+}
 
 /** Best-effort current git HEAD sha of the repo (for replayable run metadata). */
 function gitHead(repoRoot: string): string | null {
@@ -38,9 +79,13 @@ export interface EvalOptions {
   scenario?: string;
   variant?: string;
   timeoutMinutes?: number;
+  rubric?: boolean;
 }
 
 export async function evalCommand(repoRoot: string, options: EvalOptions): Promise<number> {
+  if (options.rubric) {
+    return renderRubric(repoRoot, Boolean(options.json));
+  }
   if (options.mode === "static") {
     const report = auditHarness(repoRoot);
     if (options.json) {
@@ -72,7 +117,7 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   }
   log.ok(`agent ready (${pre.detail})`);
   const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
-  const variant = options.variant ?? null;
+  const variant = options.variant ?? "harness";
 
   // Create a per-run artifacts directory + meta.json (CLI-owned; the agent fills diff/output).
   const runId = `run-${new Date().toISOString().replace(/[:.]/g, "-")}`;

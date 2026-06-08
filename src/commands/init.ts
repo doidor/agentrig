@@ -3,12 +3,14 @@ import { loadManifest } from "../core/knowledge.js";
 import { install, baseVars } from "../core/install.js";
 import { linkSurfaces } from "../core/surfaces.js";
 import { compileSurfaces } from "../core/compile.js";
+import { validateSetupSteps } from "../core/setupsteps.js";
 import { auditHarness } from "../core/audit.js";
 import { color, log } from "../core/logger.js";
 import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { buildInvestigatePrompt, buildTailorPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
 import { renderAudit } from "./eval.js";
+import { renderSetupValidation } from "./compile.js";
 import pkg from "../version.js";
 
 export interface InitOptions {
@@ -85,6 +87,7 @@ export async function initCommand(repoRoot: string, options: InitOptions): Promi
   // Phase 4: project the canonical source into every agent surface (local + remote).
   const compiled = compileSurfaces(repoRoot);
   log.ok(`compiled ${compiled.generated.length} agent-surface file(s) (Copilot, Claude, Cursor, MCP, setup-steps)`);
+  renderSetupValidation(validateSetupSteps(repoRoot));
 
   // Record state.
   const now = new Date().toISOString();

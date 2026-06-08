@@ -71,7 +71,10 @@ the generated files. Commit them so remote agents (and teammates' tools) pick th
 > your real stack (runtimes/versions, package manager, install commands, caching, services) and
 > writes a genuine setup workflow so the GitHub Copilot **cloud agent** has a ready environment — not
 > a generic stub. After the first scaffold it's yours; `compile`/`update` won't overwrite it.
-> (With `--skip-agent`, a heuristic scaffold is generated as a fallback.)
+> (With `--skip-agent`, a heuristic scaffold is generated as a fallback.) AgentRig **validates** the
+> workflow (job name, `runs-on`/`steps`, `timeout-minutes ≤ 59`, tabs, and — when available — a real
+> YAML parse + `actionlint`) during `compile`/`init` and in `agentrig doctor`, so a broken file is
+> caught before you push. GitHub also runs it as an Actions workflow on push for final validation.
 
 ## What gets installed
 
@@ -94,7 +97,8 @@ the generated files. Commit them so remote agents (and teammates' tools) pick th
 
 This is a first-class feature, not an afterthought — and it's **repo-specific and runnable by you**.
 The eval kit installs into your repo (`.agentrig/eval/`) and is tailored to it during `init`, so you
-can measure whether AgentRig actually helps *here*. Two layers:
+can measure whether AgentRig actually helps *here*. `agentrig eval` **defaults to the full agentic,
+harness-on run**; add `--static` for the fast no-model audit. Two layers:
 
 - **Static audit (deterministic, no model).** Maps each principle to a structural check in
   `.agentrig/eval/checks.json`, scored `0 / 0.5 / 1.0`, producing a **Harness Score**.
@@ -104,7 +108,7 @@ can measure whether AgentRig actually helps *here*. Two layers:
   agentrig eval --static --min 80   # CI gate: non-zero exit below 80%
   ```
 
-- **Dynamic behavioral eval (agentic, independent judge).** Runs benchmark scenarios
+- **Dynamic behavioral eval (agentic, independent judge — the default).** Runs benchmark scenarios
   (`.agentrig/eval/scenarios/*.md`) through the harness and scores the results with an **independent
   judge model**. Scoring is rigorous: a registry (`axes.json`) of bounded **issue codes per axis**,
   strict `0/0.5/1.0` tiers, mandatory evidence, confidence-gated rollups recomputed from the axis
@@ -112,9 +116,16 @@ can measure whether AgentRig actually helps *here*. Two layers:
   and never lets a judge invent codes. Runs are sandboxed (no push, no PR, no merge).
 
   ```bash
+  agentrig eval                                  # the default: full agentic, harness-on run
   agentrig eval --dynamic --scenario add-small-feature --timeout 60
+  agentrig eval --rubric                         # print exactly what's measured (axes, codes, scenarios)
   node .agentrig/eval/score.mjs report
   ```
+
+  **What's being evaluated?** The rubric lives in `.agentrig/eval/RUBRIC.md` and the machine-readable
+  registry in `.agentrig/eval/axes.json`; scenarios are in `.agentrig/eval/scenarios/`. Run
+  `agentrig eval --rubric` to print the rubric types, every axis and its issue codes, and the
+  installed scenarios.
 
 ### Does the harness actually help? (harness lift)
 
@@ -170,7 +181,7 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 | `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces |
 | `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote) |
 | `agentrig update [path]` | Re-sync the latest best practices (re-compiles surfaces) |
-| `agentrig eval [path] [--static\|--dynamic] [--scenario id] [--variant name] [--min N]` | Evaluate the harness (incl. harness-lift) |
+| `agentrig eval [path] [--static\|--rubric] [--scenario id] [--variant name]` | Evaluate the harness (default: agentic; `--rubric` shows what's measured) |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
 
