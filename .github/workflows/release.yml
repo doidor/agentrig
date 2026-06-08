@@ -1,0 +1,51 @@
+name: Release
+
+# Automatic version bumping + npm publish via Changesets.
+# On push to main, Changesets opens/updates a "Version Packages" PR that bumps the version and
+# updates CHANGELOG.md. Merging that PR publishes @doidor/agentrig to npm.
+# Requires an `NPM_TOKEN` repo secret, and "Allow GitHub Actions to create and approve pull requests"
+# enabled in Settings → Actions → General → Workflow permissions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the version PR branch + release tags
+  pull-requests: write # open/update the "Version Packages" PR
+  id-token: write # npm provenance via OIDC
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      # Build + test gate before anything can be versioned or published.
+      - run: npm run build
+      - run: npm test
+
+      - name: Create Version PR or publish to npm
+        uses: changesets/action@v1
+        with:
+          version: npm run version-packages
+          publish: npm run release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
