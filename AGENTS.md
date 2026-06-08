@@ -39,9 +39,9 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 ## Directory map
 <!-- AGENTRIG:dirmap:start -->
 - `src/cli.ts` — arg parsing + command dispatch.
-- `src/commands/` — one file per command: `init`, `update`, `eval`, `doctor`, `dashboard`.
-- `src/agent/` — `AgentProvider` interface + `CopilotProvider` + factory. **Only** place `@github/copilot-sdk` is imported.
-- `src/core/` — `audit` (harness scoring), `install` (copy + `{{VAR}}` substitution), `knowledge` (manifest/principles/checks loader), `state`, `fsutil`, `logger`, `paths`.
+- `src/commands/` — one file per command: `init`, `update`, `eval`, `doctor`, `dashboard`, `compile`.
+- `src/agent/` — `AgentProvider` interface + `CopilotProvider` + `ClaudeProvider` + factory. **Only** place an agent SDK is imported.
+- `src/core/` — `audit` (harness scoring), `install` (copy + `{{VAR}}` substitution + add-only refresh), `compile` (project canonical → every agent surface), `surfaces` (vendor symlinks), `knowledge` (manifest/principles/checks loader), `state`, `fsutil`, `logger`, `paths`.
 - `src/prompts/` — agent prompt builders (investigate / tailor / update / dynamic-eval).
 - `knowledge/` — **editable** best-practice content shipped with the package: `PRINCIPLES.md`, `manifest.json`, and `templates/` (every artifact installed into a target repo: agent roster, eval kit, dashboard, skills, rules).
 - `dist/` — TypeScript build output (generated, git-ignored).

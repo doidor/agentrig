@@ -50,6 +50,10 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 - **Rules (reflexes, glob-scoped):** `.agents/rules/`
 - **Memory / wiki:** `.agents/wiki/` (see `index.md` for what belongs where)
 - **Tooling (MCP):** `.mcp.json`
+- **Agent surfaces (compiled):** `agentrig compile` projects this file + `.agents/rules/` into every
+  agent's native format — `.github/copilot-instructions.md` & `.github/instructions/` (Copilot, web +
+  IDE), `CLAUDE.md` (Claude Code), `.cursor/rules/` (Cursor), `.vscode/mcp.json`, and
+  `.github/workflows/copilot-setup-steps.yml`. Edit the source here, not the generated files.
 - **Surfaces:** `.claude` / `.copilot` / `.opencode` / `.codex` symlink to `.agents` so any vendor CLI
   sees the same skills/rules/wiki.
 - **Orchestration contract:** `.agentrig/harness/ORCHESTRATION.md`

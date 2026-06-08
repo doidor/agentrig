@@ -83,11 +83,21 @@ hooks. Protected files require a human-override label. A recovery scan re-queues
 long. These caps keep an agent pool from melting the repo.
 **Artifact:** `limits:` block in `.agentrig/harness/state-machine.yml`.
 
-## 11. Tooling neutrality via MCP
-Register the same MCP servers across surfaces (`.mcp.json`, `.vscode/mcp.json`,
-`.github/copilot/mcp.json`) and mirror skills across vendor dirs so an agent's procedural memory
-works regardless of which vendor CLI runs the harness.
-**Artifact:** `.mcp.json` + mirrored skill dirs.
+## 11. One canonical source, projected to every agent surface (local + remote)
+The harness keeps **one** source of truth (`AGENTS.md` + `.agents/rules/` + `.agents/skills/`) and
+**projects** it into each ecosystem's native discovery format so *any* agent benefits without
+lock-in — local CLIs **and** remote/cloud agents:
+- **GitHub Copilot (remote coding agent + IDE):** `.github/copilot-instructions.md`,
+  path-scoped `.github/instructions/*.instructions.md` (`applyTo` globs), and
+  `.github/workflows/copilot-setup-steps.yml` for the cloud agent's environment.
+- **Claude Code:** `CLAUDE.md`. **Cursor:** `.cursor/rules/*.mdc`. **OpenCode/Codex:** `AGENTS.md`.
+- **MCP** mirrored to each surface (`.mcp.json`, `.vscode/mcp.json`, `.github/copilot/mcp.json`).
+
+This is the meta-harness payoff: assign an issue to the web GitHub Copilot agent and it sees the same
+rules/setup/MCP as your local Copilot CLI, Claude Code, or Cursor. Projections regenerate from the
+source; never hand-edit the generated files.
+**Artifact:** the compiler (`agentrig compile`) + the projected files above; symlinked vendor dirs
+for skills.
 
 ## 12. Instructions are the source of truth, not existing code
 A short, unmissable **Critical Rules** block at the top of `AGENTS.md` beats a 50-page contributing

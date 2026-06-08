@@ -2,17 +2,24 @@
 
 **An agentic meta-harness — a harness of harnesses.**
 
-AgentRig is a lightweight CLI that uses an AI agent to **investigate a repository** and **install a
-best-practice agent harness** into it — the orchestration, prompts, skills, rules, memory, and
-**evaluation** that let autonomous coding agents reliably triage → implement → review → judge →
-merge with minimal babysitting. It keeps context of what the repo is about, can **update** the
-harness as best practices evolve, and always installs a way to **evaluate the harness itself**.
+AgentRig is a lightweight CLI that installs a **best-practice agent harness** into any repository and
+then **projects it into every agent's native format** — so *any* agent benefits without lock-in,
+**local and remote**:
+
+- **Local CLIs** — Copilot CLI, Claude Code, OpenCode, Codex, Cursor.
+- **Remote / cloud** — the web **GitHub Copilot coding agent** (create an issue, assign it to
+  Copilot, walk away).
+
+You keep **one** source of truth (`AGENTS.md` + rules + skills); AgentRig compiles it into
+`copilot-instructions.md`, `.github/instructions/`, `CLAUDE.md`, `.cursor/rules/`, MCP configs, and a
+`copilot-setup-steps.yml` for the cloud agent. It also keeps everything in sync as best practices
+evolve, and ships a way to **evaluate the harness itself**.
 
 ```bash
-npx agentrig init        # investigate this repo and install a tailored harness
+npx agentrig init        # investigate this repo, install a tailored harness, compile all surfaces
+npx agentrig compile     # re-project AGENTS.md + rules into every agent surface (local + remote)
 npx agentrig eval        # score the harness (deterministic, no model needed)
 npx agentrig update      # pull in the latest best practices
-npx agentrig doctor      # quick health check
 ```
 
 ---
@@ -22,34 +29,50 @@ npx agentrig doctor      # quick health check
 Modern autonomous-agent setups converge on the same dozen principles (explicit state machine,
 specialized roles on varied models, GitHub as system of record, skills + rules, self-verification,
 rubric-driven evaluation, hermetic worktrees, continuous self-improvement, human gates, hard limits,
-MCP tooling neutrality, instructions-as-source-of-truth). Standing all of that up by hand, per repo,
-is tedious and drifts. AgentRig encodes the principles once as **editable plain text** and installs
-them anywhere — and, crucially, ships the tooling to **measure** whether your harness is actually
-good and whether a change made it better or worse.
+**one canonical source projected to every surface**, instructions-as-source-of-truth). Standing all
+of that up by hand, per repo, per agent tool, is tedious and drifts. AgentRig encodes the principles
+once as **editable plain text**, installs them anywhere, **projects them to every agent surface**,
+and ships the tooling to **measure** whether your harness is actually good.
 
 The principles are documented in [`knowledge/PRINCIPLES.md`](knowledge/PRINCIPLES.md).
 
 ## How it works
 
-`agentrig init` runs three phases:
+`agentrig init` runs these phases:
 
-1. **Investigate (agentic).** An agent (via the GitHub Copilot SDK) explores the repo and writes an
-   evidence-based `.agentrig/context.md`: purpose, stack, real build/test/lint commands, layout,
-   conventions, and risks for an autonomous agent.
+1. **Investigate (agentic).** An agent explores the repo and writes an evidence-based
+   `.agentrig/context.md`: purpose, stack, real build/test/lint commands, layout, conventions, risks.
 2. **Install (deterministic).** The canonical harness artifacts from `knowledge/` are copied in,
    guaranteeing a baseline that passes the audit regardless of the model.
-3. **Tailor (agentic).** The same conversation — so it keeps repo context — fills in `AGENTS.md`,
-   rewrites the baseline rules for your stack, and adapts the eval scenarios to your real commands.
+3. **Tailor (agentic).** The same conversation — keeping repo context — fills in `AGENTS.md`,
+   rewrites the baseline rules for your stack, and adapts the eval scenarios.
+4. **Compile (deterministic).** Projects `AGENTS.md` + rules into every agent surface, local and
+   remote (see [Surfaces](#surfaces)).
 
-Run with `--skip-agent` to install the canonical harness deterministically with no model, or
-`--dry-run` to preview.
+Run with `--skip-agent` to install + compile deterministically with no model, or `--dry-run` to
+preview.
+
+## Surfaces
+
+One canonical source → every agent's native format (`agentrig compile`, also run by `init`/`update`):
+
+| Agent | Generated surface |
+|-------|-------------------|
+| **GitHub Copilot — coding agent (web) + IDE** | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` (`applyTo` from rule globs), `.github/workflows/copilot-setup-steps.yml` |
+| **Claude Code** | `CLAUDE.md` (imports `@AGENTS.md`) + `.claude/` skills |
+| **Cursor** | `.cursor/rules/*.mdc` (globs + `alwaysApply`) |
+| **OpenCode / Codex** | `AGENTS.md` (native) |
+| **MCP (any)** | `.mcp.json`, `.vscode/mcp.json`, `.github/copilot/mcp.json` |
+
+Edit the **source** (`AGENTS.md`, `.agents/rules/`) and re-run `agentrig compile` — never hand-edit
+the generated files. Commit them so remote agents (and teammates' tools) pick them up.
 
 ## What gets installed
 
 | Principle | Artifact |
 |----------:|----------|
-| 1  Explicit state machine | `.agentrig/harness/state-machine.yml` + `ORCHESTRATION.md` (trigger taxonomy, event_to_state, reconciliation/recovery, CAS transitions) |
-| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` on distinct `model_tiers` (cheap/standard/premium) + `README.md` |
+| 1  Explicit state machine | `.agentrig/harness/state-machine.yml` + `ORCHESTRATION.md` (a workflow *contract* for whatever runtime you use) |
+| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` on distinct `model_tiers` + `README.md` |
 | 3  System of record | label↔state map + reconciliation/recovery cadences + MCP GitHub server + `agentrig dashboard` |
 | 4  Skills & rules | `.agents/skills/*/SKILL.md` (incl. `verify-loop`, `skill-authoring`), `.agents/rules/` (security, code-review, …, priority-ordered) |
 | 5  Self-verify before handoff | `.agents/skills/self-verify/` + generalized `verify-loop/` |
@@ -58,7 +81,7 @@ Run with `--skip-agent` to install the canonical harness deterministically with 
 | 8  Continuous self-improvement | `.agents/wiki/` (index router + troubleshooting + entry template) + `skill-improver` |
 | 9  Human-in-the-loop | human-only gates in the state machine |
 | 10 Hard limits | `limits:` + `runaway_token_cap` in the state machine |
-| 11 Tooling neutrality (MCP) | `.mcp.json` + `.claude`/`.copilot`/`.opencode`/`.codex` → `.agents` symlinks |
+| 11 One source → every surface | the compiler: `copilot-instructions.md`, `.github/instructions/`, `CLAUDE.md`, `.cursor/rules/`, MCP configs, `copilot-setup-steps.yml` |
 | 12 Instructions are source of truth | `AGENTS.md` (Critical Rules + auto-generated skills inventory) + package-local AGENTS.md |
 
 ## Evaluating the harness itself
@@ -127,8 +150,9 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 
 | Command | Description |
 |---------|-------------|
-| `agentrig init [path]` | Investigate + install a tailored harness |
-| `agentrig update [path]` | Re-sync the latest best practices |
+| `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces |
+| `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote) |
+| `agentrig update [path]` | Re-sync the latest best practices (re-compiles surfaces) |
 | `agentrig eval [path] [--static\|--dynamic] [--min N] [--json]` | Evaluate the harness |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
