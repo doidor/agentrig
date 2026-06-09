@@ -1,6 +1,6 @@
 # agentrig — Agent instructions
 
-> Managed in part by [AgentRig](https://github.com/). Sections between AgentRig markers are
+> Managed in part by [AgentRig](https://github.com/doidor/agentrig). Sections between AgentRig markers are
 > refreshed by `agentrig update`; edit outside the markers (and the repo-specific context) freely.
 
 ## Critical Rules (read first, every time)
