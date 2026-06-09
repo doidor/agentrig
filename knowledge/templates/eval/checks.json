@@ -1,14 +1,16 @@
 {
   "$schema": "agentrig-harness-checks/1",
-  "description": "Deterministic harness audit checks. Each maps a principle to a structural check scored 0 / 0.5 / 1.0. Consumed by both `agentrig eval --static` and `node .agentrig/eval/static-audit.mjs`.",
+  "description": "Deterministic harness audit checks. Each maps a principle to a structural check scored 0 / 0.5 / 1.0. Two layers: \"completeness\" (file/dir structure) and \"quality\" (content sanity probes). Consumed by both `agentrig eval --static` and `node .agentrig/eval/static-audit.mjs`.",
   "checks": [
     {
       "id": "state-machine",
       "principle": 1,
-      "title": "Workflow is an explicit state machine",
-      "type": "file-contains",
+      "title": "Workflow is an explicit, connected state machine (DAG with queued→merged path)",
+      "type": "state-machine-dag",
       "path": ".agentrig/harness/state-machine.yml",
-      "patterns": ["states:", "transitions:"],
+      "minStates": 6,
+      "requirePath": "queued->merged",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -18,6 +20,7 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["triggers:", "event_to_state"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -26,6 +29,7 @@
       "title": "Orchestration contract documented",
       "type": "path-exists",
       "path": ".agentrig/harness/ORCHESTRATION.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -35,16 +39,18 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["model_tiers:", "premium"],
+      "layer": "completeness",
       "weight": 1
     },
     {
-      "id": "roles-distinct-models",
+      "id": "roles-distinct-families",
       "principle": 2,
-      "title": "Specialized roles run different models",
-      "type": "roles-distinct-models",
+      "title": "Developer and reviewer use DIFFERENT model families (not just different ids)",
+      "type": "roles-distinct-families",
       "developer": ".agentrig/agents/developer.yml",
       "reviewer": ".agentrig/agents/reviewer.yml",
       "key": "model",
+      "layer": "quality",
       "weight": 1
     },
     {
@@ -54,6 +60,7 @@
       "type": "dir-min",
       "path": ".agentrig/agents",
       "min": 6,
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -62,6 +69,7 @@
       "title": "Roles have dedicated prompts",
       "type": "path-exists",
       "path": ".agentrig/agents/developer.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -71,6 +79,7 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["labels:", "state_map"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -80,6 +89,7 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["reconciliation:", "recovery:", "claim_grace_seconds"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -88,6 +98,7 @@
       "title": "Harness dashboard surfaces GitHub task state",
       "type": "path-exists",
       "path": ".agentrig/dashboard/dashboard.mjs",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -97,15 +108,18 @@
       "type": "dir-min",
       "path": ".agents/skills",
       "min": 3,
+      "layer": "completeness",
       "weight": 1
     },
     {
-      "id": "skill-frontmatter",
+      "id": "skill-frontmatter-all",
       "principle": 4,
-      "title": "Skills declare description + allowed-tools",
-      "type": "frontmatter-keys",
-      "path": ".agents/skills/self-verify/SKILL.md",
+      "title": "Every skill declares description + allowed-tools (not just self-verify)",
+      "type": "frontmatter-keys-all",
+      "path": ".agents/skills",
+      "file": "SKILL.md",
       "keys": ["description", "allowed-tools"],
+      "layer": "quality",
       "weight": 1
     },
     {
@@ -114,6 +128,7 @@
       "title": "Glob-scoped rules with priority order",
       "type": "path-exists",
       "path": ".agents/rules/README.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -123,6 +138,7 @@
       "type": "dir-min",
       "path": ".agents/rules",
       "min": 4,
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -131,6 +147,7 @@
       "title": "Self-verify-before-handoff skill",
       "type": "path-exists",
       "path": ".agents/skills/self-verify/SKILL.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -139,6 +156,7 @@
       "title": "Rubric-driven evaluation present",
       "type": "path-exists",
       "path": ".agentrig/eval/RUBRIC.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -147,6 +165,27 @@
       "title": "Validated axis/issue-code registry present",
       "type": "path-exists",
       "path": ".agentrig/eval/axes.json",
+      "layer": "completeness",
+      "weight": 1
+    },
+    {
+      "id": "eval-axes-coherent",
+      "principle": 6,
+      "title": "axes.json has at least one issue code per axis",
+      "type": "quality-probe",
+      "probe": "axes-json-coherent",
+      "path": ".agentrig/eval/axes.json",
+      "layer": "quality",
+      "weight": 1
+    },
+    {
+      "id": "eval-checks-coherent",
+      "principle": 6,
+      "title": "checks.json has unique ids and only known check types",
+      "type": "quality-probe",
+      "probe": "checks-json-coherent",
+      "path": ".agentrig/eval/checks.json",
+      "layer": "quality",
       "weight": 1
     },
     {
@@ -155,6 +194,7 @@
       "title": "Eval sandbox guardrails present",
       "type": "path-exists",
       "path": ".agentrig/eval/sandbox/eval-rules.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -163,6 +203,7 @@
       "title": "Harness-eval skill present",
       "type": "path-exists",
       "path": ".agents/skills/harness-eval/SKILL.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -171,6 +212,7 @@
       "title": "Hermetic per-agent worktree script",
       "type": "path-exists",
       "path": "scripts/repair-worktrees.sh",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -179,6 +221,7 @@
       "title": "Tiered memory / wiki",
       "type": "path-exists",
       "path": ".agents/wiki/README.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -187,6 +230,7 @@
       "title": "Wiki index/router + troubleshooting present",
       "type": "path-exists",
       "path": ".agents/wiki/index.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -195,6 +239,7 @@
       "title": "Skill-improver closes the feedback loop",
       "type": "path-exists",
       "path": ".agents/skills/skill-improver/SKILL.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -204,6 +249,7 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["human_only", "human"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -213,6 +259,7 @@
       "type": "file-contains",
       "path": ".agentrig/harness/state-machine.yml",
       "patterns": ["limits:", "max_diff_chars", "runaway_token_cap"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -221,6 +268,7 @@
       "title": "Tooling neutrality via MCP",
       "type": "path-exists",
       "path": ".mcp.json",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -229,6 +277,7 @@
       "title": "Vendor surfaces mirror one canonical source",
       "type": "path-exists",
       "path": ".claude",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -237,6 +286,7 @@
       "title": "GitHub Copilot instructions projected (remote + IDE)",
       "type": "path-exists",
       "path": ".github/copilot-instructions.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -246,6 +296,7 @@
       "type": "dir-min",
       "path": ".github/instructions",
       "min": 1,
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -254,6 +305,7 @@
       "title": "CLAUDE.md projected for Claude Code",
       "type": "path-exists",
       "path": "CLAUDE.md",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -263,6 +315,7 @@
       "type": "dir-min",
       "path": ".cursor/rules",
       "min": 1,
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -271,6 +324,7 @@
       "title": "Copilot coding-agent environment scaffolded",
       "type": "path-exists",
       "path": ".github/workflows/copilot-setup-steps.yml",
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -280,6 +334,7 @@
       "type": "file-contains",
       "path": "AGENTS.md",
       "patterns": ["Critical Rules"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -289,6 +344,7 @@
       "type": "file-contains",
       "path": "AGENTS.md",
       "patterns": ["What this repository is"],
+      "layer": "completeness",
       "weight": 1
     },
     {
@@ -298,6 +354,27 @@
       "type": "file-contains",
       "path": "AGENTS.md",
       "patterns": ["AGENTRIG:skills-inventory"],
+      "layer": "completeness",
+      "weight": 1
+    },
+    {
+      "id": "agents-no-unfilled-placeholders",
+      "principle": 12,
+      "title": "AGENTS.md has no unfilled {{PLACEHOLDER}} tokens",
+      "type": "quality-probe",
+      "probe": "no-unfilled-placeholders",
+      "path": "AGENTS.md",
+      "layer": "quality",
+      "weight": 1
+    },
+    {
+      "id": "context-md-present",
+      "principle": 12,
+      "title": ".agentrig/context.md exists (proves init actually investigated)",
+      "type": "quality-probe",
+      "probe": "context-md-present",
+      "path": ".agentrig/context.md",
+      "layer": "quality",
       "weight": 1
     }
   ]

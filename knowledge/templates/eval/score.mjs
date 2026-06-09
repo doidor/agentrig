@@ -30,7 +30,9 @@ function loadRegistry() {
   return JSON.parse(readFileSync(axesPath, "utf8"));
 }
 
-/** Build axis -> { category, codes } lookup for a rubric type. */
+/** Build axis -> { category, codes, weight, veto } lookup for a rubric type. Supports
+ *  both legacy schema (axis: [CODE,...]) and v2 schema (axis: { codes:[...], weight, veto }).
+ */
 function axisIndex(registry, type) {
   const def = registry.types?.[type];
   if (!def) {
@@ -39,7 +41,12 @@ function axisIndex(registry, type) {
   }
   const index = new Map();
   for (const [category, axes] of Object.entries(def.categories)) {
-    for (const [axis, codes] of Object.entries(axes)) index.set(axis, { category, codes });
+    for (const [axis, spec] of Object.entries(axes)) {
+      const meta = Array.isArray(spec)
+        ? { category, codes: spec, weight: 1, veto: false }
+        : { category, codes: spec.codes || [], weight: spec.weight ?? 1, veto: Boolean(spec.veto) };
+      index.set(axis, meta);
+    }
   }
   return index;
 }
@@ -93,30 +100,47 @@ if (cmd === "save") {
       if (!meta.codes.includes(code)) fail(`issue code "${code}" is not valid for axis "${name}". Valid: ${meta.codes.join(", ")}`);
       if (!evidence) fail(`axis "${name}" scored ${score} < 1.0 but has no evidence — use name=score:CODE:evidence`);
     }
-    return { name, category: meta.category, score, issue: code || null, evidence, confidence: 1 };
+    return { name, category: meta.category, weight: meta.weight, veto: meta.veto, score, issue: code || null, evidence, confidence: 1 };
   });
 
-  // Recompute rollups from axis data (never trust hand-supplied totals). Confidence-gated.
+  // Recompute rollups from axis data (never trust hand-supplied totals). Confidence-gated + weighted.
   const observed = axes.filter((a) => a.confidence > 0);
   const categories = {};
-  for (const a of observed) (categories[a.category] ||= []).push(a.score);
+  for (const a of observed) (categories[a.category] ||= []).push({ score: a.score, weight: a.weight });
   const categoryScores = Object.fromEntries(
-    Object.entries(categories).map(([c, xs]) => [c, round(xs.reduce((s, x) => s + x, 0) / xs.length)]),
+    Object.entries(categories).map(([c, xs]) => {
+      const wSum = xs.reduce((s, x) => s + x.weight, 0);
+      const wScore = xs.reduce((s, x) => s + x.weight * x.score, 0);
+      return [c, round(wSum ? wScore / wSum : 0)];
+    }),
   );
-  const aggregate = observed.length ? round(observed.reduce((s, a) => s + a.score, 0) / observed.length) : 0;
-  const pass = observed.length > 0 && aggregate >= PASS && observed.every((a) => a.score > 0);
+  const wSum = observed.reduce((s, a) => s + a.weight, 0);
+  const wScore = observed.reduce((s, a) => s + a.weight * a.score, 0);
+  const aggregate = wSum ? round(wScore / wSum) : 0;
+
+  // Pass rule: aggregate clears threshold AND no observed axis is zero AND no veto axis < 1.0.
+  // veto axes encode "cosmetics cannot bail out a correctness/gate-compliance regression."
+  const vetoFails = observed.filter((a) => a.veto && a.score < 1).map((a) => a.name);
+  const hardZeros = observed.filter((a) => a.score === 0).map((a) => a.name);
+  let pass = observed.length > 0 && aggregate >= PASS && hardZeros.length === 0 && vetoFails.length === 0;
+  const failReason = !observed.length ? "no observed axes"
+    : vetoFails.length ? `veto axis fail: ${vetoFails.join(", ")}`
+    : hardZeros.length ? `zero score on: ${hardZeros.join(", ")}`
+    : aggregate < PASS ? `aggregate ${aggregate.toFixed(2)} < ${PASS}`
+    : null;
 
   const record = {
+    schemaVersion: 2,
     type, task, scenario, variant, run, judge,
     timestamp: new Date().toISOString(),
-    aggregate, pass, categoryScores, axes,
+    aggregate, pass, failReason, categoryScores, axes,
   };
 
   if (!existsSync(resultsDir)) mkdirSync(resultsDir, { recursive: true });
   const safe = (s) => String(s).replace(/[^a-zA-Z0-9_.-]/g, "_");
   const file = join(resultsDir, `${safe(type)}.${safe(scenario)}.${safe(variant || "base")}.${Date.now()}.json`);
   writeFileSync(file, JSON.stringify(record, null, 2));
-  console.log(`Saved ${file}\n  aggregate=${aggregate.toFixed(2)} ${pass ? "PASS" : "FAIL"} (${observed.length}/${axes.length} axes observed)`);
+  console.log(`Saved ${file}\n  aggregate=${aggregate.toFixed(2)} ${pass ? "PASS" : "FAIL"}${failReason ? ` — ${failReason}` : ""} (${observed.length}/${axes.length} axes observed)`);
   process.exit(0);
 }
 
@@ -191,14 +215,42 @@ function round(n) {
 function loadRecords() {
   if (!existsSync(resultsDir)) return [];
   const out = [];
+  let skipped = 0;
   for (const f of readdirSync(resultsDir).filter((f) => f.endsWith(".json"))) {
+    let rec;
     try {
-      out.push(JSON.parse(readFileSync(join(resultsDir, f), "utf8")));
+      rec = JSON.parse(readFileSync(join(resultsDir, f), "utf8"));
     } catch {
       console.error(`warning: skipping corrupt result file ${f}`);
+      skipped++;
+      continue;
     }
+    const reason = validateRecord(rec);
+    if (reason) {
+      console.error(`warning: skipping ${f} (${reason}) — move to results/_legacy/ to silence`);
+      skipped++;
+      continue;
+    }
+    out.push(rec);
   }
+  if (skipped) console.error(`warning: ${skipped} result file(s) skipped due to invalid shape.`);
   return out;
+}
+
+/** Minimal shape check for v2 records. Returns reason string if invalid, null if OK. */
+function validateRecord(r) {
+  if (!r || typeof r !== "object") return "not an object";
+  if (r.schemaVersion !== 2) return `schemaVersion=${r.schemaVersion ?? "missing"} (expected 2)`;
+  if (typeof r.type !== "string") return "missing type";
+  if (typeof r.scenario !== "string") return "missing scenario";
+  if (!Array.isArray(r.axes)) return "axes is not an array";
+  for (const a of r.axes) {
+    if (!a || typeof a !== "object") return "axis is not an object";
+    if (typeof a.name !== "string") return "axis missing name";
+    if (typeof a.score !== "number") return `axis "${a.name}" missing numeric score`;
+    if (typeof a.confidence !== "number") return `axis "${a.name}" missing numeric confidence`;
+  }
+  return null;
 }
 
 function compare(records, scenario, asJson, baseline) {

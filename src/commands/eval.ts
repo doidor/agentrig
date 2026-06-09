@@ -57,17 +57,40 @@ function gitHead(repoRoot: string): string | null {
 }
 
 export function renderAudit(report: AuditReport): void {
-  log.info(color.bold("AgentRig — harness audit"));
-  log.info(color.dim(`  checks source: ${report.source}\n`));
-  for (const r of [...report.results].sort((a, b) => a.principle - b.principle || a.id.localeCompare(b.id))) {
-    const tag =
-      r.score === 1 ? color.green("PASS") : r.score === 0.5 ? color.yellow("PART") : color.red("FAIL");
-    log.info(`  [${tag}] P${r.principle} ${r.title}`);
+  log.info(color.bold("AgentRig — install completeness audit"));
+  log.info(color.dim(`  checks source: ${report.source}`));
+  log.info(color.dim("  what this proves: every canonical artifact is present and minimally well-formed."));
+  log.info(color.dim("  what this does NOT prove: that those artifacts work, or that agents respect them.\n"));
+
+  const sortFn = (a: { principle: number; id: string }, b: { principle: number; id: string }) =>
+    a.principle - b.principle || a.id.localeCompare(b.id);
+  const completeness = report.results.filter((r) => r.layer === "completeness").sort(sortFn);
+  const quality = report.results.filter((r) => r.layer === "quality").sort(sortFn);
+  const tagFor = (s: number) =>
+    s === 1 ? color.green("PASS") : s === 0.5 ? color.yellow("PART") : color.red("FAIL");
+  const printOne = (r: { score: number; principle: number; title: string; evidence: string }) => {
+    log.info(`  [${tagFor(r.score)}] P${r.principle} ${r.title}`);
     if (r.evidence) log.info(color.dim(`         ↳ ${r.evidence}`));
+  };
+
+  if (completeness.length) {
+    log.info(color.bold("  Layer A1 — structural completeness"));
+    for (const r of completeness) printOne(r);
   }
-  const full = report.results.filter((r) => r.score === 1).length;
-  const scoreColor = report.harnessScore >= 80 ? color.green : report.harnessScore >= 50 ? color.yellow : color.red;
-  log.info(`\n  ${color.bold("Harness Score")}: ${scoreColor(`${report.harnessScore}%`)}  (${full}/${report.results.length} full credit)`);
+  if (quality.length) {
+    log.info("");
+    log.info(color.bold("  Layer A2 — quality probes"));
+    for (const r of quality) printOne(r);
+  }
+
+  const fullC = completeness.filter((r) => r.score === 1).length;
+  const fullQ = quality.filter((r) => r.score === 1).length;
+  const colorFor = (pct: number) => (pct >= 80 ? color.green : pct >= 50 ? color.yellow : color.red);
+  log.info("");
+  log.info(`  ${color.bold("Install Completeness")}: ${colorFor(report.harnessScore)(`${report.harnessScore}%`)}  (${fullC}/${completeness.length} full credit)`);
+  if (quality.length) {
+    log.info(`  ${color.bold("Quality Probes")}:      ${colorFor(report.qualityScore)(`${report.qualityScore}%`)}  (${fullQ}/${quality.length} full credit)`);
+  }
 }
 
 export interface EvalOptions {
@@ -98,7 +121,7 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
       renderAudit(report);
     }
     if (options.min != null && report.harnessScore < options.min) {
-      log.error(`Harness Score ${report.harnessScore}% is below required ${options.min}%`);
+      log.error(`Install Completeness ${report.harnessScore}% is below required ${options.min}%`);
       return 1;
     }
     return 0;
@@ -128,8 +151,10 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   const meta: Record<string, unknown> = {
     runId,
     startedAt,
-    provider: provider.name,
-    model: options.model ?? null,
+    producerProvider: provider.name,
+    producerModel: options.model ?? null,
+    judgeProvider: null,  // filled in P3 when producer/judge are split into separate conversations
+    judgeModel: null,
     scenario: options.scenario ?? "all",
     variant,
     gitHead: gitHead(repoRoot),
