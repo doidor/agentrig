@@ -202,7 +202,9 @@ function scoreCheck(c) {
         for (const [tname, t] of Object.entries(j.types)) {
           if (!t.categories) { issues.push(`${tname}: no categories`); continue; }
           for (const [cname, cat] of Object.entries(t.categories)) {
-            for (const [axis, codes] of Object.entries(cat)) {
+            for (const [axis, spec] of Object.entries(cat)) {
+              // Both shapes: v1 = ["CODE",...]; v2 = { codes: [...], weight, veto }
+              const codes = Array.isArray(spec) ? spec : spec && spec.codes;
               if (!Array.isArray(codes) || codes.length === 0) issues.push(`${tname}/${cname}/${axis}: no issue codes`);
             }
           }

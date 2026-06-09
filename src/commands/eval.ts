@@ -8,23 +8,26 @@ import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { AgentTimeoutError } from "../agent/provider.js";
 import { buildDynamicEvalPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
+import { listScenarios, locateScenario, loadScenario } from "../core/scenario-runner.js";
 
 /** Print what the dynamic eval measures: rubric types/axes/issue-codes + installed scenarios. */
 export function renderRubric(repoRoot: string, asJson: boolean): number {
   const axesPath = join(repoRoot, ".agentrig", "eval", "axes.json");
-  const scenariosDir = join(repoRoot, ".agentrig", "eval", "scenarios");
   if (!existsSync(axesPath)) {
     log.error("No rubric found (.agentrig/eval/axes.json). Run `agentrig init` first.");
     return 1;
   }
   const axes = JSON.parse(readFileSync(axesPath, "utf8"));
+  // Use the scenario-runner discovery so we pick up the new directory layout.
   const scenarios: { id: string; type: string; scope: string }[] = [];
-  if (existsSync(scenariosDir)) {
-    for (const f of readdirSync(scenariosDir)) {
-      if (!f.endsWith(".md") || f === "README.md") continue;
-      const fm = readFileSync(join(scenariosDir, f), "utf8");
-      const get = (k: string) => (fm.match(new RegExp(`^${k}:\\s*(.+)$`, "m")) || [])[1]?.trim() ?? "";
-      scenarios.push({ id: get("id") || f.replace(/\.md$/, ""), type: get("type") || "run", scope: get("scope") || "" });
+  for (const id of listScenarios(repoRoot)) {
+    const paths = locateScenario(repoRoot, id);
+    if (!paths) continue;
+    try {
+      const fm = loadScenario(paths);
+      scenarios.push({ id: fm.id, type: fm.type, scope: fm.scope ?? "" });
+    } catch {
+      scenarios.push({ id, type: "run", scope: "" });
     }
   }
 
@@ -33,19 +36,32 @@ export function renderRubric(repoRoot: string, asJson: boolean): number {
     return 0;
   }
 
+  // Helper to render codes from either v1 (["CODE",...]) or v2 ({codes,...}) axis shape.
+  const renderCodes = (spec: unknown): string => {
+    if (Array.isArray(spec)) return spec.join(", ");
+    if (spec && typeof spec === "object" && Array.isArray((spec as { codes?: unknown[] }).codes)) {
+      const meta = spec as { codes: string[]; weight?: number; veto?: boolean };
+      const flags: string[] = [];
+      if (meta.weight != null && meta.weight !== 1) flags.push(`weight=${meta.weight}`);
+      if (meta.veto) flags.push("VETO");
+      return meta.codes.join(", ") + (flags.length ? ` [${flags.join(", ")}]` : "");
+    }
+    return "";
+  };
+
   log.info(color.bold("AgentRig — what the dynamic eval measures\n"));
   log.info(color.dim(`  Source of truth: .agentrig/eval/axes.json + RUBRIC.md + scenarios/. Tiers ${(axes.tiers || [0, 0.5, 1]).join("/")}, pass ≥ ${axes.passThreshold}.\n`));
-  for (const [type, def] of Object.entries<{ label: string; categories: Record<string, Record<string, string[]>> }>(axes.types)) {
+  for (const [type, def] of Object.entries<{ label: string; categories: Record<string, Record<string, unknown>> }>(axes.types)) {
     log.info(`  ${color.bold(type.toUpperCase())} — ${def.label}`);
     for (const [cat, axesMap] of Object.entries(def.categories)) {
       log.info(`    ${color.cyan(cat)}`);
-      for (const [axis, codes] of Object.entries(axesMap)) {
-        log.info(`      ${axis.padEnd(20)} ${color.dim(`codes: ${codes.join(", ")}`)}`);
+      for (const [axis, spec] of Object.entries(axesMap)) {
+        log.info(`      ${axis.padEnd(20)} ${color.dim(`codes: ${renderCodes(spec)}`)}`);
       }
     }
   }
   log.info(`\n  ${color.bold("Scenarios")} (.agentrig/eval/scenarios/):`);
-  for (const s of scenarios) log.info(`    ${s.id.padEnd(22)} ${color.dim(`[${s.type}${s.scope ? ", " + s.scope : ""}]`)}`);
+  for (const s of scenarios) log.info(`    ${s.id.padEnd(28)} ${color.dim(`[${s.type}${s.scope ? ", " + s.scope : ""}]`)}`);
   log.info(color.dim("\n  Run them: agentrig eval --dynamic [--scenario <id>]"));
   return 0;
 }

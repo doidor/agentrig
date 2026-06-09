@@ -177,4 +177,9 @@ async function main(): Promise<number> {
   }
 }
 
-main().then((code) => process.exit(code));
+// Setting process.exitCode (instead of calling process.exit immediately) lets pending
+// stdout writes drain when output is piped to another process — required because the
+// JSON audit report can exceed the macOS pipe buffer and would otherwise be truncated.
+main().then((code) => {
+  process.exitCode = code;
+});

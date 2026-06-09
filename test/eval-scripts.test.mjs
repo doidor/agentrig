@@ -7,17 +7,18 @@ import { install, baseVars } from "../dist/core/install.js";
 
 const score = (dir) => join(dir, ".agentrig/eval/score.mjs");
 
-test("score.mjs accepts a valid run and computes a confidence-gated aggregate", () => {
+test("score.mjs accepts a valid run and computes a confidence-gated weighted aggregate", () => {
   const dir = freshInstall();
   try {
     const r = runNode(score(dir), [
       "save", "--type", "run", "--scenario", "s1", "--judge", "m",
-      "--axis", "correctness=1.0",
-      "--axis", "scope=0.5:OQ-SCOPE-CHURN:left churn",
-      "--axis", "tests=na",
+      "--axis", "correctness=1.0",   // weight 2 (configured as veto)
+      "--axis", "scope=0.5:OQ-SCOPE-CHURN:left churn",  // weight 1
+      "--axis", "tests=na",          // unobserved -> excluded
     ], dir);
     assert.equal(r.status, 0, r.stderr);
-    assert.match(r.stdout, /aggregate=0\.75/);
+    // weighted: (2*1.0 + 1*0.5) / (2 + 1) = 2.5/3 ≈ 0.8333
+    assert.match(r.stdout, /aggregate=0\.83/);
     assert.match(r.stdout, /2\/3 axes observed/); // na excluded
   } finally {
     cleanup(dir);
@@ -93,12 +94,16 @@ test("compare --baseline computes harness lift (HELPS/HURTS delta)", () => {
   }
 });
 
-test("installed static-audit.mjs reports 100%", () => {
+test("installed static-audit.mjs reports 100% install completeness", () => {
   const dir = freshInstall();
   try {
     const r = runNode(join(dir, ".agentrig/eval/static-audit.mjs"), ["--json"], dir);
     assert.equal(r.status, 0, r.stderr);
-    assert.equal(JSON.parse(r.stdout).harnessScore, 100);
+    const j = JSON.parse(r.stdout);
+    assert.equal(j.installCompleteness, 100, "every structural check should be present");
+    // quality probes drop below 100 in a freshly-init'd repo because context.md is only
+    // created by the agent investigation phase, and AGENTS.md has unfilled placeholders.
+    assert.ok(typeof j.qualityProbes === "number", "qualityProbes field present");
   } finally {
     cleanup(dir);
   }
@@ -111,7 +116,7 @@ test("dashboard.mjs renders eval results without crashing (regression guard)", (
     const r = runNode(join(dir, ".agentrig/dashboard/dashboard.mjs"), ["--no-tasks", "--json"], dir);
     assert.equal(r.status, 0, r.stderr);
     const json = JSON.parse(r.stdout);
-    assert.equal(json.harnessScore, 100);
+    assert.equal(json.installCompleteness, 100);
     assert.ok((json.evals.results || json.evals.scenarios).length >= 1);
   } finally {
     cleanup(dir);

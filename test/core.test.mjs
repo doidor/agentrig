@@ -9,12 +9,16 @@ import { install, baseVars, addOnlyCopy, skillsInventory } from "../dist/core/in
 import { auditHarness } from "../dist/core/audit.js";
 import { linkSurfaces } from "../dist/core/surfaces.js";
 
-test("deterministic install yields a 100% harness score", () => {
+test("deterministic install yields 100% install completeness", () => {
   const dir = freshInstall();
   try {
     const report = auditHarness(dir);
-    assert.equal(report.harnessScore, 100, "expected full harness score");
-    assert.ok(report.results.every((r) => r.score === 1), "every check should be full credit");
+    assert.equal(report.harnessScore, 100, "expected full structural completeness");
+    // Layer A1 (completeness) should be all PASS on a fresh install. Layer A2 (quality probes)
+    // may drop because some probes (context.md, no unfilled {{PLACEHOLDER}}) only pass after
+    // the agent investigation phase has run.
+    const completeness = report.results.filter((r) => r.layer === "completeness");
+    assert.ok(completeness.every((r) => r.score === 1), "every completeness check should be full credit");
     assert.equal(report.source, "repo", "should audit against the installed checks.json");
   } finally {
     cleanup(dir);
@@ -33,15 +37,16 @@ test("audit penalizes a missing artifact", () => {
   }
 });
 
-test("roles run distinct models (single-model-bias check)", () => {
+test("roles run distinct model families (single-model-bias check)", () => {
   const dir = freshInstall();
   try {
-    // Make developer and reviewer share a model -> partial credit.
+    // Make developer and reviewer share a model family -> FAIL (not just partial).
     const devYml = join(dir, ".agentrig/agents/developer.yml");
     writeFileSync(devYml, readFileSync(devYml, "utf8").replace(/^model:.*$/m, "model: gpt-5"));
     const report = auditHarness(dir);
-    const check = report.results.find((r) => r.id === "roles-distinct-models");
-    assert.equal(check.score, 0.5, "sharing a model should be partial credit");
+    const check = report.results.find((r) => r.id === "roles-distinct-families");
+    assert.ok(check, "roles-distinct-families check should exist");
+    assert.equal(check.score, 0, "sharing a model family should fail outright (P1 quality probe)");
   } finally {
     cleanup(dir);
   }

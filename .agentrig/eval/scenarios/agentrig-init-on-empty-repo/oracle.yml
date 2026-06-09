@@ -1,0 +1,34 @@
+checks:
+  - id: agentrig-init-succeeds
+    type: cmd
+    cmd: "node ${AGENTRIG_CLI} init --skip-agent --force . > /dev/null 2>&1"
+    expect: exit_zero
+    axis: tool_discipline
+
+  - id: install-completeness-passes-80
+    type: cmd
+    cmd: "node ${AGENTRIG_CLI} eval --static --min 80 . > /dev/null 2>&1"
+    expect: exit_zero
+    axis: correctness
+
+  - id: state-file-written
+    type: file_contains
+    path: ".agentrig/state.json"
+    pattern: "agentrigVersion"
+    axis: tool_discipline
+
+  - id: agents-md-installed
+    type: file_contains
+    path: "AGENTS.md"
+    pattern: "Critical Rules"
+    axis: tool_discipline
+
+  - id: compile-is-idempotent
+    type: cmd
+    # Run compile twice and verify the second run produces no further changes.
+    # We grep for the compiler's "compiled N agent-surface file(s)" line — N>0 on first
+    # run is normal; we instead verify that the second run says generated=0 OR exits
+    # without writing new diff. Simpler: capture sha1 of the surface dirs before/after.
+    cmd: "node ${AGENTRIG_CLI} compile . > /dev/null && before=$(find .github .claude .cursor CLAUDE.md -type f 2>/dev/null | sort | xargs cat | shasum) && node ${AGENTRIG_CLI} compile . > /dev/null && after=$(find .github .claude .cursor CLAUDE.md -type f 2>/dev/null | sort | xargs cat | shasum) && [ \"$before\" = \"$after\" ]"
+    expect: exit_zero
+    axis: regression_risk

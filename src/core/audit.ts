@@ -190,7 +190,7 @@ function scoreCheck(repoRoot: string, c: CheckDef): { score: number; evidence: s
         case "axes-json-coherent": {
           const text = read(p);
           if (text == null) return { score: 0, evidence: `missing ${p}` };
-          let j: { types?: Record<string, { categories?: Record<string, Record<string, string[]>> }> };
+          let j: { types?: Record<string, { categories?: Record<string, Record<string, unknown>> }> };
           try {
             j = JSON.parse(text);
           } catch (e) {
@@ -204,7 +204,9 @@ function scoreCheck(repoRoot: string, c: CheckDef): { score: number; evidence: s
               continue;
             }
             for (const [cname, cat] of Object.entries(t.categories)) {
-              for (const [axis, codes] of Object.entries(cat)) {
+              for (const [axis, spec] of Object.entries(cat)) {
+                // Both shapes: v1 = ["CODE",...]; v2 = { codes: [...], weight, veto }
+                const codes = Array.isArray(spec) ? spec : (spec as { codes?: unknown[] })?.codes;
                 if (!Array.isArray(codes) || codes.length === 0) {
                   issues.push(`${tname}/${cname}/${axis}: no issue codes`);
                 }
