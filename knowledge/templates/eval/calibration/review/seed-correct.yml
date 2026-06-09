@@ -1,0 +1,43 @@
+id: seed-review-catches-bug-correct
+scenario: review-catches-bug
+type: review
+
+prompt: |-
+  Review the patch in this worktree. Identify any real bugs. Decide whether
+  to block. Write a review.json with {verdict, findings[]}.
+
+transcript: |-
+  Reviewed src/pagination.js vs HEAD~1. Spotted an off-by-one at line 5:
+  end = pageSize * page + 1 yields overlapping windows. Should be
+  end = start + pageSize. Blocked. The src/format.js change is a harmless
+  cosmetic refactor (extracting PREFIX); flagged it as non-blocking comment.
+
+diff: |-
+  diff --git a/review.json b/review.json
+  --- /dev/null
+  +++ b/review.json
+  @@ -0,0 +1,15 @@
+  +{
+  +  "verdict": "block",
+  +  "findings": [
+  +    { "file": "src/pagination.js", "line_start": 5, "line_end": 5,
+  +      "severity": "blocking",
+  +      "description": "Off-by-one in end: pageSize*page+1 overlaps pages by one element",
+  +      "suggestion": "Use const end = start + pageSize;" },
+  +    { "file": "src/format.js", "line_start": 4, "line_end": 4,
+  +      "severity": "non-blocking",
+  +      "description": "Cosmetic refactor extracting PREFIX constant",
+  +      "suggestion": "Optional; either form is fine" }
+  +  ]
+  +}
+
+oracle:
+  - { axis: finding_correctness, score: 1.0 }
+  - { axis: blocking_decision, score: 1.0 }
+  - { axis: false_positive_rate, score: 1.0 }
+
+ground_truth:
+  - { axis: severity_calibration, score: 1.0, confidence: 1 }
+  - { axis: coverage, score: 0.5, confidence: 1, code: RV-COV-SHALLOW, evidence: "did not check whether a regression test was added" }
+  - { axis: actionability, score: 1.0, confidence: 1 }
+  - { axis: independence, score: 1.0, confidence: 1 }

@@ -1,83 +1,88 @@
 ---
 name: harness-eval
-description: Evaluate THIS repository's agent harness — a deterministic structure audit plus an independent, rubric-driven dynamic eval (run/spec/review) with A/B variant comparison.
-triggers:
-  - "evaluate the harness"
-  - pre_merge hook
-  - "did my harness change make things better or worse?"
+description: Evaluate THIS repository's agent harness — a deterministic structure audit (A1) plus content quality probes (A2), plus an isolated producer/judge dynamic eval (B) with paired sign-test A/B variant comparison.
 allowed-tools: Bash Read Grep Glob
-argument-hint: "[--static|--dynamic] [--scenario id] [--variant v]"
+argument-hint: "[--static|--dynamic] [--scenario id] [--variant v] [--n trials]"
 ---
 
 # harness-eval (principle 6 — evaluate the harness itself)
 
-A harness you cannot measure is a harness you cannot improve. This skill scores the harness on two
-complementary layers and writes results to `.agentrig/eval/results/` (validated, never hand-edited).
+A harness you cannot measure is a harness you cannot improve. This skill scores the harness on
+three complementary layers and writes results to `.agentrig/eval/results/` (validated on write
+*and* on read; never hand-edit JSON).
 
-## Layer A — static audit (deterministic, no model)
-Each of the 12 principles maps to concrete checks in `.agentrig/eval/checks.json`, scored 0/0.5/1.0.
+## Layer A1 — install completeness (deterministic, no model)
+Every canonical artifact present at the path the manifest declares.
 
 ```bash
-node .agentrig/eval/static-audit.mjs            # human-readable report + aggregate score
-node .agentrig/eval/static-audit.mjs --json     # machine-readable, for CI gates
+node .agentrig/eval/static-audit.mjs --json   # Install Completeness %
 ```
 
-Use this in CI and as a fast pre-merge gate. It needs no model and no network.
+## Layer A2 — quality probes (deterministic, no model)
+Cheap content sanity: YAML parseable, no unfilled `{{PLACEHOLDER}}` in `AGENTS.md`, every skill has
+the required frontmatter, axes.json has an issue code per axis, developer/reviewer **model
+families** differ (not just the model id strings).
 
-## Layer B — dynamic behavioral eval (agentic, independent judge)
-Run scenarios in `.agentrig/eval/scenarios/*.md` through the harness, then score as an **independent
-judge** (a different model than the producer) against `.agentrig/eval/RUBRIC.md` and the registry in
-`.agentrig/eval/axes.json`.
+A1 + A2 are what CI gates on. Both surface in the same `--static` report under "Layer A1" and
+"Layer A2" sections.
 
-**Sandbox:** obey `.agentrig/eval/sandbox/eval-rules.md` — work in a throwaway worktree; never push,
-open PRs, or merge.
+## Layer B — dynamic behavioral eval (agentic, independent judge, fixture-based)
 
-**Lifecycle:** score the whole lifecycle, not just the patch. Use the rubric `--type` that matches
-the scenario: `spec` (task quality), `run` (implementation), `review` (the reviewer's behavior).
-Link them with a shared `--task` id.
+For each scenario in `.agentrig/eval/scenarios/*/`:
 
-**Rules (enforced by score.mjs):** strict 0/0.5/1.0 tiers; any axis < 1.0 needs an issue code from
-that axis's registry **plus** an evidence string; unobserved axes are `=na`; rollups are recomputed
-from axis data.
+1. **Seed** a throwaway worktree from `scenarios/<id>/fixture/` (or `baseline/`+`change/` for
+   review scenarios).
+2. **Producer** model runs in that worktree against `scenarios/<id>/prompt.md`. For
+   `--variant harness`, the AgentRig harness is staged into the worktree first; for
+   `--variant baseline`, the agent runs bare.
+3. **Oracle** (`scenarios/<id>/oracle.yml`) deterministically scores the hard axes (correctness,
+   tests, scope, regression_risk, …) by running commands / inspecting the diff. **No LLM.**
+4. **Judge** model — explicitly a **different family** from the producer — runs in a separate
+   `provider.startConversation()` call in its own cwd containing only `prompt.md`, `diff.patch`,
+   `transcript.md`, `oracle.json`, and `judge_brief.md`. It does NOT see the producer worktree or
+   reasoning trace. It writes `<artifactsDir>/<scenario>.trial<N>.judge.json`; the orchestrator
+   reads, validates, and persists via `score.mjs save`.
 
-```bash
-node .agentrig/eval/score.mjs save --type run --task <id> --scenario <id> --judge <model> \
-  --axis 'correctness=1.0' \
-  --axis 'scope=0.5:OQ-SCOPE-CHURN:left build artifacts in the diff' \
-  --axis 'tests=na'
-node .agentrig/eval/score.mjs report
-```
-
-**Artifacts:** for each run, save `diff.patch`, a short `output` transcript, and `meta.json`
-(scenario, base_commit, variant, model, duration) next to the score so regressions are inspectable.
-
-## Comparing harness changes (A/B)
-To know whether a prompt/skill/rule change helped, run the **same** scenario before and after under
-different `--variant`s, then:
+**Family-divergence is enforced.** `score.mjs save` rejects a producer/judge pair in the same
+family unless `--allow-same-family` is set (and records the override). Bare CLI:
 
 ```bash
-node .agentrig/eval/score.mjs compare --scenario <id>
-```
-
-A change that lowers the aggregate is a regression even if it "feels" better. A static score < 1.0
-on a principle points at a missing/weak artifact — fix the artifact, then re-audit.
-
-## Does the harness actually help? (with vs without)
-The most important question for a consumer: *does installing AgentRig's harness make agents better
-in THIS repo?* Measure it by running the same scenarios twice and comparing:
-
-```bash
-# 1) Harness ON (the agent uses AGENTS.md + rules + skills as installed)
-agentrig eval --dynamic --scenario <id> --variant harness
-
-# 2) Baseline — harness OFF (a bare agent; ignore AGENTS.md/.agents/instructions surfaces)
-agentrig eval --dynamic --scenario <id> --variant baseline
-
-# 3) Report the lift (per-axis + aggregate delta + a HELPS/HURTS verdict)
+agentrig eval --dynamic --variant harness  --n 5 --producer-model claude-sonnet-4.5 --judge-model gpt-5
+agentrig eval --dynamic --variant baseline --n 5 --producer-model claude-sonnet-4.5 --judge-model gpt-5
 node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
 ```
 
-For a rigorous baseline, run the harness-off trial in a sandbox/worktree with the harness + compiled
-surfaces moved aside (`AGENTS.md`, `.agents/`, `.github/instructions/`, `CLAUDE.md`, `.cursor/`), so
-the agent genuinely has no harness guidance. A positive aggregate delta means the harness helps in
-this repo; track it over time as you tune rules/skills/prompts.
+**Aggregation: weighted + veto.** axes.json declares `weight` and `veto: true` per axis.
+A veto axis < 1.0 fails the scenario regardless of aggregate (e.g. correctness can never be
+papered over by clarity).
+
+## Statistical lift
+
+Single-trial deltas are coin flips. The eval requires `n ≥ 3` paired trials for any verdict
+other than **INCONCLUSIVE**. `score.mjs compare` runs a paired binomial sign test and reports
+median delta + p-value:
+
+- **HELPS** — p < 0.05 and median > 0.05
+- **HURTS** — p < 0.05 and median < -0.05
+- **INCONCLUSIVE** — n < 3, p ≥ 0.05, or |median| < 0.05
+
+A change that doesn't clear `HELPS` is a regression risk even if individual trials looked good.
+
+## Sandbox
+Obey `.agentrig/eval/sandbox/eval-rules.md`: throwaway worktree under `$TMPDIR/agentrig-eval/`,
+never push / open PRs / merge / mutate real labels. The eval measures behavior; it must not
+mutate real branches.
+
+## Calibrate the judge before trusting it
+
+A lazy judge that returns 1.0 everywhere passes every `score.mjs save` validation. Run the judge
+over the hand-labeled `calibration/` instances and require ≥ 80% agreement before publishing
+results:
+
+```bash
+node .agentrig/eval/score.mjs calibrate --judge <model> --instance .agentrig/eval/calibration/run/seed-correct.yml --judge-scores /tmp/judge-out.json
+node .agentrig/eval/score.mjs calibrate --report
+agentrig doctor   # flags any judge below the 80% threshold
+```
+
+See `.agentrig/eval/calibration/README.md` for the instance format.

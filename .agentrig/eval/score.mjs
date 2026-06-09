@@ -247,8 +247,131 @@ if (cmd === "report" || cmd === "compare") {
   process.exit(0);
 }
 
-console.error("Usage: score.mjs <save|report|compare> ...");
+if (cmd === "calibrate") {
+  // Calibrate a judge model against the hand-labeled set in eval/calibration/.
+  // For each instance, the calibrate script simply compares the agent-supplied
+  // judge_scores.json (path passed via --judge-scores) against the ground truth.
+  // The orchestration of "actually invoke the judge and capture its output" is
+  // CLI-side (`agentrig doctor` does it); this script is the pure scoring half.
+  //
+  // Usage:
+  //   node score.mjs calibrate --instance <path-to-instance.yml> --judge-scores <path.json>
+  //   node score.mjs calibrate --report   # roll up cached results in calibration/results/
+  const calibDir = join(scriptDir, "calibration");
+  if (args.includes("--report")) {
+    runCalibrateReport(calibDir);
+    process.exit(0);
+  }
+  const instancePath = getOpt(args, "--instance");
+  const judgeScoresPath = getOpt(args, "--judge-scores");
+  const judgeModel = getOpt(args, "--judge") || "unknown";
+  if (!instancePath || !judgeScoresPath) fail("calibrate requires --instance <path.yml> and --judge-scores <path.json> (or --report)");
+  const result = runCalibrateOne(instancePath, judgeScoresPath, judgeModel);
+  const resultsDir2 = join(calibDir, "results");
+  if (!existsSync(resultsDir2)) mkdirSync(resultsDir2, { recursive: true });
+  const safe = (s) => String(s).replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const out = join(resultsDir2, `${safe(judgeModel)}.${safe(result.instanceId)}.${Date.now()}.json`);
+  writeFileSync(out, JSON.stringify(result, null, 2));
+  console.log(`Saved ${out}`);
+  console.log(`  ${result.instanceId}: agreement=${(result.agreement * 100).toFixed(1)}% (${result.matches}/${result.compared})  bias=${result.bias.toFixed(3)}`);
+  process.exit(0);
+}
+
+console.error("Usage: score.mjs <save|report|compare|calibrate> ...");
 process.exit(2);
+
+// --- calibration helpers ---------------------------------------------------
+function runCalibrateOne(instancePath, judgeScoresPath, judgeModel) {
+  if (!existsSync(instancePath)) fail(`instance not found: ${instancePath}`);
+  if (!existsSync(judgeScoresPath)) fail(`judge scores not found: ${judgeScoresPath}`);
+  // Tiny YAML reader inline — only needs to handle the flat structure of our calibration files.
+  // For brevity we punt to a real parse via a child process; but to stay dep-free we just JSON-parse
+  // judge scores and use a regex-based reader for the YAML ground truth.
+  const text = readFileSync(instancePath, "utf8");
+  const truth = parseCalibYaml(text);
+  const judge = JSON.parse(readFileSync(judgeScoresPath, "utf8"));
+  const judgeAxes = new Map((judge.axes || []).map((a) => [a.name, a]));
+  const compared = [];
+  for (const t of truth.ground_truth || []) {
+    const j = judgeAxes.get(t.axis);
+    if (!j) { compared.push({ axis: t.axis, truth: t.score, judge: null, diff: null, within: false }); continue; }
+    if ((t.confidence ?? 1) === 0 && (j.confidence ?? 1) === 0) {
+      compared.push({ axis: t.axis, truth: 0, judge: 0, diff: 0, within: true });
+      continue;
+    }
+    const diff = j.score - t.score;
+    const within = Math.abs(diff) <= 0.5;
+    compared.push({ axis: t.axis, truth: t.score, judge: j.score, diff, within });
+  }
+  const matches = compared.filter((c) => c.within).length;
+  const agreement = compared.length ? matches / compared.length : 0;
+  const signedDiffs = compared.filter((c) => c.diff != null).map((c) => c.diff);
+  const bias = signedDiffs.length ? signedDiffs.reduce((s, x) => s + x, 0) / signedDiffs.length : 0;
+  return {
+    instanceId: truth.id || "unknown",
+    judgeModel,
+    compared: compared.length,
+    matches,
+    agreement: round(agreement),
+    bias: round(bias),
+    axes: compared,
+  };
+}
+
+function runCalibrateReport(calibDir) {
+  const resultsDir2 = join(calibDir, "results");
+  if (!existsSync(resultsDir2)) {
+    console.log("No calibration results yet. Run `score.mjs calibrate --instance <path> --judge-scores <path>` first.");
+    return;
+  }
+  const byJudge = new Map();
+  for (const f of readdirSync(resultsDir2).filter((f) => f.endsWith(".json"))) {
+    let rec;
+    try { rec = JSON.parse(readFileSync(join(resultsDir2, f), "utf8")); }
+    catch { continue; }
+    if (!byJudge.has(rec.judgeModel)) byJudge.set(rec.judgeModel, []);
+    byJudge.get(rec.judgeModel).push(rec);
+  }
+  console.log("AgentRig — judge calibration report\n");
+  if (byJudge.size === 0) { console.log("  No calibration results yet."); return; }
+  console.log(`  ${"judge".padEnd(28)} ${"n".padStart(3)}  ${"agree%".padStart(7)}  ${"bias".padStart(7)}`);
+  for (const [judge, recs] of byJudge) {
+    const meanAgree = recs.reduce((s, r) => s + r.agreement, 0) / recs.length;
+    const meanBias = recs.reduce((s, r) => s + r.bias, 0) / recs.length;
+    const flag = meanAgree < 0.8 ? " (below 80% threshold)" : "";
+    console.log(`  ${(judge || "unknown").padEnd(28)} ${String(recs.length).padStart(3)}  ${(meanAgree * 100).toFixed(1).padStart(6)}%  ${meanBias.toFixed(3).padStart(7)}${flag}`);
+  }
+}
+
+/** Minimal YAML reader for our calibration file shape: top-level scalars + a `ground_truth` list of
+ *  `{ axis, score, confidence?, code?, evidence? }` flow-mapping items. Avoids adding `yaml` as a
+ *  dep so the installed score.mjs stays self-contained. */
+function parseCalibYaml(text) {
+  const out = { ground_truth: [] };
+  let inGT = false;
+  for (const raw of text.split(/\r?\n/)) {
+    if (/^ground_truth:\s*$/.test(raw)) { inGT = true; continue; }
+    if (inGT && /^\s*-\s*\{/.test(raw)) {
+      const body = raw.replace(/^\s*-\s*\{/, "").replace(/\}\s*$/, "");
+      const kv = {};
+      for (const pair of body.split(",")) {
+        const m = pair.trim().match(/^(\w+):\s*(.*)$/);
+        if (!m) continue;
+        let v = m[2].trim();
+        if (/^-?\d+(\.\d+)?$/.test(v)) v = Number(v);
+        else if (v.startsWith('"')) v = v.slice(1, -1);
+        kv[m[1]] = v;
+      }
+      out.ground_truth.push(kv);
+      continue;
+    }
+    // Any top-level (non-indented) key exits the ground_truth block.
+    if (/^\S/.test(raw)) inGT = false;
+    const m = raw.match(/^(\w+):\s*(.+?)\s*$/);
+    if (m && !inGT) out[m[1]] = /^-?\d+(\.\d+)?$/.test(m[2]) ? Number(m[2]) : m[2].replace(/^["']|["']$/g, "");
+  }
+  return out;
+}
 
 // --- helpers ---------------------------------------------------------------
 function round(n) {

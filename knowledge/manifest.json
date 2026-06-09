@@ -229,6 +229,14 @@
       "kind": "dir"
     },
     {
+      "id": "eval-calibration",
+      "principle": 6,
+      "src": "templates/eval/calibration",
+      "dest": ".agentrig/eval/calibration",
+      "kind": "dir",
+      "refresh": "preserve"
+    },
+    {
       "id": "eval-sandbox",
       "principle": 6,
       "src": "templates/eval/sandbox",
