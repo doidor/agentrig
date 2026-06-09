@@ -93,37 +93,40 @@ export interface DynamicRunContext {
   variant?: string;
 }
 
+/**
+ * @deprecated Replaced by buildProducerPrompt + buildJudgePrompt in the P3 producer/judge
+ * split. Kept temporarily so legacy callers don't break during the migration.
+ */
 export function buildDynamicEvalPrompt(scenarioId?: string, run?: DynamicRunContext): string {
   const scope = scenarioId
-    ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}.md\``
-    : "each scenario in \`.agentrig/eval/scenarios/*.md\`";
-  const variantFlag = run?.variant ? ` --variant ${run.variant}` : "";
-  const baselineNote =
-    run?.variant === "baseline"
-      ? `\n**This is a BASELINE trial (harness OFF).** Perform each task as a bare agent: do NOT read or
-follow \`AGENTS.md\`, \`.agents/rules/\`, \`.agents/skills/\`, or the compiled instruction surfaces.
-Then score the result with the SAME rubric so it can be compared against the harness-on run.\n`
-      : "";
-  const runLine = run
-    ? `\nTag every score with \`--run ${run.runId}${variantFlag}\`. For each scenario, also save artifacts into
-\`${run.artifactsDir}\`: \`diff.patch\` (the produced change, e.g. \`git -C <worktree> diff > ${run.artifactsDir}/<scenario>.diff.patch\`)
-and \`<scenario>.output.md\` (a short transcript/summary). These make regressions inspectable.\n`
-    : "";
-  return `# Task — Run the harness dynamic evaluation
+    ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}/\``
+    : "each scenario in \`.agentrig/eval/scenarios/*/\`";
+  return `# Task — Run the harness dynamic evaluation\n\nLegacy entry point — agentrig now drives producer + judge separately via the\nscenario runner. Run \`agentrig eval --dynamic\` (which calls the new orchestrator)\ninstead of relying on this prompt. Scope: ${scope}. Run id: ${run?.runId ?? "n/a"}.\n`;
+}
 
-Run the behavioral evaluation described in \`.agents/skills/harness-eval/SKILL.md\` (Layer B) for
-${scope}.
-${baselineNote}${runLine}
-For each scenario, in order:
-1. Execute the scenario task through this repo's harness.
-2. Score the result against \`.agentrig/eval/RUBRIC.md\` as an independent judge. For any axis below
-   1.0, record an issue code and one line of evidence.
-3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`${run ? ` --run ${run.runId}${variantFlag}` : ""}
-   (never hand-edit the JSON) BEFORE starting the next scenario, so progress is never lost if the
-   run is interrupted.
-4. Keep each scenario focused and time-boxed. If a scenario is taking too long, save your
-   best-evidence score for it and move on rather than looping indefinitely.
+/** Producer prompt — handed to the agent running in the scenario worktree.
+ *  Inlines the scenario's own prompt.md so the producer doesn't need to find it. */
+export function buildProducerPrompt(scenarioPrompt: string, variant: string): string {
+  const baselineNote = variant === "baseline"
+    ? `\n**This is a BASELINE trial — harness OFF.** Do NOT read or follow \`AGENTS.md\`, \`.agents/rules/\`, \`.agents/skills/\`, or any AgentRig-installed instruction surface, even if they happen to be present in this worktree. Behave as a bare agent with only your training-data priors.\n`
+    : `\n**This is a HARNESS trial — harness ON.** Follow \`AGENTS.md\`, the rules in \`.agents/rules/\`, and the skills in \`.agents/skills/\` if they are present in this worktree.\n`;
+  return `# Scenario task\n${baselineNote}\nYour entire job is described below. Work inside the current directory (this is a\nthrowaway worktree dedicated to your trial). When done, simply finish — the\nscenario runner captures your diff, your transcript, and runs the deterministic\noracle automatically.\n\n---\n\n${scenarioPrompt}\n`;
+}
 
-When every scenario in scope is scored, run \`node .agentrig/eval/score.mjs report\` and summarize
-the aggregate, calling out the weakest axes.`;
+export interface JudgeContext {
+  scenario: string;
+  type: "run" | "spec" | "review";
+  judgeAxes: string[];
+  outputJsonPath: string;     // absolute
+  rubricPath: string;         // absolute path to axes.json
+}
+
+/** Judge prompt — handed to a DIFFERENT model than the producer. The judge runs in a
+ *  dedicated cwd containing prompt.md, diff.patch, transcript.md, oracle.json, judge_brief.md.
+ *  Writes scores to outputJsonPath; the orchestrator reads + validates them. */
+export function buildJudgePrompt(ctx: JudgeContext): string {
+  const axesList = ctx.judgeAxes.length
+    ? ctx.judgeAxes.map((a) => `- \`${a}\``).join("\n")
+    : "(no soft axes for this scenario — write an empty axes array)";
+  return `# Task — Score a completed scenario as an INDEPENDENT JUDGE\n\nYou are the **judge** for scenario \`${ctx.scenario}\` (type: \`${ctx.type}\`). The producer\nagent has already finished. Read these files in your cwd to do your scoring:\n\n- \`prompt.md\`     — the exact task the producer was given\n- \`diff.patch\`    — the change the producer produced\n- \`transcript.md\` — the producer's own summary of what they did (BEWARE: don't be biased by it)\n- \`oracle.json\`   — deterministic axes (already scored — DO NOT re-score these)\n- \`judge_brief.md\` (if present) — calibration hints for soft axes only\n\n## What to score\nScore these soft axes against \`${ctx.rubricPath}\`:\n${axesList}\n\nTiers are strict: \`0\` / \`0.5\` / \`1.0\`. Any score < 1.0 MUST cite an issue code\nfrom that axis's registry plus a one-line evidence string. Use \`confidence: 0\` for\naxes you genuinely cannot observe.\n\n## How to submit\nWrite your scores to \`${ctx.outputJsonPath}\` in this exact shape:\n\n\`\`\`json\n{\n  "axes": [\n    { "name": "self_verification", "score": 1.0, "confidence": 1 },\n    { "name": "clarity",           "score": 0.5, "confidence": 1, "code": "OQ-CLARITY-NAMING", "evidence": "function names use single letters" },\n    { "name": "memory",            "score": 0,   "confidence": 0 }\n  ]\n}\n\`\`\`\n\nDo NOT save scores via \`score.mjs\` yourself — the orchestrator does that.\n\n## Independence\nDo NOT defer to the producer's reasoning. Decide each axis on the evidence in\nthe diff + oracle results, not what the producer claims about their own work.\nIf the diff contradicts the transcript, the diff wins.\n`;
 }

@@ -22,6 +22,26 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const resultsDir = join(scriptDir, "results");
 const axesPath = join(scriptDir, "axes.json");
 
+// Mirror of src/core/model-family.ts. Kept inline to keep this script dep-free so it
+// works in target repos that haven't run `npm install` after `agentrig init`.
+const FAMILY_PATTERNS = [
+  ["anthropic-claude", /^(anthropic[\.\/-])?claude([-_\.]|$)/i],
+  ["openai-gpt", /^(openai[\.\/-])?(gpt|o[1-9]|codex|davinci|chatgpt)([-_\.]|$)/i],
+  ["google-gemini", /^(google[\.\/-])?(gemini|palm|bard|flash)([-_\.]|$)/i],
+  ["mistral", /^(mistral|mixtral|codestral|ministral)([-_\.]|$)/i],
+  ["deepseek", /^deepseek([-_\.]|$)/i],
+  ["meta-llama", /^(meta[\.\/-])?(llama|code-?llama)([-_\.]|$)/i],
+  ["xai-grok", /^(xai[\.\/-])?grok([-_\.]|$)/i],
+  ["cohere", /^(cohere[\.\/-])?(command|aya)([-_\.]|$)/i],
+  ["qwen", /^qwen([-_\.]|$)/i],
+];
+function modelFamily(id) {
+  if (!id) return "";
+  for (const [name, rx] of FAMILY_PATTERNS) if (rx.test(id)) return name;
+  const m = id.match(/^([a-z0-9]+)/i);
+  return m ? `unknown:${m[1].toLowerCase()}` : `unknown:${id}`;
+}
+
 function loadRegistry() {
   if (!existsSync(axesPath)) {
     console.error(`axes.json not found at ${axesPath}`);
@@ -129,16 +149,39 @@ if (cmd === "save") {
     : aggregate < PASS ? `aggregate ${aggregate.toFixed(2)} < ${PASS}`
     : null;
 
+  // Producer / judge metadata. Comes from --producer-model / --judge-model flags OR from
+  // env vars (the orchestrator sets AGENTRIG_PRODUCER_MODEL / AGENTRIG_JUDGE_MODEL so it
+  // doesn't have to thread two more positional args through). Family-divergence is enforced:
+  // a result where producer + judge share a family is rejected unless --allow-same-family
+  // (or AGENTRIG_ALLOW_SAME_FAMILY=1) is set, and the override gets recorded so reviewers
+  // can spot lazy single-model setups.
+  const producerModel = getOpt(args, "--producer-model") || process.env.AGENTRIG_PRODUCER_MODEL || "";
+  const judgeModel = getOpt(args, "--judge-model") || process.env.AGENTRIG_JUDGE_MODEL || judge;
+  const allowSameFamily = args.includes("--allow-same-family") || process.env.AGENTRIG_ALLOW_SAME_FAMILY === "1";
+  const trialIndex = getOpt(args, "--trial");
+  if (producerModel && judgeModel) {
+    if (modelFamily(producerModel) === modelFamily(judgeModel) && !allowSameFamily) {
+      fail(`producer "${producerModel}" and judge "${judgeModel}" share family "${modelFamily(producerModel)}". ` +
+        `Pass --allow-same-family (or set AGENTRIG_ALLOW_SAME_FAMILY=1) to override; the override will be recorded.`);
+    }
+  }
+
   const record = {
     schemaVersion: 2,
     type, task, scenario, variant, run, judge,
+    producerModel: producerModel || null,
+    judgeModel: judgeModel || null,
+    producerFamily: producerModel ? modelFamily(producerModel) : null,
+    judgeFamily: judgeModel ? modelFamily(judgeModel) : null,
+    allowSameFamily,
+    trialIndex: trialIndex != null ? Number(trialIndex) : null,
     timestamp: new Date().toISOString(),
     aggregate, pass, failReason, categoryScores, axes,
   };
 
   if (!existsSync(resultsDir)) mkdirSync(resultsDir, { recursive: true });
   const safe = (s) => String(s).replace(/[^a-zA-Z0-9_.-]/g, "_");
-  const file = join(resultsDir, `${safe(type)}.${safe(scenario)}.${safe(variant || "base")}.${Date.now()}.json`);
+  const file = join(resultsDir, `${safe(type)}.${safe(scenario)}.${safe(variant || "base")}${trialIndex != null ? "." + safe("trial" + trialIndex) : ""}.${Date.now()}.json`);
   writeFileSync(file, JSON.stringify(record, null, 2));
   console.log(`Saved ${file}\n  aggregate=${aggregate.toFixed(2)} ${pass ? "PASS" : "FAIL"}${failReason ? ` — ${failReason}` : ""} (${observed.length}/${axes.length} axes observed)`);
   process.exit(0);
@@ -256,54 +299,126 @@ function validateRecord(r) {
 function compare(records, scenario, asJson, baseline) {
   if (!scenario) fail("compare requires --scenario <id>");
   const forScenario = records.filter((r) => r.scenario === scenario);
-  const latestByVariant = new Map();
-  for (const r of forScenario.sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
-    latestByVariant.set(r.variant || "base", r);
-  }
-  const variants = [...latestByVariant.values()];
 
-  // Harness-lift mode: delta of every other variant vs the baseline.
+  // Group by variant; keep ALL trials, not just the latest. This is the spine of P4.
+  const trialsByVariant = new Map();
+  for (const r of forScenario.sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
+    const v = r.variant || "base";
+    if (!trialsByVariant.has(v)) trialsByVariant.set(v, []);
+    trialsByVariant.get(v).push(r);
+  }
+
+  // Per-variant summary: n trials, mean ± stdev of aggregate, pass-rate.
+  const variantSummaries = [];
+  for (const [variant, trials] of trialsByVariant) {
+    const aggs = trials.map((t) => t.aggregate);
+    const mean = aggs.reduce((s, x) => s + x, 0) / aggs.length;
+    const variance = aggs.length > 1 ? aggs.reduce((s, x) => s + (x - mean) ** 2, 0) / (aggs.length - 1) : 0;
+    const stdev = Math.sqrt(variance);
+    const passRate = trials.filter((t) => t.pass).length / trials.length;
+    variantSummaries.push({
+      variant,
+      n: trials.length,
+      meanAggregate: round(mean),
+      stdevAggregate: round(stdev),
+      passRate: round(passRate),
+      judge: trials[trials.length - 1].judge,
+    });
+  }
+
+  // Harness-lift mode: paired sign test of every other variant vs the baseline.
   let lift = null;
   if (baseline) {
-    const base = latestByVariant.get(baseline);
-    if (!base) fail(`no results for baseline variant "${baseline}" on scenario "${scenario}"`);
-    lift = variants
-      .filter((r) => (r.variant || "base") !== baseline)
-      .map((r) => {
-        const axisDelta = {};
-        const baseAxes = Object.fromEntries((base.axes || []).filter((a) => a.confidence > 0).map((a) => [a.name, a.score]));
-        for (const a of (r.axes || []).filter((a) => a.confidence > 0)) {
-          if (baseAxes[a.name] !== undefined) axisDelta[a.name] = round(a.score - baseAxes[a.name]);
+    const baseTrials = trialsByVariant.get(baseline);
+    if (!baseTrials) fail(`no results for baseline variant "${baseline}" on scenario "${scenario}"`);
+    lift = [];
+    for (const [variant, trials] of trialsByVariant) {
+      if (variant === baseline) continue;
+      // Pair trial i of variant with trial i of baseline. If trial counts differ, pair what we can.
+      const paired = Math.min(trials.length, baseTrials.length);
+      if (paired === 0) continue;
+      const deltas = [];
+      for (let i = 0; i < paired; i++) deltas.push(trials[i].aggregate - baseTrials[i].aggregate);
+      const median = deltas.slice().sort((a, b) => a - b)[Math.floor(deltas.length / 2)];
+      // Binomial sign test: under H0 (no effect), wins ~ Binomial(n, 0.5).
+      // Two-sided p-value = 2 * P(X >= k_wins | n, 0.5) for k_wins >= n/2.
+      const wins = deltas.filter((d) => d > 0).length;
+      const losses = deltas.filter((d) => d < 0).length;
+      const ties = deltas.filter((d) => d === 0).length;
+      const nNonTie = wins + losses;
+      const pValue = signTestPValue(Math.max(wins, losses), nNonTie);
+      const verdict = nNonTie < 3
+        ? "INCONCLUSIVE (n<3, need more trials)"
+        : pValue >= 0.05
+          ? "INCONCLUSIVE (p>=0.05)"
+          : Math.abs(median) < 0.05
+            ? "INCONCLUSIVE (effect <0.05)"
+            : median > 0 ? "HELPS" : "HURTS";
+
+      // Per-axis median delta across paired trials (axes present in both sides).
+      const axisDelta = {};
+      const axesInBoth = new Set(baseTrials[0].axes.map((a) => a.name));
+      for (const axis of axesInBoth) {
+        const ds = [];
+        for (let i = 0; i < paired; i++) {
+          const ba = baseTrials[i].axes.find((a) => a.name === axis && a.confidence > 0);
+          const va = trials[i].axes.find((a) => a.name === axis && a.confidence > 0);
+          if (ba && va) ds.push(va.score - ba.score);
         }
-        return { variant: r.variant || "base", aggregateDelta: round(r.aggregate - base.aggregate), axisDelta };
-      });
+        if (ds.length === 0) continue;
+        const sorted = ds.slice().sort((a, b) => a - b);
+        axisDelta[axis] = round(sorted[Math.floor(sorted.length / 2)]);
+      }
+      lift.push({ variant, n: paired, medianDelta: round(median), wins, losses, ties, pValue: round(pValue), verdict, axisDelta });
+    }
   }
 
   if (asJson) {
     console.log(JSON.stringify({
       scenario,
-      variants: variants.map((r) => ({ variant: r.variant || "base", aggregate: r.aggregate, pass: r.pass, judge: r.judge, categoryScores: r.categoryScores })),
+      variants: variantSummaries,
       ...(lift ? { baseline, lift } : {}),
     }, null, 2));
     process.exit(0);
   }
 
   console.log(`AgentRig — variant comparison for "${scenario}"\n`);
-  if (variants.length === 0) console.log("  No results for that scenario.");
-  for (const r of variants) {
-    console.log(`  ${(r.variant || "base").padEnd(12)} ${r.aggregate.toFixed(2)} ${r.pass ? "PASS" : "FAIL"}  (${r.judge})`);
-    for (const [c, s] of Object.entries(r.categoryScores || {})) console.log(`      ${c.padEnd(20)} ${s.toFixed(2)}`);
+  if (variantSummaries.length === 0) {
+    console.log("  No results for that scenario.");
+  } else {
+    console.log(`  ${"variant".padEnd(12)} ${"n".padStart(3)}  ${"mean".padStart(6)}  ${"stdev".padStart(6)}  ${"pass%".padStart(6)}   judge`);
+    for (const s of variantSummaries) {
+      console.log(`  ${s.variant.padEnd(12)} ${String(s.n).padStart(3)}  ${s.meanAggregate.toFixed(3).padStart(6)}  ${s.stdevAggregate.toFixed(3).padStart(6)}  ${(s.passRate * 100).toFixed(0).padStart(5)}%   ${s.judge}`);
+    }
   }
   if (lift) {
-    console.log(`\n  Harness lift vs baseline "${baseline}":`);
+    console.log(`\n  Harness lift vs baseline "${baseline}" (paired sign test):`);
     for (const l of lift) {
-      const sign = l.aggregateDelta > 0 ? "+" : "";
-      const verdict = l.aggregateDelta > 0 ? "HELPS" : l.aggregateDelta < 0 ? "HURTS" : "no change";
-      console.log(`    ${l.variant.padEnd(12)} aggregate ${sign}${l.aggregateDelta.toFixed(2)}  → harness ${verdict}`);
+      const sign = l.medianDelta > 0 ? "+" : "";
+      console.log(`    ${l.variant.padEnd(12)} n=${l.n}  median Δ ${sign}${l.medianDelta.toFixed(3)}  wins/losses/ties ${l.wins}/${l.losses}/${l.ties}  p=${l.pValue.toFixed(3)}  → ${l.verdict}`);
       for (const [name, d] of Object.entries(l.axisDelta)) {
-        if (d !== 0) console.log(`        ${name.padEnd(20)} ${d > 0 ? "+" : ""}${d.toFixed(2)}`);
+        if (d !== 0) console.log(`        ${name.padEnd(22)} median Δ ${d > 0 ? "+" : ""}${d.toFixed(3)}`);
       }
     }
   }
   process.exit(0);
+}
+
+/** Two-sided binomial sign-test p-value: P(X >= k or X <= n-k | n, 0.5). */
+function signTestPValue(k, n) {
+  if (n === 0) return 1;
+  // sum of binomial PMF from max(k, n-k) to n, then double (two-sided).
+  const upper = Math.max(k, n - k);
+  let pTail = 0;
+  for (let i = upper; i <= n; i++) pTail += binomCoeff(n, i) * Math.pow(0.5, n);
+  // Cap at 1.0 (two-sided x2, but when k == n/2 exactly the tails meet).
+  return Math.min(1, pTail * 2);
+}
+function binomCoeff(n, k) {
+  if (k < 0 || k > n) return 0;
+  if (k === 0 || k === n) return 1;
+  k = Math.min(k, n - k);
+  let c = 1;
+  for (let i = 0; i < k; i++) c = (c * (n - i)) / (i + 1);
+  return c;
 }

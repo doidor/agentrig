@@ -78,7 +78,7 @@ test("score.mjs report --json uses the results shape and compare groups variants
   }
 });
 
-test("compare --baseline computes harness lift (HELPS/HURTS delta)", () => {
+test("compare --baseline pairs trials and reports medianDelta + sign-test verdict", () => {
   const dir = freshInstall();
   try {
     runNode(score(dir), ["save", "--type", "run", "--scenario", "s", "--variant", "harness", "--judge", "m", "--axis", "correctness=1.0"], dir);
@@ -87,8 +87,11 @@ test("compare --baseline computes harness lift (HELPS/HURTS delta)", () => {
     const j = JSON.parse(cmp.stdout);
     assert.equal(j.baseline, "baseline");
     const harnessLift = j.lift.find((l) => l.variant === "harness");
-    assert.equal(harnessLift.aggregateDelta, 0.5, "harness should beat baseline by 0.5");
+    assert.equal(harnessLift.n, 1, "one trial per variant");
+    assert.equal(harnessLift.medianDelta, 0.5, "harness aggregate is 0.5 higher than baseline on this single pair");
     assert.equal(harnessLift.axisDelta.correctness, 0.5);
+    // n=1 is below the n>=3 confidence threshold — verdict is INCONCLUSIVE.
+    assert.match(harnessLift.verdict, /INCONCLUSIVE/);
   } finally {
     cleanup(dir);
   }

@@ -4,11 +4,10 @@ import { auditHarness, type AuditReport } from "../core/audit.js";
 import { join } from "../core/fsutil.js";
 import { isInstalled } from "../core/state.js";
 import { color, log } from "../core/logger.js";
-import { ActivityMonitor } from "../core/activity.js";
 import { getProvider } from "../agent/index.js";
 import { AgentTimeoutError } from "../agent/provider.js";
-import { buildDynamicEvalPrompt, SYSTEM_MESSAGE } from "../prompts/index.js";
 import { listScenarios, locateScenario, loadScenario } from "../core/scenario-runner.js";
+import { runDynamicEval } from "./eval-dynamic.js";
 
 /** Print what the dynamic eval measures: rubric types/axes/issue-codes + installed scenarios. */
 export function renderRubric(repoRoot: string, asJson: boolean): number {
@@ -112,7 +111,12 @@ export function renderAudit(report: AuditReport): void {
 export interface EvalOptions {
   mode: "static" | "dynamic";
   json?: boolean;
-  model?: string;
+  model?: string;             // back-compat: alias for producerModel
+  producerModel?: string;
+  judgeModel?: string;
+  allowSameFamily?: boolean;
+  trials?: number;            // P4: per-scenario trial count
+  seed?: number;              // P4: pass-through seed for reproducibility
   min?: number;
   verbose?: boolean;
   scenario?: string;
@@ -155,10 +159,16 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
     return 1;
   }
   log.ok(`agent ready (${pre.detail})`);
-  const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
   const variant = options.variant ?? "harness";
+  // Default trial count: 1 for single-scenario, 5 when running A/B against a variant (so
+  // harness-lift comparisons are never single-trial coin flips).
+  const trials = options.trials ?? (variant === "harness" && options.scenario ? 1 : variant === "baseline" ? 5 : 1);
 
-  // Create a per-run artifacts directory + meta.json (CLI-owned; the agent fills diff/output).
+  // Producer/judge model resolution: explicit flags > options.model (back-compat) > provider default.
+  const producerModel = options.producerModel ?? options.model;
+  const judgeModel = options.judgeModel;
+
+  // Per-run artifacts directory + meta.json.
   const runId = `run-${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const artifactsDirAbs = join(repoRoot, ".agentrig", "eval", "results", "runs", runId);
   const artifactsDirRel = join(".agentrig", "eval", "results", "runs", runId);
@@ -168,45 +178,50 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
     runId,
     startedAt,
     producerProvider: provider.name,
-    producerModel: options.model ?? null,
-    judgeProvider: null,  // filled in P3 when producer/judge are split into separate conversations
-    judgeModel: null,
+    producerModel: producerModel ?? null,
+    judgeProvider: provider.name,
+    judgeModel: judgeModel ?? null,
+    allowSameFamily: Boolean(options.allowSameFamily),
+    trials,
+    seed: options.seed ?? null,
     scenario: options.scenario ?? "all",
     variant,
     gitHead: gitHead(repoRoot),
   };
   writeFileSync(join(artifactsDirAbs, "meta.json"), JSON.stringify(meta, null, 2));
 
-  log.step(`running dynamic harness evaluation — ${scopeLabel}${variant ? ` [variant: ${variant}]` : ""} (this calls the model)…`);
+  const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
+  log.step(`running dynamic harness evaluation — ${scopeLabel} [variant: ${variant}, n=${trials}]…`);
   log.info(color.dim(`  Run ${runId}; scores + artifacts under ${artifactsDirRel}/`));
-  log.info(color.dim("  Live activity below; this can take many minutes.\n"));
+  if (producerModel) log.info(color.dim(`  Producer: ${producerModel}`));
+  if (judgeModel) log.info(color.dim(`  Judge:    ${judgeModel}`));
+  if (!judgeModel) log.info(color.dim("  Judge:    (not set — soft axes will be recorded as na)"));
 
-  const monitor = new ActivityMonitor().start();
-  const conversationOptions = {
-    cwd: repoRoot,
-    systemMessage: SYSTEM_MESSAGE,
-    onEvent: monitor.handle,
-    ...(options.model ? { model: options.model } : {}),
-    ...(options.timeoutMinutes ? { maxMs: options.timeoutMinutes * 60 * 1000 } : {}),
-  };
-  const convo = await provider.startConversation(conversationOptions);
   let timedOut = false;
   try {
-    const summary = await convo.send(buildDynamicEvalPrompt(options.scenario, { runId, artifactsDir: artifactsDirRel, ...(variant ? { variant } : {}) }));
-    monitor.stop();
-    log.info("\n" + summary);
+    const outcomes = await runDynamicEval(repoRoot, {
+      variant,
+      trials,
+      artifactsDir: artifactsDirAbs,
+      artifactsDirRel,
+      runId,
+      ...(options.scenario ? { scenario: options.scenario } : {}),
+      ...(producerModel ? { producerModel } : {}),
+      ...(judgeModel ? { judgeModel } : {}),
+      ...(options.allowSameFamily ? { allowSameFamily: true } : {}),
+      ...(options.timeoutMinutes ? { timeoutMinutes: options.timeoutMinutes } : {}),
+      ...(options.seed != null ? { seed: options.seed } : {}),
+    });
+    const passed = outcomes.filter((o) => o.oraclePassed).length;
+    log.ok(`completed ${outcomes.length} trial outcome(s); ${passed} oracle-passing.`);
   } catch (err) {
-    monitor.stop();
     if (err instanceof AgentTimeoutError) {
       timedOut = true;
       log.warn(`agent stopped: ${err.message}.`);
-      log.warn("Any scenarios that finished were still saved — showing them below.");
     } else {
-      throw err;
+      log.error(`dynamic eval failed: ${(err as Error).message}`);
+      return 1;
     }
-  } finally {
-    monitor.stop();
-    await convo.end();
   }
 
   // Finalize the run metadata.
@@ -217,12 +232,11 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   meta.artifacts = readdirSync(artifactsDirAbs).filter((f) => f !== "meta.json");
   writeFileSync(join(artifactsDirAbs, "meta.json"), JSON.stringify(meta, null, 2));
 
-  // Always surface whatever was saved, even on timeout.
+  // Surface saved results.
   log.info("");
   renderSavedDynamicResults(repoRoot);
-  log.info(color.dim(`\n  Run artifacts: ${artifactsDirRel}/ (meta.json + any diff/output the run saved)`));
-  log.info(color.dim("  Re-run a single scenario with: agentrig eval --dynamic --scenario <id>"));
-  log.info(color.dim("  Raise the cap with: --timeout <minutes>"));
+  log.info(color.dim(`\n  Run artifacts: ${artifactsDirRel}/`));
+  log.info(color.dim("  Compare with baseline: `agentrig eval --dynamic --variant baseline --n 5`, then `node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline`"));
   return timedOut ? 1 : 0;
 }
 

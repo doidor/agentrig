@@ -73,9 +73,14 @@ ${color.bold("Commands:")}
   eval [path]      Evaluate the harness itself (defaults to the full agentic, harness-on run)
                      --static   fast deterministic structural audit, no model (use in CI)
                      --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
-                     --scenario <id>   run one scenario only (e.g. fix-failing-test)
-                     --variant <name>  label this run (default 'harness'; use 'baseline' for harness-OFF)
-                     --timeout <min>   absolute cap per agent turn (default 45)
+                     --scenario <id>          run one scenario only (e.g. fix-failing-test)
+                     --variant <name>         label this run (default 'harness'; 'baseline' = harness OFF)
+                     --producer-model <id>    model for the producer agent
+                     --judge-model <id>       model for the independent judge (must be a different family)
+                     --allow-same-family      override the producer/judge family check (recorded in results)
+                     --n <int>                trials per scenario (default 1 single, 5 in baseline mode)
+                     --seed <int>             reproducibility seed (passed through where supported)
+                     --timeout <min>          absolute cap per agent turn (default 45)
   doctor [path]    Quick health check (installed? agent reachable? score?)
   dashboard [path] Show agent roster, live GitHub tasks, harness score, and evals
                      --html [file]  write a self-contained HTML dashboard
@@ -148,6 +153,11 @@ async function main(): Promise<number> {
           json: Boolean(flags.json),
           rubric: Boolean(flags.rubric),
           ...(model ? { model } : {}),
+          ...(typeof flags["producer-model"] === "string" ? { producerModel: flags["producer-model"] } : {}),
+          ...(typeof flags["judge-model"] === "string" ? { judgeModel: flags["judge-model"] } : {}),
+          ...(flags["allow-same-family"] ? { allowSameFamily: true } : {}),
+          ...(flags.n != null ? { trials: Number(flags.n) } : {}),
+          ...(flags.seed != null ? { seed: Number(flags.seed) } : {}),
           ...(flags.min != null ? { min: Number(flags.min) } : {}),
           ...(typeof flags.scenario === "string" ? { scenario: flags.scenario } : {}),
           ...(typeof flags.variant === "string" ? { variant: flags.variant } : {}),
