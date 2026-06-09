@@ -189,7 +189,7 @@ CLI:
 - **Agent roster** — every role and the model it runs on.
 - **Live GitHub tasks** — open issues/PRs carrying each harness label, grouped by workflow state and
   showing assignees, fetched via the `gh` CLI (degrades gracefully when `gh` is absent/unauthed).
-- **Harness Score** — the latest static-audit score and any weak principles.
+- **Install Completeness + Quality Probes** — the latest static-audit scores and any weak principles.
 - **Evals** — the latest dynamic-eval summary.
 - **Limits** — the hard caps from the state machine.
 
@@ -220,7 +220,7 @@ customize (like `AGENTS.md`), preserving your repo-specific facts.
 | `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces. **Non-destructive by default** — preserves existing AGENTS.md / .mcp.json / .agents/rules; `--force` to overwrite |
 | `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote) |
 | `agentrig update [path]` | Re-sync the latest best practices (re-compiles surfaces) |
-| `agentrig eval [path] [--static\|--rubric] [--scenario id] [--variant name]` | Evaluate the harness (default: agentic; `--rubric` shows what's measured) |
+| `agentrig eval [path] [--static\|--rubric] [--scenario id] [--variant name] [--n trials] [--producer-model id] [--judge-model id]` | Evaluate the harness (default: agentic; `--static` for the cheap CI-safe audit; `--rubric` shows what's measured) |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
 
