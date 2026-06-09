@@ -1,73 +1,104 @@
 ---
 title: AgentRig
-description: A meta-harness for agent harnesses — install best-practice agent rules, skills, and surfaces into any repo with one command.
+description: A meta-harness for agent harnesses. Investigate any repo, install best-practice agent rules, skills, and surfaces — every agent reads from one source.
+layout: landing
 order: 0
 ---
 
-# AgentRig
+<section class="site-section site-manifesto">
+  <p class="site-manifesto-quote">
+    In a world full of agentic factories, it's better to work <em>on</em> the factory,
+    rather than <em>in</em> it.
+  </p>
+</section>
 
-> An agentic **meta-harness** — a harness *of* harnesses. Investigate any repo, install best-practice agent instructions, skills, rules, and evals, and project them into every agent surface (local + remote) so every agent in your repo benefits, regardless of which tool you use.
+<section class="site-section">
+  <h2>One source, every agent</h2>
+  <p class="site-section-lede">
+    AgentRig treats <strong>AGENTS.md</strong> + <code>.agents/rules/</code> as the single
+    source of truth and compiles it into Copilot, Claude, Cursor, Codex, OpenCode, and MCP.
+    Edit once; every surface updates.
+  </p>
+  <div class="site-hero-spotlight">
+    <h3>Safe on existing repos</h3>
+    <p><code>init</code> is non-destructive by default — your existing <code>AGENTS.md</code>,
+    <code>.mcp.json</code>, and rules are preserved verbatim.
+    <a href="./getting-started.html#adopting-agentrig-in-a-repo-that-already-has-an-agent-harness">Details →</a></p>
+  </div>
+</section>
 
-```bash
-# In any repo
-npx @doidor/agentrig init
-```
+<section class="site-section">
+  <h2>What you get</h2>
+  <p class="site-section-lede">
+    A turnkey harness built around <a href="./principles.html">12 principles</a> from production
+    agent systems — and a compiler that projects it into every surface.
+  </p>
+  <div class="site-feature-grid">
+    <div class="site-feature">
+      <div class="site-feature-icon">🧭</div>
+      <h3>AGENTS.md as source of truth</h3>
+      <p>Plain markdown. Glob-scoped reflex rules in <code>.agents/rules/</code>. No DSL.</p>
+    </div>
+    <div class="site-feature">
+      <div class="site-feature-icon">🔁</div>
+      <h3>Compiles to every surface</h3>
+      <p>Projects into Copilot, Claude Code, Cursor, Codex, OpenCode, and VS Code MCP in one
+      command. <a href="./agent-surfaces.html">Surface map →</a></p>
+    </div>
+    <div class="site-feature">
+      <div class="site-feature-icon">🧱</div>
+      <h3>12 principles, scaffolded</h3>
+      <p>State machine, role prompts (triager / developer / reviewer / judge), skills, rules,
+      wiki — all editable. <a href="./principles.html">Read them →</a></p>
+    </div>
+    <div class="site-feature">
+      <div class="site-feature-icon">🧪</div>
+      <h3>Evals you can run</h3>
+      <p>Static structure audit + dynamic rubric — answer <em>"is this harness paying for the
+      tokens it spends?"</em> with a number. <a href="./evals.html">How →</a></p>
+    </div>
+    <div class="site-feature">
+      <div class="site-feature-icon">📈</div>
+      <h3>Live dashboard</h3>
+      <p>Terminal or HTML. Agent roster, live GitHub tasks per harness label, audit score —
+      offline.</p>
+    </div>
+    <div class="site-feature">
+      <div class="site-feature-icon">🛡</div>
+      <h3>No lock-in</h3>
+      <p>Local files, MIT licensed, no hosted service. Switching primary agents is a config
+      change, not a rewrite.</p>
+    </div>
+  </div>
+</section>
 
-That's it. One command turns a cold repo into one where Copilot (web + IDE), Claude Code, Cursor, Codex, OpenCode — *and* whatever you'll switch to next year — all read from the same canonical source and follow the same rules.
-
-> **Safe to run on existing repos.** `init` is non-destructive by default — if you already have an `AGENTS.md`, `.mcp.json`, or hand-tailored rules, those are preserved verbatim. The canonical machinery is still installed around what you have, and your existing `AGENTS.md` is compiled into every agent surface. Pass `--force` to overwrite. ([details →](./getting-started.html#adopting-agentrig-in-a-repo-that-already-has-an-agent-harness))
-
-## Why a meta-harness?
-
-Most teams pick one agent ("we use Claude Code") and write a `CLAUDE.md` for it. Then someone joins who prefers Cursor. Then GitHub Copilot grows a coding-agent. Then the third agent gets a `.cursor/rules/` directory that drifts from `CLAUDE.md`. Then nobody knows which file an agent will actually read.
-
-AgentRig fixes this by treating **`AGENTS.md` + `.agents/rules/`** as the single source of truth, then **compiling** it into every agent ecosystem's native format. Edit once, every surface updates.
-
-It also installs a turnkey **harness** based on [12 principles](./principles.html) drawn from production agent systems — orchestration contract, state machine, skills, rules, evals, dashboard, the lot.
-
-## What you get
-
-| Surface | File(s) projected |
-| --- | --- |
-| **GitHub Copilot** (web coding agent + IDE) | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `.github/copilot/mcp.json`, `.github/workflows/copilot-setup-steps.yml` |
-| **Claude Code** | `CLAUDE.md` (with `@AGENTS.md` import + inlined body), `.claude/` → `.agents/` |
-| **Cursor** | `.cursor/rules/*.mdc` (glob-scoped, `alwaysApply` derived from globs) |
-| **Codex / OpenCode** | `.codex/`, `.opencode/` → `.agents/` |
-| **VS Code MCP** | `.vscode/mcp.json` |
-| **Per-repo Copilot env** | `.github/workflows/copilot-setup-steps.yml` (scaffolded once from detected stack — Node / Python / Go) |
-| **Canonical sources** | `AGENTS.md`, `.agents/rules/`, `.agents/skills/`, `.agents/wiki/`, `.mcp.json`, `.agentrig/` |
-
-## 30-second tour
-
-```bash
-# Install + scaffold a harness in the current repo
-npx @doidor/agentrig init
-
-# Re-project AGENTS.md into every surface (Copilot, Claude, Cursor, MCP…)
-npx @doidor/agentrig compile
-
-# Pull in the latest best practices from the agentrig package
-npx @doidor/agentrig update
-
-# Health check
-npx @doidor/agentrig doctor
-
-# Evaluate whether the harness actually helps
-npx @doidor/agentrig eval
-```
-
-[Getting started →](./getting-started.html) for the full walkthrough.
-
-## Where to go next
-
-- [Getting started](./getting-started.html) — install + first run + what files land in your repo.
-- [Commands](./commands.html) — every CLI command and flag.
-- [Principles](./principles.html) — the 12 principles AgentRig encodes (your editable copy lives in `.agentrig/PRINCIPLES.md`).
-- [Evaluating the harness](./evals.html) — static + dynamic rubrics, and how to measure "does this harness actually help?".
-- [Agent surfaces](./agent-surfaces.html) — which files project where, and why.
-
-## Project
-
-- **npm:** [`@doidor/agentrig`](https://www.npmjs.com/package/@doidor/agentrig)
-- **GitHub:** [doidor/agentrig](https://github.com/doidor/agentrig)
-- **License:** MIT
+<section class="site-section">
+  <h2>Pick a starting point</h2>
+  <div class="site-guide-grid">
+    <a class="site-guide-card" href="./getting-started.html">
+      <strong>Getting started →</strong>
+      <span>Install, run <code>init</code>, see what lands in your repo. Five minutes.</span>
+    </a>
+    <a class="site-guide-card" href="./principles.html">
+      <strong>The 12 principles →</strong>
+      <span>The opinionated playbook AgentRig encodes.</span>
+    </a>
+    <a class="site-guide-card" href="./commands.html">
+      <strong>Commands reference →</strong>
+      <span><code>init</code>, <code>compile</code>, <code>update</code>, <code>doctor</code>,
+      <code>eval</code>, <code>dashboard</code>.</span>
+    </a>
+    <a class="site-guide-card" href="./agent-surfaces.html">
+      <strong>Agent surfaces →</strong>
+      <span>Which files project where, and the symlink layout.</span>
+    </a>
+    <a class="site-guide-card" href="./evals.html">
+      <strong>Evaluating the harness →</strong>
+      <span>Static audit + dynamic rubric.</span>
+    </a>
+    <a class="site-guide-card" href="https://github.com/doidor/agentrig">
+      <strong>Source on GitHub →</strong>
+      <span><code>doidor/agentrig</code> — issues, discussions, editable knowledge.</span>
+    </a>
+  </div>
+</section>
