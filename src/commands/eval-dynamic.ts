@@ -57,14 +57,24 @@ interface ScenarioOutcome {
 
 /** Stage the AgentRig harness (AGENTS.md + .agents/ + .agentrig/) into a worktree for the
  *  "harness" variant so the producer agent sees the same instructions/skills/rules an
- *  AgentRig-installed repo would have. Skipped for the "baseline" variant. */
+ *  AgentRig-installed repo would have, then fold the staged files into the baseline commit
+ *  so they don't pollute the producer's diff. Skipped for the "baseline" variant. */
 function stageHarnessInto(worktree: string, repoRoot: string, variant: string): void {
   if (variant === "baseline") return;
+  let staged = false;
   for (const rel of ["AGENTS.md", ".agents", ".agentrig"]) {
     const src = join(repoRoot, rel);
     if (!existsSync(src)) continue;
     cpSync(src, join(worktree, rel), { recursive: true });
+    staged = true;
   }
+  if (!staged) return;
+  // CRITICAL: fold the staged harness into the baseline commit. Without this, every staged
+  // file shows up in captureDiff() as part of the producer's change → oracle scope check
+  // erroneously sees "+5000 lines / 100 files" and the judge scores scope/maintainability=0
+  // for a producer who only edited two files. (Caught by user-reported eval run 2026-06-10.)
+  spawnSync("git", ["add", "-A"], { cwd: worktree });
+  spawnSync("git", ["commit", "-q", "--amend", "--no-edit"], { cwd: worktree });
 }
 
 /** Save a scenario score by shelling out to the installed score.mjs (single source of truth

@@ -227,6 +227,13 @@ if (cmd === "report" || cmd === "compare") {
     if (rows.length === 0) {
       console.log("  No results yet. Run `score.mjs save ...` first.");
     } else {
+      const passed = rows.filter((r) => r.pass).length;
+      const failed = rows.length - passed;
+      console.log(`  Summary: ${passed}/${rows.length} scenario${rows.length === 1 ? "" : "s"} PASS, ${failed} FAIL`);
+      console.log(`  Overall aggregate (mean of per-scenario aggregates): ${overall.toFixed(2)}\n`);
+      console.log("  Pass rule: aggregate ≥ 0.8 AND no observed axis = 0 AND no veto axis < 1.0.");
+      console.log("  Veto axes per type: run → correctness/gate_compliance; review → finding_correctness/blocking_decision.\n");
+
       const byType = new Map();
       for (const r of rows) {
         if (!byType.has(r.type)) byType.set(r.type, []);
@@ -236,12 +243,39 @@ if (cmd === "report" || cmd === "compare") {
         console.log(`  ${type.toUpperCase()}`);
         for (const r of group) {
           const v = r.variant ? ` [${r.variant}]` : "";
-          console.log(`    ${r.pass ? "PASS" : "FAIL"}  ${(r.scenario + v).padEnd(30)} ${r.aggregate.toFixed(2)}  (${r.judge})`);
+          const verdict = r.pass ? "PASS" : "FAIL";
+          console.log(`    ${verdict}  ${(r.scenario + v).padEnd(30)} ${r.aggregate.toFixed(2)}  ${r.failReason ? `← ${r.failReason}` : ""}`);
+          // Print failing axes with their issue code + evidence so the operator can act.
+          if (!r.pass) {
+            const failing = (r.axes || []).filter((a) => a.confidence > 0 && a.score < 1);
+            for (const a of failing) {
+              const tag = a.score === 0 ? "0  " : "½  ";
+              const code = a.issue ? `[${a.issue}]` : "";
+              const ev = (a.evidence || "").slice(0, 110);
+              console.log(`        ${tag} ${a.name.padEnd(22)} ${code} ${ev}`);
+            }
+          }
         }
       }
-      console.log("\n  Per-axis means (observed only):");
-      for (const [name, v] of axisAgg) console.log(`    ${name.padEnd(22)} ${round(v.sum / v.n).toFixed(2)}`);
-      console.log(`\n  Overall: ${overall.toFixed(2)} across ${rows.length} result(s)`);
+      // Per-axis means: explicitly label which are observed across multiple scenarios.
+      console.log("\n  Per-axis means across all observed scenarios (lower = worse on average):");
+      const axisRows = [...axisAgg.entries()].map(([name, v]) => ({ name, mean: round(v.sum / v.n), n: v.n }))
+        .sort((a, b) => a.mean - b.mean);
+      for (const a of axisRows) {
+        const flag = a.mean < 0.5 ? "  ← weakest" : a.mean < 0.8 ? "  ← weak" : "";
+        console.log(`    ${a.name.padEnd(22)} ${a.mean.toFixed(2)}  (n=${a.n})${flag}`);
+      }
+
+      console.log(`\n  How to read this:`);
+      console.log(`    • A scenario PASS means the harness handled this task well per the rubric.`);
+      console.log(`    • A scenario FAIL means at least one veto axis dropped below 1.0 OR an observed axis was 0.`);
+      console.log(`    • The overall aggregate (${overall.toFixed(2)}) is NOT the harness lift — that requires`);
+      console.log(`      a baseline comparison: \`agentrig eval --dynamic --variant baseline --n 5\` then`);
+      console.log(`      \`node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline\`.`);
+      if (failed > 0) {
+        console.log(`    • To investigate a FAIL: open \`.agentrig/eval/results/runs/<runId>/<scenario>.trial0.diff.patch\``);
+        console.log(`      and \`<scenario>.trial0.judge.json\` to see exactly what the producer did and what the judge saw.`);
+      }
     }
   }
   process.exit(0);
