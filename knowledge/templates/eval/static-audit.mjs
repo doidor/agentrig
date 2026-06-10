@@ -177,6 +177,30 @@ function scoreCheck(c) {
       if (src && dst && !hasPath(adj, src, dst)) problems.push(`no path ${src}→${dst}`);
       return problems.length === 0 ? { score: 1, evidence: "" } : { score: 0.5, evidence: problems.join("; ") };
     }
+    case "marker-populated": {
+      // Mirror of src/core/audit.ts: assert AGENTRIG:<name> block in `path` is populated.
+      const p = c.path, name = c.marker || "";
+      const text = read(p);
+      if (text == null) return { score: 0, evidence: `missing ${p}` };
+      const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pair = new RegExp(`<!--\\s*AGENTRIG:${esc}:start\\s*-->([\\s\\S]*?)<!--\\s*AGENTRIG:${esc}:end\\s*-->`);
+      const m = text.match(pair);
+      if (!m) return { score: 0, evidence: `marker pair AGENTRIG:${name} missing from ${p}` };
+      const body = m[1].trim();
+      if (!body || /\{\{[A-Z_]+\}\}/.test(body)) {
+        return { score: 0, evidence: `AGENTRIG:${name} block is empty or has unfilled placeholders` };
+      }
+      const enumerateDir = c.enumerateDir;
+      if (enumerateDir) {
+        const abs = rel(enumerateDir);
+        if (!existsSync(abs) || !statSync(abs).isDirectory()) return { score: 1, evidence: "" };
+        const required = readdirSync(abs).filter((e) => !e.startsWith(".") && !e.startsWith("_"));
+        const missing = required.filter((entry) => !body.includes(entry));
+        if (missing.length === 0) return { score: 1, evidence: "" };
+        return { score: 0.5, evidence: `block missing entries from ${enumerateDir}: ${missing.join(", ")}` };
+      }
+      return { score: 1, evidence: "" };
+    }
     case "quality-probe": {
       const probe = c.probe, p = c.path;
       if (probe === "no-unfilled-placeholders") {
@@ -217,7 +241,7 @@ function scoreCheck(c) {
         let j;
         try { j = JSON.parse(text); } catch (e) { return { score: 0, evidence: `${p} not valid JSON: ${e.message}` }; }
         const checks = j.checks || [];
-        const known = new Set(["path-exists","file-contains","dir-min","frontmatter-keys","frontmatter-keys-all","roles-distinct-models","roles-distinct-families","state-machine-dag","quality-probe"]);
+        const known = new Set(["path-exists","file-contains","dir-min","frontmatter-keys","frontmatter-keys-all","roles-distinct-models","roles-distinct-families","state-machine-dag","quality-probe","marker-populated"]);
         const ids = checks.map((x) => x.id);
         const dupIds = ids.filter((id, i) => id && ids.indexOf(id) !== i);
         const badTypes = checks.filter((x) => !known.has(x.type));

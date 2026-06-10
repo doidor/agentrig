@@ -350,10 +350,11 @@
     {
       "id": "agents-skills-inventory",
       "principle": 12,
-      "title": "AGENTS.md lists the installed skills",
-      "type": "file-contains",
+      "title": "AGENTS.md skills-inventory block is POPULATED (not just present) with every installed skill",
+      "type": "marker-populated",
       "path": "AGENTS.md",
-      "patterns": ["AGENTRIG:skills-inventory"],
+      "marker": "skills-inventory",
+      "enumerateDir": ".agents/skills",
       "layer": "completeness",
       "weight": 1
     },

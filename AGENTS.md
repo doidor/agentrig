@@ -54,9 +54,21 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 - **Agent roles & models:** `.agentrig/agents/` (triager, developer, reviewer, judge — each on a
   varied model; reviewer differs from developer on purpose). See `.agentrig/agents/README.md` to add
   new agent types.
-- **Skills (procedural memory):** `.agents/skills/`
+- **Skills (procedural memory):** `.agents/skills/` (the block below is auto-populated on `agentrig compile` / `update` by walking this directory — both AgentRig-bundled and user-added skills appear)
 <!-- AGENTRIG:skills-inventory:start -->
-- `self-verify`, `verify-loop`, `fix-ci`, `skill-improver`, `skill-authoring`, `harness-eval`
+- `fix-ci` — Diagnose and fix a failing CI run for the current branch, then re-verify.
+- `harness-eval` — Evaluate THIS repository's agent harness — a deterministic structure audit (A1) plus content quality probes (A2), plus an isolated producer/judge dynamic eval (B) with paired sign-test A/B variant comparison.
+- `log-gotcha` — Record a newly-discovered gotcha to `.agents/wiki/` BEFORE handoff — the harness's feedback loop. The wiki is how the next agent doesn't repeat your discovery.
+- `markbook-add-component-page` — Generate one Markbook docs page (frontmatter + :::props + :::stories) for a single component file.
+- `markbook-bulk-generate` — Generate Markbook docs pages for every component under a directory. Dry-run by default — produces a candidate list for confirmation before writing anything.
+- `markbook-bundle-story` — Produce a portable bundle of one Markbook story (embed or package mode) and walk through embedding it in an external host page.
+- `markbook-init` — Scaffold a new Markbook documentation site in the current project — generates markbook.config.ts, a sample docs page + story, and suggests package.json scripts.
+- `markbook-layout` — Create or modify an HTML layout file for a Markbook site — gives you a known-good shell with all required `{{ }}` placeholders wired up, and registers it in markbook.config.ts.
+- `markbook-style` — Apply a pre-baked visual preset (minimal / vibrant / corporate / github / nord) to a Markbook site. Writes a CSS file of --mb-* token overrides and wires it into markbook.config.ts.
+- `self-verify` — Run the project's own build/test/lint and converge before handing work to a reviewer. Requires explicit baseline → after evidence — the suite must be shown to change state, not just be "green at the end".
+- `skill-authoring` — Admission bar and structure for writing a new skill, so the skill library stays lean and discoverable.
+- `skill-improver` — Turn a reviewer/judge failure into an instruction-surface change that passes a prevention test.
+- `verify-loop` — General wait → inspect → fix (max 3) → self-park loop for any post-action verification (build, tests, CI, visual, lint).
 <!-- AGENTRIG:skills-inventory:end -->
 - **Rules (reflexes, glob-scoped):** `.agents/rules/` (security, code-review, coding-standards, no-debug-logging)
 - **Memory / wiki:** `.agents/wiki/` (index router + troubleshooting + entry template)

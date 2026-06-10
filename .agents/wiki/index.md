@@ -22,7 +22,7 @@ here.
 
 ## Index
 _Add a one-line link per entry as you create it, newest first._
-- (none yet)
+- [skills-inventory-populator-enumerates-disk](./skills-inventory-populator-enumerates-disk.md) — `AGENTRIG:<name>` populators that mirror user-extensible dirs must walk the disk, not the manifest.
 
 ## Admission test (strict — duplication kills wikis)
 Before adding an entry, confirm no existing entry covers it. If one does, **sharpen it** instead of

@@ -44,7 +44,7 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 - **Agent roles & models:** `.agentrig/agents/` (triager, developer, reviewer, judge — each on a
   varied model; reviewer differs from developer on purpose). See `.agentrig/agents/README.md` to add
   new agent types.
-- **Skills (procedural memory):** `.agents/skills/`
+- **Skills (procedural memory):** `.agents/skills/` (the block below is auto-populated on `agentrig compile` / `update` by walking this directory — both AgentRig-bundled and user-added skills appear)
 <!-- AGENTRIG:skills-inventory:start -->
 {{SKILLS_INVENTORY}}
 <!-- AGENTRIG:skills-inventory:end -->

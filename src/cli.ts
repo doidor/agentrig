@@ -7,6 +7,7 @@ import { evalCommand } from "./commands/eval.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { dashboardCommand } from "./commands/dashboard.js";
 import { compileCommand } from "./commands/compile.js";
+import { fixCommand } from "./commands/fix.js";
 import pkg from "./version.js";
 
 interface ParsedArgs {
@@ -19,6 +20,7 @@ const BOOLEAN_FLAGS = new Set([
   "dry-run",
   "diff",
   "skip-agent",
+  "auto-fix",
   "static",
   "dynamic",
   "rubric",
@@ -69,10 +71,15 @@ ${color.bold("Commands:")}
                      skills, wiki entries, etc. are preserved.
                      --force    overwrite existing user content with the canonical templates
   update [path]    Re-sync the latest best practices into an existing harness
-                     --diff     show how your preserved files differ from canonical
+                     --diff       show how your preserved files differ from canonical
+                     --auto-fix   after refresh, restore broken YAML & invalid model ids from
+                                  canonical (deterministic, no agent required)
   compile [path]   Project AGENTS.md + rules into every agent surface (local + remote):
                    copilot-instructions, .github/instructions, CLAUDE.md, .cursor/rules,
                    MCP, and copilot-setup-steps.yml
+  fix [path]       Deterministically repair the install: restore broken YAML from canonical,
+                   replace unknown model ids with a safe fallback. No agent needed.
+                     --dry-run   show what would change without writing
   eval [path]      Evaluate the harness itself (defaults to the full agentic, harness-on run)
                      --static   fast deterministic structural audit, no model (use in CI)
                      --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
@@ -148,6 +155,7 @@ async function main(): Promise<number> {
         return await updateCommand(repoRoot, {
           dryRun: Boolean(flags["dry-run"]),
           diff: Boolean(flags.diff),
+          autoFix: Boolean(flags["auto-fix"]),
           ...(model ? { model } : {}),
           verbose: Boolean(flags.verbose),
           skipAgent: Boolean(flags["skip-agent"]),
@@ -179,6 +187,11 @@ async function main(): Promise<number> {
         return await doctorCommand(repoRoot, { json: Boolean(flags.json) });
       case "compile":
         return compileCommand(repoRoot, { json: Boolean(flags.json) });
+      case "fix":
+        return fixCommand(repoRoot, {
+          dryRun: Boolean(flags["dry-run"]),
+          json: Boolean(flags.json),
+        });
       case "dashboard":
         return dashboardCommand(repoRoot, {
           json: Boolean(flags.json),

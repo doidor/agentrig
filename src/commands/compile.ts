@@ -20,6 +20,9 @@ export function compileCommand(repoRoot: string, options: CompileOptions): numbe
     return setup.ok ? 0 : 1;
   }
   log.info(color.bold("AgentRig — compiling agent surfaces\n"));
+  if (result.markers.updated.length) {
+    log.ok(`AGENTS.md: refreshed marker block${result.markers.updated.length === 1 ? "" : "s"} — ${result.markers.updated.join(", ")}`);
+  }
   for (const p of result.generated) log.info(`  ${color.green("✚")} ${p}`);
   for (const s of result.skipped) log.info(color.dim(`  · ${s.path} — ${s.reason}`));
   log.ok(`\nprojected ${result.generated.length} file(s) for local + remote agents`);
