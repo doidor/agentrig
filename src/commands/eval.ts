@@ -317,18 +317,21 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   meta.artifacts = readdirSync(artifactsDirAbs).filter((f) => f !== "meta.json");
   writeFileSync(join(artifactsDirAbs, "meta.json"), JSON.stringify(meta, null, 2));
 
-  // Surface saved results.
+  // Surface saved results from THIS run only (otherwise stale records from earlier
+  // invocations leak into the report — what looked like "5 scenarios ran" but only 2 actually did).
   log.info("");
-  renderSavedDynamicResults(repoRoot);
+  renderSavedDynamicResults(repoRoot, runId);
   log.info(color.dim(`\n  Run artifacts: ${artifactsDirRel}/`));
   log.info(color.dim("  Compare with baseline: `agentrig eval --dynamic --variant baseline --n 5`, then `node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline`"));
   return timedOut ? 1 : 0;
 }
 
-/** Run the installed score.mjs aggregator and print its report (best-effort). */
-function renderSavedDynamicResults(repoRoot: string): void {
+/** Run the installed score.mjs aggregator and print its report, scoped to a specific run id
+ *  so old saved results from earlier invocations don't leak into the current report. */
+function renderSavedDynamicResults(repoRoot: string, runId?: string): void {
   const scoreScript = join(repoRoot, ".agentrig", "eval", "score.mjs");
   if (!existsSync(scoreScript)) return;
-  const res = spawnSync(process.execPath, [scoreScript, "report"], { encoding: "utf8" });
+  const args = [scoreScript, "report", ...(runId ? ["--run", runId] : [])];
+  const res = spawnSync(process.execPath, args, { encoding: "utf8" });
   if (res.stdout) process.stdout.write(res.stdout);
 }

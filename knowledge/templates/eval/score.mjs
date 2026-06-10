@@ -201,6 +201,8 @@ if (cmd === "report" || cmd === "compare") {
   let scoped = records;
   if (filterType) scoped = scoped.filter((r) => r.type === filterType);
   if (filterVariant) scoped = scoped.filter((r) => (r.variant || "base") === filterVariant);
+  const filterRun = getOpt(args, "--run");
+  if (filterRun) scoped = scoped.filter((r) => r.run === filterRun);
 
   // Latest record per (type, scenario, variant).
   const latest = new Map();

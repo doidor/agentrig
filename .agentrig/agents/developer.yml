@@ -1,6 +1,10 @@
 # Developer role (principle 2). Implements the change in the `implementing` state.
+#
+# Currently on claude-sonnet-4.6 — claude-opus-4.8 is upstream-flaky as of 2026-06-10
+# (listModels reports it as available, but createSession fails with an OAuth error).
+# Revert to claude-opus-4.8 once that stabilizes.
 role: developer
-model: claude-opus-4.8
+model: claude-sonnet-4.6
 model_tier: high
 # Skills are auto-discovered from .agents/skills; no explicit list needed.
 allowed_tools: [read, write, edit, bash, grep, glob]

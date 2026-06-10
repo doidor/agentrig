@@ -83,11 +83,20 @@ export class CopilotProvider implements AgentProvider {
     });
     await client.start();
 
-    const session: CopilotSession = await client.createSession({
-      ...(options.model ? { model: options.model } : {}),
-      onPermissionRequest: approveAll,
-      ...(options.systemMessage ? { systemMessage: { content: options.systemMessage } } : {}),
-    });
+    // From here on, if anything throws (typically createSession failing because the model id is
+    // unknown for this account), we MUST stop the client — otherwise its child runtime keeps the
+    // event loop alive and `agentrig eval --dynamic` hangs after the report prints.
+    let session: CopilotSession;
+    try {
+      session = await client.createSession({
+        ...(options.model ? { model: options.model } : {}),
+        onPermissionRequest: approveAll,
+        ...(options.systemMessage ? { systemMessage: { content: options.systemMessage } } : {}),
+      });
+    } catch (err) {
+      await client.stop().catch(() => undefined);
+      throw err;
+    }
 
     const emit = options.onEvent;
     if (emit) {
