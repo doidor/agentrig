@@ -1,13 +1,6 @@
 # Developer role (principle 2). Implements the change in the `implementing` state.
-#
-# Currently on claude-opus-4.7-high — a sessionable 4.7 high-reasoning variant.
-# Plain claude-opus-4.7 and claude-opus-4.8 are upstream-flaky as of 2026-06-10
-# (listModels reports them as available, but createSession fails with an OAuth /
-# "not available" error for this account). Other sessionable alternatives:
-# claude-opus-4.7-xhigh (extra-high reasoning, slower/pricier) or claude-opus-4.6.
-# Revert to plain claude-opus-4.8 once that stabilizes.
 role: developer
-model: claude-opus-4.7-high
+model: claude-opus-4.8
 model_tier: high
 # Skills are auto-discovered from .agents/skills; no explicit list needed.
 allowed_tools: [read, write, edit, bash, grep, glob]

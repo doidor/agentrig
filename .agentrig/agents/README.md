@@ -9,7 +9,7 @@ single-model-bias mitigation surfaces problems no single model would catch alone
 | Role | File | Default model | Drives state |
 |------|------|---------------|--------------|
 | **triager**  | `triager.{yml,md}`  | `gpt-5.5` (high)          | `ingested → queued` |
-| **developer**| `developer.{yml,md}`| `claude-opus-4.7-high` (high)  | `queued → implementing → reviewing` |
+| **developer**| `developer.{yml,md}`| `claude-opus-4.8` (high)  | `queued → implementing → reviewing` |
 | **reviewer** | `reviewer.{yml,md}` | `gpt-5.5` (high)          | `reviewing` |
 | **judge**    | `judge.{yml,md}`    | `claude-opus-4.8` (high)  | `judging → ready_to_merge` |
 
