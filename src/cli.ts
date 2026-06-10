@@ -87,7 +87,7 @@ ${color.bold("Commands:")}
                      --no-tasks     skip live GitHub lookups (offline)
 
 ${color.bold("Options:")}
-  --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.5, gpt-5)
+  --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.6, gpt-5.5)
   --dry-run        Show what would happen without writing or calling the model
   --force          (init) overwrite existing user files (off by default; init is non-destructive)
   --skip-agent     Install/update the canonical harness without the agentic steps

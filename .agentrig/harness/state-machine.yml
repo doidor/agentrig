@@ -107,5 +107,5 @@ issue_comments:
 # Keep adjacent pipeline roles on DIFFERENT model families (single-model-bias mitigation).
 model_tiers:
   cheap:    { models: [claude-haiku-4.5, gpt-5-mini], use: "triage, high-volume analysis" }
-  standard: { models: [claude-sonnet-4.5, gpt-5.4],   use: "implementation" }
-  premium:  { models: [claude-opus-4.5, gpt-5],       use: "review, judging, auditing" }
+  standard: { models: [claude-sonnet-4.6, gpt-5.4],   use: "implementation" }
+  premium:  { models: [claude-opus-4.8, gpt-5.5],     use: "review, judging, auditing" }

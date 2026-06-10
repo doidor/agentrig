@@ -94,15 +94,15 @@ Override either model explicitly when running a one-off experiment:
 
 ```bash
 agentrig eval --dynamic \
-  --producer-model claude-sonnet-4.5 \
-  --judge-model gpt-5.4
+  --producer-model claude-sonnet-4.6 \
+  --judge-model gpt-5.5
 ```
 
 Or via env vars (handy in CI scripts):
 
 ```bash
-AGENTRIG_PRODUCER_MODEL=claude-sonnet-4.5 \
-AGENTRIG_JUDGE_MODEL=gpt-5.4 \
+AGENTRIG_PRODUCER_MODEL=claude-sonnet-4.6 \
+AGENTRIG_JUDGE_MODEL=gpt-5.5 \
   agentrig eval --dynamic
 ```
 
@@ -163,9 +163,9 @@ other than `INCONCLUSIVE`. Pattern:
 
 ```bash
 agentrig eval --dynamic --variant harness  --n 5 \
-  --producer-model claude-sonnet-4.5 --judge-model gpt-5.4
+  --producer-model claude-sonnet-4.6 --judge-model gpt-5.5
 agentrig eval --dynamic --variant baseline --n 5 \
-  --producer-model claude-sonnet-4.5 --judge-model gpt-5.4
+  --producer-model claude-sonnet-4.6 --judge-model gpt-5.5
 
 node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
 ```
@@ -194,7 +194,7 @@ A judge that returns 1.0 on every axis passes every save validation but tells yo
 #    {"axes":[{"name":"...","score":1.0,"confidence":1}, …]} to /tmp/judge-out.json.
 # 2. Score the judge against ground truth.
 node .agentrig/eval/score.mjs calibrate \
-  --judge gpt-5.4 \
+  --judge gpt-5.5 \
   --instance .agentrig/eval/calibration/run/seed-correct.yml \
   --judge-scores /tmp/judge-out.json
 
