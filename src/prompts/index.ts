@@ -107,10 +107,47 @@ export function buildDynamicEvalPrompt(scenarioId?: string, run?: DynamicRunCont
 /** Producer prompt — handed to the agent running in the scenario worktree.
  *  Inlines the scenario's own prompt.md so the producer doesn't need to find it. */
 export function buildProducerPrompt(scenarioPrompt: string, variant: string): string {
-  const baselineNote = variant === "baseline"
+  const isBaseline = variant === "baseline";
+  const baselineNote = isBaseline
     ? `\n**This is a BASELINE trial — harness OFF.** Do NOT read or follow \`AGENTS.md\`, \`.agents/rules/\`, \`.agents/skills/\`, or any AgentRig-installed instruction surface, even if they happen to be present in this worktree. Behave as a bare agent with only your training-data priors.\n`
     : `\n**This is a HARNESS trial — harness ON.** Follow \`AGENTS.md\`, the rules in \`.agents/rules/\`, and the skills in \`.agents/skills/\` if they are present in this worktree.\n`;
-  return `# Scenario task\n${baselineNote}\nYour entire job is described below. Work inside the current directory (this is a\nthrowaway worktree dedicated to your trial). When done, simply finish — the\nscenario runner captures your diff, your transcript, and runs the deterministic\noracle automatically.\n\n---\n\n${scenarioPrompt}\n`;
+
+  // Harness-on variant gets an explicit pre-handoff checklist rendered as text at the END of
+  // the prompt (LLMs weight end-of-prompt instructions more heavily than buried skill bodies).
+  // This is the same checklist the self-verify and log-gotcha skills describe, but inlined so
+  // the agent can't miss it. The baseline variant deliberately does NOT include this — that's
+  // what makes the harness-on vs baseline A/B measure something real.
+  const handoffChecklist = isBaseline ? "" : `
+
+---
+
+## Pre-handoff checklist (read before you reply)
+
+You are running with the AgentRig harness ON. Before declaring done, walk this checklist out loud
+in your transcript. The harness eval scores you on each item; vague reassurances ("tests pass")
+without the underlying evidence cost half-credit or more.
+
+- [ ] **Baseline captured.** Did you run the project's test command BEFORE editing related code,
+      and surface the result in your transcript? For a fix scenario: explicitly note the failing
+      test name and the error. For a feature scenario: note the suite was green.
+      *Bad:* "All tests pass."
+      *Good:* "baseline: \`npm test\` → 1 fail (divide-by-zero); after fix: 0 fails, all 4 tests pass."
+
+- [ ] **After captured.** Did you re-run the full test command at the end and surface the new
+      state? The transition baseline → after is the evidence that your edit did what you claim.
+
+- [ ] **Wiki entry committed for any non-obvious lesson.** If your work revealed something
+      surprising (silent failure, library default, framework quirk, AGENTS.md rule that almost
+      bit you), use the \`log-gotcha\` skill to write a \`.agents/wiki/<topic>.md\` entry IN THE
+      SAME DIFF. Acknowledging the lesson only in your summary is half-credit. Silent is zero.
+      Run \`git diff --cached --stat\` to confirm the wiki file is staged.
+
+- [ ] **Diff is on-target.** \`git diff --stat\` should show only files you intentionally changed.
+
+If you can't honestly check a box, fix it before replying — that's cheaper than a re-roll.
+`;
+
+  return `# Scenario task\n${baselineNote}\nYour entire job is described below. Work inside the current directory (this is a\nthrowaway worktree dedicated to your trial). When done, simply finish — the\nscenario runner captures your diff, your transcript, and runs the deterministic\noracle automatically.\n\n---\n\n${scenarioPrompt}${handoffChecklist}\n`;
 }
 
 export interface JudgeContext {
