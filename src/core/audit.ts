@@ -230,7 +230,7 @@ function scoreCheck(repoRoot: string, c: CheckDef): { score: number; evidence: s
           const knownTypes = new Set([
             "path-exists", "file-contains", "dir-min", "frontmatter-keys",
             "frontmatter-keys-all", "roles-distinct-models", "roles-distinct-families",
-            "state-machine-dag", "quality-probe",
+            "state-machine-dag", "quality-probe", "marker-populated",
           ]);
           const ids = checks.map((x) => x?.id ?? "");
           const dupIds = ids.filter((id, i) => id && ids.indexOf(id) !== i);
@@ -250,6 +250,37 @@ function scoreCheck(repoRoot: string, c: CheckDef): { score: number; evidence: s
         default:
           return { score: 0, evidence: `unknown quality probe "${probe}"` };
       }
+    }
+    case "marker-populated": {
+      // Assert that an AGENTRIG:<name>:start/end block in AGENTS.md is non-empty AND, when a
+      // `enumerateDir` is supplied, mentions every entry under that directory. Catches the
+      // failure mode where the marker pair exists but nothing populates the body.
+      const p = String(c.path);
+      const name = String(c.marker ?? "");
+      const text = read(p);
+      if (text == null) return { score: 0, evidence: `missing ${p}` };
+      const pair = new RegExp(
+        `<!--\\s*AGENTRIG:${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:start\\s*-->([\\s\\S]*?)<!--\\s*AGENTRIG:${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:end\\s*-->`,
+      );
+      const m = text.match(pair);
+      if (!m) return { score: 0, evidence: `marker pair AGENTRIG:${name} missing from ${p}` };
+      const body = m[1]!.trim();
+      if (!body || /\{\{[A-Z_]+\}\}/.test(body)) {
+        return { score: 0, evidence: `AGENTRIG:${name} block is empty or has unfilled placeholders` };
+      }
+      const enumerateDir = c.enumerateDir ? String(c.enumerateDir) : null;
+      if (enumerateDir) {
+        const abs = rel(enumerateDir);
+        if (!existsSync(abs) || !statSync(abs).isDirectory()) {
+          // Nothing to enumerate — body just needs to be non-empty, which we already checked.
+          return { score: 1, evidence: "" };
+        }
+        const required = readdirSync(abs).filter((e) => !e.startsWith(".") && !e.startsWith("_"));
+        const missing = required.filter((entry) => !body.includes(entry));
+        if (missing.length === 0) return { score: 1, evidence: "" };
+        return { score: 0.5, evidence: `block missing entries from ${enumerateDir}: ${missing.join(", ")}` };
+      }
+      return { score: 1, evidence: "" };
     }
     default:
       return { score: 0, evidence: `unknown check type ${c.type}` };

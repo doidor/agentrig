@@ -213,25 +213,45 @@ All best practices are plain text under [`knowledge/`](knowledge/). Edit `PRINCI
 templates, or `checks.json`, then propagate to any repo:
 
 ```bash
-agentrig update        # re-sync the latest canonical artifacts, reconciling local customizations
+agentrig update            # re-sync the latest canonical artifacts, reconciling local customizations
+agentrig update --diff     # preview drift classified 🔴 broken / 🟡 stale / 🟢 enhancement / ⚪ mixed
+agentrig update --auto-fix # repair deterministic A1 failures (broken YAML / unknown model id) from canonical
 ```
 
-`update` refreshes AgentRig-owned files in place and asks the agent to merge changes into files you
-customize (like `AGENTS.md`), preserving your repo-specific facts.
+`update` refreshes AgentRig-owned files in place, asks the agent to merge changes into files you
+customize (like `AGENTS.md`), validates the result (YAML + model ids), and records every
+preserved-file decision in `.agentrig/state.json` so the next update doesn't re-nag.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | `agentrig init [path]` | Investigate + install a tailored harness, then compile surfaces. **Non-destructive by default** — preserves existing AGENTS.md / .mcp.json / .agents/rules; `--force` to overwrite |
-| `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote) |
-| `agentrig update [path]` | Re-sync the latest best practices (re-compiles surfaces) |
+| `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote); re-populates auto-maintained marker blocks (e.g. `AGENTRIG:skills-inventory`) |
+| `agentrig update [path] [--diff] [--auto-fix]` | Re-sync the latest best practices (re-compiles surfaces). `--diff` classifies preserved-file drift (🔴 broken / 🟡 stale / 🟢 enhancement / ⚪ mixed); `--auto-fix` runs `fix` after the refresh |
+| `agentrig fix [path] [--dry-run]` | Deterministically repair the install: restore broken YAML from canonical, replace unknown model ids with `auto`. No agent needed; `.bak` files are written before each change |
 | `agentrig eval [path] [--static\|--rubric] [--scenario id] [--variant name] [--n trials] [--producer-model id] [--judge-model id]` | Evaluate the harness (default: agentic; `--static` for the cheap CI-safe audit; `--rubric` shows what's measured) |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
-| `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score?) |
+| `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score? **validation findings**? **linked-checkout vs npm latest**?) |
 
 Common options: `--model <id>`, `--dry-run`, `--skip-agent`, `--force` (init only), `--verbose`.
 Set `AGENTRIG_PROVIDER` to choose the agent backend (default `copilot`).
+
+### Self-healing the install
+
+`agentrig update` now refuses to leave a broken install in place. After the refresh + reconcile, it
+runs two deterministic validators and exits non-zero if either fails:
+
+- **YAML validation** parses every `.agentrig/**/*.yml` (using `parseAllDocuments` so multi-doc
+  scenarios are tolerated). A `state-machine.yml` that doesn't parse blocks the update.
+- **Model-ID validation** matches every `.agentrig/agents/*.yml`'s `model:` against the Copilot SDK
+  registry (live, when reachable) or a curated allowlist (offline fallback), with "did you mean…"
+  suggestions for typos and stale ids.
+
+Run `agentrig update --auto-fix` (or `agentrig fix` standalone) to repair both classes from
+canonical without an agent. Decisions are recorded in `.agentrig/state.json` under `reconciled[]`,
+so the next `update` skips re-prompting on files you've consciously diverged on — unless canonical
+has drifted past the hash that was recorded at decision time.
 
 ## Requirements
 

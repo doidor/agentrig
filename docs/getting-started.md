@@ -53,13 +53,17 @@ Your existing `AGENTS.md` is still compiled into every projected surface.
 Edit `AGENTS.md` and rules, then re-project:
 
 ```bash
-agentrig compile     # re-project AGENTS.md + rules into every surface
-agentrig doctor      # health check + Install Completeness + Quality Probes
-agentrig update      # pull newer best practices from the package
+agentrig compile              # re-project AGENTS.md + rules into every surface
+agentrig doctor               # health check + Install Completeness + Quality Probes
+agentrig update               # pull newer best practices from the package
+agentrig update --auto-fix    # …and self-heal broken YAML / unknown model ids from canonical
+agentrig fix                  # standalone repair (no agent / network needed)
 ```
 
 `compile` is idempotent — run it as often as you want; user-owned files like
-`copilot-setup-steps.yml` are never clobbered. `doctor` on a fresh install reports
+`copilot-setup-steps.yml` are never clobbered, and the auto-populated
+`<!-- AGENTRIG:skills-inventory --> ... :end -->` block in `AGENTS.md` is rewritten from
+whatever's actually in `.agents/skills/`. `doctor` on a fresh install reports
 **Install Completeness 100%**.
 
 ## 3. Evaluate

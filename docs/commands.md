@@ -31,25 +31,51 @@ agentrig init [path]
 
 Re-sync newer best practices into an existing harness. Refreshes manifest-managed files
 (`PRINCIPLES.md`, harness scaffolding) while preserving `AGENTS.md`, `.agents/rules/`, and
-`.agents/wiki/`.
+`.agents/wiki/`. Validates the result and refuses to leave a broken install in place.
 
 ```bash
 agentrig update [path]
 ```
 
-- `--diff` — show how preserved files have drifted from canonical (no writes).
-- `--skip-agent` — update without the agentic step.
+- `--diff` — show how preserved files have drifted from canonical (no writes); classified as
+  🔴 broken / 🟡 stale / 🟢 enhancement / ⚪ mixed with a per-severity summary at the top.
+- `--auto-fix` — after the refresh, run `agentrig fix` to repair deterministic A1 failures
+  (broken YAML, unknown model ids) from canonical. Saves you a follow-up command when the
+  audit was previously dropping to PART/FAIL on a refreshed install.
+- `--skip-agent` — update without the agentic step. The output enumerates every preserved file
+  inline so you know exactly what wasn't reconciled.
 - `--dry-run` — print changes only.
+
+Decisions for preserved files are recorded in `.agentrig/state.json` under `reconciled[]`. The
+next `update` skips re-prompting on files you've consciously diverged on — unless canonical has
+drifted past the hash that was recorded at decision time.
 
 ## `compile`
 
 Project `AGENTS.md` + `.agents/rules/` into every agent surface
 (`.github/copilot-instructions.md`, `.github/instructions/`, `CLAUDE.md`, `.cursor/rules/`,
-MCP configs). No flags — always runs the full projection.
+MCP configs). Also re-populates the auto-maintained marker blocks in `AGENTS.md`
+(`<!-- AGENTRIG:skills-inventory:start --> ... :end -->`) by walking `.agents/skills/` on disk —
+so both AgentRig-bundled and user-added skills appear.
 
 ```bash
 agentrig compile [path]
 ```
+
+## `fix`
+
+Deterministically repair the install — no agent, no network. Restores broken YAML from
+canonical and replaces unknown model ids in `.agentrig/agents/*.yml` with the safe `auto`
+fallback. Each modified file is backed up to `<path>.bak` before the change.
+
+```bash
+agentrig fix [path]
+```
+
+- `--dry-run` — show what would change without writing.
+- `--json` — machine-readable result (`{ ok, actions[], unresolved[] }`).
+
+Tracks the same validators that `agentrig update --auto-fix` runs at the end of an update.
 
 ## `eval`
 
@@ -82,11 +108,16 @@ agentrig eval [path]
 ## `doctor`
 
 Health check — harness installed? agent provider reachable? current Install Completeness +
-Quality Probes scores? Any judge below the 80% calibration agreement threshold?
+Quality Probes scores? Any **YAML / model-id validation failures**? Any judge below the 80%
+calibration agreement threshold? Plus install provenance (`registry` vs `linked-checkout`) and
+a quick npm-latest comparison so you notice if your local `agentrig` is stale.
 
 ```bash
 agentrig doctor [path]      # --json for machine output
 ```
+
+Exits non-zero if the harness is missing, the agent provider is unreachable, validation reports
+any blockers, or the worst judge is below the calibration threshold.
 
 ## `dashboard`
 
