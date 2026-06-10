@@ -1,0 +1,4 @@
+role: reviewer
+description: Stub reviewer role for the fix-checks-json-drift fixture.
+model: openai/gpt-5
+prompt_file: reviewer.md

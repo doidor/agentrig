@@ -10,8 +10,8 @@ that lets autonomous coding agents reliably **triage → implement → review �
 minimal human babysitting. AgentRig installs an opinionated harness into any repo, keeps context of
 what the repo is about, and ships a way to **evaluate the harness itself**.
 
-Each principle below names the concrete artifact(s) AgentRig installs and how the harness audit
-(`agentrig eval --static`) scores it.
+Each principle below names the concrete artifact(s) AgentRig installs and how the install-completeness
+audit and quality probes (`agentrig eval --static`) score it.
 
 ---
 

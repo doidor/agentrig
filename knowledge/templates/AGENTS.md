@@ -1,6 +1,6 @@
 # {{REPO_NAME}} — Agent instructions
 
-> Managed in part by [AgentRig](https://github.com/). Sections between AgentRig markers are
+> Managed in part by [AgentRig](https://github.com/doidor/agentrig). Sections between AgentRig markers are
 > refreshed by `agentrig update`; edit outside the markers (and the repo-specific context) freely.
 
 ## Critical Rules (read first, every time)
@@ -8,13 +8,14 @@
 1. **Instructions are the source of truth, not existing code.** This repo may contain legacy
    patterns that predate current standards. When code and these instructions disagree, follow the
    instructions and flag the discrepancy.
-2. **Self-verify before handoff.** Run the project's build/test/lint and the `self-verify` skill
+2. **Log every gotcha to `.agents/wiki/` the moment you hit it — not at the end, not in passing.**
+   Every mistake is a prompt bug; the wiki is how the harness learns. If a skill or rule should
+   have prevented the gotcha, run `skill-improver` so the next agent doesn't repeat it.
+3. **Self-verify before handoff.** Run the project's build/test/lint and the `self-verify` skill
    before you mark work ready. Never hand a red build to a reviewer.
-3. **Never skip a state-machine gate** (`.agentrig/harness/state-machine.yml`) and never apply a
+4. **Never skip a state-machine gate** (`.agentrig/harness/state-machine.yml`) and never apply a
    human-only label. Low-reversibility actions are recommend-then-apply.
-4. **Respect hard limits** (diff size, review iterations, token cap) declared in the state machine.
-5. **Every mistake is a prompt bug.** When you hit a gotcha, record it in `.agents/wiki/` and, if a
-   skill or rule should have prevented it, run `skill-improver`.
+5. **Respect hard limits** (diff size, review iterations, token cap) declared in the state machine.
 <!-- AGENTRIG:critical-rules:end -->
 
 ## What this repository is

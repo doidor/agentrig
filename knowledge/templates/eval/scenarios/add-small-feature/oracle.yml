@@ -1,0 +1,41 @@
+checks:
+  - id: tests-green
+    type: cmd
+    cmd: "npm test --silent"
+    expect: exit_zero
+    axis: correctness
+
+  - id: all-acceptance-tests-run
+    type: cmd
+    # The 6 acceptance tests must actually execute. "pass 6" or higher means the
+    # producer un-skipped them and they passed; "pass 0" means they're still skipped.
+    cmd: "npm test --silent 2>&1 | grep -qE '# pass [6-9]'"
+    expect: exit_zero
+    axis: correctness
+
+  - id: no-skipped-acceptance-tests
+    type: cmd
+    cmd: "! grep -qE '(test\\.skip|it\\.skip)' tests/feature.test.js"
+    expect: exit_zero
+    axis: tests
+
+  - id: diff-bounded
+    type: diff_stats
+    max_added_lines: 60
+    max_files: 3
+    axis: scope
+
+  - id: no-lockfile-churn
+    type: diff_files
+    forbidden:
+      - "package-lock.json"
+      - "yarn.lock"
+      - "pnpm-lock.yaml"
+    axis: scope
+
+  - id: only-src-and-tests
+    type: diff_files
+    allowed:
+      - "src/**"
+      - "tests/**"
+    axis: scope

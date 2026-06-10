@@ -54,23 +54,24 @@ Edit `AGENTS.md` and rules, then re-project:
 
 ```bash
 agentrig compile     # re-project AGENTS.md + rules into every surface
-agentrig doctor      # health check + Harness Score (0–100%)
+agentrig doctor      # health check + Install Completeness + Quality Probes
 agentrig update      # pull newer best practices from the package
 ```
 
 `compile` is idempotent — run it as often as you want; user-owned files like
-`copilot-setup-steps.yml` are never clobbered. `doctor` on a fresh install reports 100% / 35
-checks.
+`copilot-setup-steps.yml` are never clobbered. `doctor` on a fresh install reports
+**Install Completeness 100%**.
 
 ## 3. Evaluate
 
 ```bash
-agentrig eval --static --min 80   # CI gate: fail if Harness Score < 80%
+agentrig eval --static --min 80   # CI gate: fail if Install Completeness < 80%
 agentrig eval                     # full agentic run — harness vs baseline
 ```
 
-`--static` is deterministic and runs in milliseconds (no model). The full run scores both the
-implementation work and agent behavior. [Full rubric →](./evals.html)
+`--static` is deterministic and runs in milliseconds (no model). The full agentic run scores
+both the implementation work (via deterministic oracle) and agent behavior (via an independent
+judge in a different model family). [Full rubric →](./evals.html)
 
 ## Next
 

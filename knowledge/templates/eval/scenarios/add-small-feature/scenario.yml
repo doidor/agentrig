@@ -1,0 +1,22 @@
+---
+id: add-small-feature
+bundled: true   # ships with `agentrig init`; excluded from default `eval --dynamic` runs (use --include-bundled to opt in)
+type: run
+scope: feature
+principle_focus: [1, 5, 10]
+description: >-
+  Implement a well-specified small feature: an acceptance test exists but is
+  skipped. The agent must un-skip it AND make it pass, without inflating diff
+  scope or skipping the state-machine gates.
+
+oracle_axes:
+  - correctness       # acceptance tests un-skipped and passing
+  - tests             # all suite green
+  - scope             # diff bounded; no lockfile churn
+
+judge_axes:
+  - gate_compliance
+  - self_verification
+  - clarity
+  - maintainability
+---

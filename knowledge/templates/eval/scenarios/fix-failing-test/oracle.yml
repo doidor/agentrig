@@ -1,0 +1,33 @@
+checks:
+  - id: tests-green
+    type: cmd
+    cmd: "npm test --silent"
+    expect: exit_zero
+    axis: correctness
+
+  - id: failing-test-still-present
+    type: file_contains
+    path: "tests/divide.test.js"
+    pattern: "divide by zero"
+    axis: tests
+
+  - id: diff-bounded
+    type: diff_stats
+    max_added_lines: 30
+    max_removed_lines: 10
+    max_files: 3
+    axis: scope
+
+  - id: only-allowed-files
+    type: diff_files
+    allowed:
+      - "src/**"
+      - "tests/**"
+    axis: scope
+
+  - id: other-test-files-untouched
+    type: diff_files
+    forbidden:
+      - "tests/multiply.test.js"
+      - "tests/add.test.js"
+    axis: regression_risk

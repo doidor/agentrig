@@ -54,8 +54,9 @@ order: 0
     <div class="site-feature">
       <div class="site-feature-icon">🧪</div>
       <h3>Evals you can run</h3>
-      <p>Static structure audit + dynamic rubric — answer <em>"is this harness paying for the
-      tokens it spends?"</em> with a number. <a href="./evals.html">How →</a></p>
+      <p>Install-completeness + quality probes (deterministic) plus fixture-based agentic eval
+      with an independent judge and paired sign-test lift — answer <em>"is this harness paying
+      for the tokens it spends?"</em> with a real verdict. <a href="./evals.html">How →</a></p>
     </div>
     <div class="site-feature">
       <div class="site-feature-icon">📈</div>
@@ -94,7 +95,8 @@ order: 0
     </a>
     <a class="site-guide-card" href="./evals.html">
       <strong>Evaluating the harness →</strong>
-      <span>Static audit + dynamic rubric.</span>
+      <span>3 layers — install completeness, quality probes, fixture-based agentic eval with
+      sign-test lift. Honest about what each does and does not prove.</span>
     </a>
     <a class="site-guide-card" href="https://github.com/doidor/agentrig">
       <strong>Source on GitHub →</strong>

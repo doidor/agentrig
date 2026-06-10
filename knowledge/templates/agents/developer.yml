@@ -1,6 +1,6 @@
 # Developer role (principle 2). Implements the change in the `implementing` state.
 role: developer
-model: claude-sonnet-4.5
+model: claude-opus-4.8
 model_tier: high
 # Skills are auto-discovered from .agents/skills; no explicit list needed.
 allowed_tools: [read, write, edit, bash, grep, glob]

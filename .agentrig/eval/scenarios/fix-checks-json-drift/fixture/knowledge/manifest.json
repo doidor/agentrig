@@ -1,0 +1,30 @@
+{
+  "knowledgeVersion": "0.1.0",
+  "description": "Mini-manifest used by the fix-checks-json-drift scenario. Mirrors the real knowledge/manifest.json shape.",
+  "artifacts": [
+    {
+      "src": "harness/state-machine.yml",
+      "dest": ".agentrig/harness/state-machine.yml",
+      "kind": "file",
+      "principle": 1
+    },
+    {
+      "src": "agents/developer.yml",
+      "dest": ".agentrig/agents/developer.yml",
+      "kind": "file",
+      "principle": 2
+    },
+    {
+      "src": "agents/reviewer.yml",
+      "dest": ".agentrig/agents/reviewer.yml",
+      "kind": "file",
+      "principle": 2
+    },
+    {
+      "src": "agents/security-reviewer.yml",
+      "dest": ".agentrig/agents/security-reviewer.yml",
+      "kind": "file",
+      "principle": 2
+    }
+  ]
+}

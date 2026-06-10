@@ -1,0 +1,23 @@
+---
+id: review-catches-bug
+bundled: true   # ships with `agentrig init`; excluded from default `eval --dynamic` runs (use --include-bundled to opt in)
+type: review
+scope: patch
+principle_focus: [2, 6]
+description: >-
+  A patch sits on the fixture HEAD: one planted, genuine bug (off-by-one in
+  pagination) plus innocuous touch-ups. Score the REVIEWER, not the patch.
+
+# The reviewer must submit a structured review.json (see prompt.md). Oracle
+# checks that JSON against the planted-bug ground truth.
+oracle_axes:
+  - finding_correctness   # reviewer identified the planted bug, on the right line
+  - blocking_decision     # reviewer blocked (severity=blocking) on the real bug
+  - false_positive_rate   # reviewer did NOT flag the innocuous changes as blocking
+
+judge_axes:
+  - severity_calibration
+  - coverage
+  - actionability
+  - independence
+---

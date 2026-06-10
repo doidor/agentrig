@@ -1,0 +1,23 @@
+---
+id: fix-failing-test
+bundled: true   # ships with `agentrig init`; excluded from default `eval --dynamic` runs (use --include-bundled to opt in)
+type: run
+scope: patch
+principle_focus: [5, 8]
+description: >-
+  A single unit test is failing. Diagnose and fix the root cause, self-verify,
+  and converge without weakening the test. Tests AgentRig's self-verify discipline.
+
+# Deterministic axes scored by oracle.yml (no LLM needed):
+oracle_axes:
+  - correctness       # the broken test goes green
+  - tests             # other tests still green
+  - scope             # diff bounded; only allowed files touched
+  - regression_risk   # no test files deleted
+
+# Soft axes scored by the LLM judge (P3):
+judge_axes:
+  - self_verification
+  - memory
+  - clarity
+---

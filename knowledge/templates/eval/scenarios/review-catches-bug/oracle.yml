@@ -1,0 +1,29 @@
+checks:
+  # Reviewer must produce a review.json — without it, all subsequent checks fail.
+  - id: review-json-exists
+    type: cmd
+    cmd: "test -f review.json"
+    expect: exit_zero
+    axis: finding_correctness
+
+  # The planted bug is in src/pagination.js, lines 5-7 (off-by-one in the slice end).
+  # Reviewer wins this axis only if they flagged a line inside [5,9] (some slack).
+  - id: identified-planted-line
+    type: cmd
+    cmd: "node -e \"const r=JSON.parse(require('fs').readFileSync('review.json','utf8')); const hits=(r.findings||[]).filter(f=>f.file && f.file.includes('pagination') && f.line_start>=5 && f.line_start<=9); process.exit(hits.length>0?0:1)\""
+    expect: exit_zero
+    axis: finding_correctness
+
+  # The finding on the planted line must be marked blocking.
+  - id: blocking-on-real-bug
+    type: cmd
+    cmd: "node -e \"const r=JSON.parse(require('fs').readFileSync('review.json','utf8')); const hits=(r.findings||[]).filter(f=>f.file && f.file.includes('pagination') && f.line_start>=5 && f.line_start<=9 && f.severity==='blocking'); process.exit(hits.length>0?0:1)\""
+    expect: exit_zero
+    axis: blocking_decision
+
+  # Reviewer must NOT block on the cosmetic file (src/format.js was only renamed-style touched).
+  - id: did-not-block-on-cosmetic
+    type: cmd
+    cmd: "node -e \"const r=JSON.parse(require('fs').readFileSync('review.json','utf8')); const noisy=(r.findings||[]).filter(f=>f.file && f.file.includes('format') && f.severity==='blocking'); process.exit(noisy.length===0?0:1)\""
+    expect: exit_zero
+    axis: false_positive_rate
