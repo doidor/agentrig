@@ -46,6 +46,13 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # The deploy job needs its own permissions block — workflow-level perms are NOT inherited by
+    # jobs that declare an `environment`. Without id-token:write here, actions/deploy-pages@v4's
+    # OIDC token exchange fails with "401 Requires authentication" (saw this 2026-06-10 after
+    # PR #11 merged to main).
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
