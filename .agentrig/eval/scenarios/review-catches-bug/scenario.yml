@@ -1,5 +1,6 @@
 ---
 id: review-catches-bug
+bundled: true   # ships with `agentrig init`; excluded from default `eval --dynamic` runs (use --include-bundled to opt in)
 type: review
 scope: patch
 principle_focus: [2, 6]

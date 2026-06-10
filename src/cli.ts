@@ -24,6 +24,7 @@ const BOOLEAN_FLAGS = new Set([
   "rubric",
   "scaffold",
   "allow-same-family",
+  "include-bundled",
   "json",
   "no-tasks",
   "verbose",
@@ -77,6 +78,8 @@ ${color.bold("Commands:")}
                      --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
                      --scaffold generate repo-specific scenarios via an agent turn, using the
                                 bundled generic scenarios as templates (--scaffold-count N, default 2)
+                     --include-bundled   include the generic 'bundled' template scenarios in the run
+                                         (default: only repo-specific scenarios run)
                      --scenario <id>          run one scenario only (e.g. fix-failing-test)
                      --variant <name>         label this run (default 'harness'; 'baseline' = harness OFF)
                      --producer-model <id>    producer model (default: developer.yml model)
@@ -158,6 +161,7 @@ async function main(): Promise<number> {
           rubric: Boolean(flags.rubric),
           scaffold: Boolean(flags.scaffold),
           ...(flags["scaffold-count"] != null ? { scaffoldCount: Number(flags["scaffold-count"]) } : {}),
+          ...(flags["include-bundled"] ? { includeBundled: true } : {}),
           ...(model ? { model } : {}),
           ...(typeof flags["producer-model"] === "string" ? { producerModel: flags["producer-model"] } : {}),
           ...(typeof flags["judge-model"] === "string" ? { judgeModel: flags["judge-model"] } : {}),

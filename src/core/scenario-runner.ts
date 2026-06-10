@@ -31,6 +31,12 @@ export interface ScenarioFrontmatter {
   judge_axes?: string[];    // axes scored by the LLM judge (P3)
   base_commit?: string;
   description?: string;
+  /** Marks scenarios that ship with `agentrig init` as language-agnostic templates rather than
+   *  repo-specific tests. The dynamic eval excludes them by default — the user wants signal about
+   *  THEIR repo, not about generic JS micro-fixtures. Use `eval --dynamic --include-bundled` to
+   *  opt in (e.g. when smoke-testing the harness itself). Hand-written or scaffolded scenarios
+   *  omit this field. */
+  bundled?: boolean;
 }
 
 export interface OracleCheck {

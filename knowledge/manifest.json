@@ -1,6 +1,6 @@
 {
   "$schema": "agentrig-manifest/1",
-  "knowledgeVersion": "0.4.0",
+  "knowledgeVersion": "0.5.0",
   "description": "Declares which best-practice artifacts AgentRig installs into a target repo and where. `src` is relative to the knowledge/ root; `dest` is relative to the target repo root. `kind`: file | dir | template. Templates contain {{PLACEHOLDERS}} the agent fills from its investigation; deterministic installs substitute known values and leave the rest for the agent.",
   "artifacts": [
     {
@@ -117,6 +117,13 @@
       "principle": 5,
       "src": "templates/skills/self-verify",
       "dest": ".agents/skills/self-verify",
+      "kind": "dir"
+    },
+    {
+      "id": "skill-log-gotcha",
+      "principle": 8,
+      "src": "templates/skills/log-gotcha",
+      "dest": ".agents/skills/log-gotcha",
       "kind": "dir"
     },
     {

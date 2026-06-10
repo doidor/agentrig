@@ -156,6 +156,7 @@ export interface EvalOptions {
   rubric?: boolean;
   scaffold?: boolean;         // generate repo-specific scenarios via an agent turn
   scaffoldCount?: number;     // how many to generate (default 2)
+  includeBundled?: boolean;   // run bundled template scenarios in addition to repo-specific ones
 }
 
 export async function evalCommand(repoRoot: string, options: EvalOptions): Promise<number> {
@@ -292,6 +293,7 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
       ...(producerModel ? { producerModel } : {}),
       ...(judgeModel ? { judgeModel } : {}),
       ...(options.allowSameFamily ? { allowSameFamily: true } : {}),
+      ...(options.includeBundled ? { includeBundled: true } : {}),
       ...(options.timeoutMinutes ? { timeoutMinutes: options.timeoutMinutes } : {}),
       ...(options.seed != null ? { seed: options.seed } : {}),
     });

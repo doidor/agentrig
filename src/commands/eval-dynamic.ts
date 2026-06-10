@@ -45,6 +45,9 @@ export interface DynamicRunOptions {
   artifactsDir: string;        // absolute
   artifactsDirRel: string;     // repo-relative for logging
   runId: string;
+  /** When true, run scenarios marked `bundled: true` too. Default false: bundled scenarios
+   *  ship as templates and exercise generic agent behavior, not the consuming repo. */
+  includeBundled?: boolean;
 }
 
 interface ScenarioOutcome {
@@ -268,7 +271,37 @@ async function runOneTrial(
 
 /** Run every scenario × every trial. Returns one outcome per (scenario, trial). */
 export async function runDynamicEval(repoRoot: string, opts: DynamicRunOptions): Promise<ScenarioOutcome[]> {
-  const ids = opts.scenario ? [opts.scenario] : listScenarios(repoRoot);
+  // Resolve scenario list, then filter out `bundled: true` unless the user opted in.
+  // When --scenario <id> is explicit, we always run it (the user named it, they get it).
+  let ids: string[];
+  let bundledExcluded: { id: string; reason: string }[] = [];
+  if (opts.scenario) {
+    ids = [opts.scenario];
+  } else {
+    const all = listScenarios(repoRoot);
+    ids = [];
+    for (const id of all) {
+      const paths = locateScenario(repoRoot, id);
+      if (!paths) continue;
+      let fm;
+      try { fm = loadScenario(paths); } catch { continue; }
+      if (fm.bundled === true && !opts.includeBundled) {
+        bundledExcluded.push({ id, reason: "bundled (template; pass --include-bundled to run it)" });
+        continue;
+      }
+      ids.push(id);
+    }
+    if (bundledExcluded.length) {
+      log.info(color.dim(`  Excluded ${bundledExcluded.length} bundled scenario(s) from default run: ${bundledExcluded.map((b) => b.id).join(", ")}`));
+      log.info(color.dim("  Pass --include-bundled to run them too, or generate repo-specific ones with `agentrig eval --scaffold`."));
+    }
+    if (ids.length === 0) {
+      log.warn("No repo-specific scenarios found.");
+      log.warn("Generate some with: agentrig eval --scaffold");
+      log.warn("Or run the bundled template scenarios anyway: agentrig eval --dynamic --include-bundled");
+      return [];
+    }
+  }
   const outcomes: ScenarioOutcome[] = [];
 
   // Family enforcement up-front so we fail fast (before the first model call).

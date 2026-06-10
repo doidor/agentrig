@@ -218,6 +218,27 @@ Everything under `.agentrig/eval/` is editable:
 - **Checks** — `.agentrig/eval/checks.json` (tighten or expand the structural audit)
 - **Calibration** — `.agentrig/eval/calibration/<type>/*.yml`
 
+### Bundled vs repo-specific scenarios
+
+Scenarios that ship with `agentrig init` (currently `add-small-feature`, `fix-failing-test`,
+`review-catches-bug`) are marked `bundled: true` in their `scenario.yml`. **`eval --dynamic`
+excludes them from the default run** — you want signal about *your* repo's stack and conventions,
+not generic JS micro-fixtures.
+
+```bash
+agentrig eval --dynamic                   # only repo-specific scenarios (default)
+agentrig eval --dynamic --include-bundled # also run the bundled template scenarios
+agentrig eval --dynamic --scenario fix-failing-test  # explicit ids always run, bundled or not
+```
+
+If you've never run `--scaffold`, the default run will be empty and the CLI will tell you so:
+
+```text
+No repo-specific scenarios found.
+Generate some with: agentrig eval --scaffold
+Or run the bundled template scenarios anyway: agentrig eval --dynamic --include-bundled
+```
+
 ### Generating repo-specific scenarios (`eval --scaffold`)
 
 The 3 bundled scenarios are language-agnostic JS micro-fixtures — useful as templates, but they
@@ -240,6 +261,7 @@ The agent is constrained to:
 - Use your repo's actual test runner / package manager
 - Keep the fixture ≤10 files
 - Touch only `.agentrig/eval/scenarios/`
+- Omit `bundled: true` so the new scenarios run by default
 
 Confirm what's actually measured with `agentrig eval --rubric`.
 

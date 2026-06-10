@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync, rmSync, mkdtempSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { freshInstall, cleanup, runCli } from "./helpers.mjs";
 
@@ -67,5 +68,44 @@ test("missing developer.yml / reviewer.yml does not crash the eval CLI", () => {
     assert.ok(typeof r.stdout === "string" && typeof r.stderr === "string");
   } finally {
     cleanup(dir);
+  }
+});
+
+test("bundled scenarios are excluded from default eval discovery", () => {
+  const dir = freshInstall();
+  try {
+    // The 3 generic bundled scenarios MUST be marked bundled: true after install.
+    const yaml = (id) => readFileSync(join(dir, ".agentrig/eval/scenarios", id, "scenario.yml"), "utf8");
+    for (const id of ["add-small-feature", "fix-failing-test", "review-catches-bug"]) {
+      assert.match(yaml(id), /^bundled:\s*true/m, `${id} must carry bundled: true`);
+    }
+  } finally {
+    cleanup(dir);
+  }
+});
+
+test("--include-bundled is recognized as a boolean flag (not value-eating)", () => {
+  // Regression for the BOOLEAN_FLAGS bug pattern. If --include-bundled isn't in
+  // BOOLEAN_FLAGS, the parser would swallow the next positional as its value.
+  const dir = mkdtempSync(join(tmpdir(), "agentrig-empty-"));
+  try {
+    writeFileSync(join(dir, "package.json"), '{"name":"empty"}');
+    const cliPath = join(process.cwd(), "dist/cli.js");
+    // Invoking with empty repo + --include-bundled + path: should reject for "no harness",
+    // not silently swallow `dir` as the flag value and operate on cwd.
+    let stderr = "", code = 0;
+    try {
+      execFileSync(process.execPath, [cliPath, "eval", "--dynamic", "--include-bundled", dir], {
+        encoding: "utf8",
+        timeout: 10000,
+      });
+    } catch (err) {
+      code = err.status;
+      stderr = (err.stdout ?? "") + (err.stderr ?? "");
+    }
+    assert.notEqual(code, 0);
+    assert.match(stderr, /No harness installed/, `expected the empty repo to be detected; got: ${stderr.slice(0, 200)}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

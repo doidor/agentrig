@@ -1,5 +1,6 @@
 ---
 id: fix-failing-test
+bundled: true   # ships with `agentrig init`; excluded from default `eval --dynamic` runs (use --include-bundled to opt in)
 type: run
 scope: patch
 principle_focus: [5, 8]

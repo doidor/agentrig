@@ -1,5 +1,6 @@
 ---
 id: add-small-feature
+bundled: true   # ships with `agentrig init`; excluded from default `eval --dynamic` runs (use --include-bundled to opt in)
 type: run
 scope: feature
 principle_focus: [1, 5, 10]
