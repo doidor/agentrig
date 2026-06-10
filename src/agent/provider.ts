@@ -55,6 +55,13 @@ export interface PreflightResult {
   detail: string;
 }
 
+export interface ModelValidationResult {
+  ok: boolean;
+  /** When ok=false, the closest matches the provider knows about (for "did you mean…" hints). */
+  available?: string[];
+  detail?: string;
+}
+
 /**
  * Abstraction over an agentic backend. The CopilotProvider implements this today; a ClaudeProvider
  * can be added later without touching command logic.
@@ -62,5 +69,8 @@ export interface PreflightResult {
 export interface AgentProvider {
   readonly name: string;
   preflight(): Promise<PreflightResult>;
+  /** Best-effort check that `modelId` exists. Optional — providers that can't list models
+   *  should return `{ ok: true }` so the orchestrator falls through to runtime errors. */
+  validateModel?(modelId: string): Promise<ModelValidationResult>;
   startConversation(options: ConversationOptions): Promise<AgentConversation>;
 }

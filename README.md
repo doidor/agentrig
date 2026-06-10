@@ -139,7 +139,7 @@ harness-on run**; add `--static` for the fast no-model audit. Three layers, each
 
   ```bash
   agentrig eval --dynamic                                    # defaults: developer.yml + reviewer.yml models
-  agentrig eval --dynamic --producer-model claude-sonnet-4.5 --judge-model gpt-5   # explicit override
+  agentrig eval --dynamic --producer-model claude-sonnet-4.5 --judge-model gpt-5.4   # explicit override
   agentrig eval --dynamic --scenario fix-failing-test --n 5
   agentrig eval --rubric          # print rubric (axes, codes, scenarios) without running
   node .agentrig/eval/score.mjs report

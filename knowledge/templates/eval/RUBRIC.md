@@ -97,7 +97,7 @@ reports % agreement (within ±0.5 tier) and signed bias.
 ```bash
 # After your judge wrote scores to /tmp/judge-out.json:
 node .agentrig/eval/score.mjs calibrate \
-  --judge gpt-5 --instance .agentrig/eval/calibration/run/seed-correct.yml \
+  --judge gpt-5.4 --instance .agentrig/eval/calibration/run/seed-correct.yml \
   --judge-scores /tmp/judge-out.json
 node .agentrig/eval/score.mjs calibrate --report
 ```

@@ -5,6 +5,7 @@ import {
   type AgentConversation,
   type AgentProvider,
   type ConversationOptions,
+  type ModelValidationResult,
   type PreflightResult,
 } from "./provider.js";
 
@@ -40,6 +41,35 @@ export class CopilotProvider implements AgentProvider {
       return { ok: true, detail: `authenticated as ${status.login ?? "user"} (${status.authType ?? "user"})` };
     } catch (err) {
       return { ok: false, detail: `could not start Copilot runtime: ${(err as Error).message}` };
+    } finally {
+      await client.stop().catch(() => undefined);
+    }
+  }
+
+  async validateModel(modelId: string): Promise<ModelValidationResult> {
+    const client = new CopilotClient({
+      logLevel: "none",
+      env: { ...process.env, NODE_NO_WARNINGS: "1" },
+    });
+    try {
+      await client.start();
+      const models = await client.listModels();
+      const ids = models.map((m) => m.id);
+      if (ids.includes(modelId)) return { ok: true };
+      // "did you mean…" — same family by prefix, sorted alphabetically.
+      const prefix = modelId.split(/[-.]/)[0]!.toLowerCase();
+      const near = ids.filter((id) => id.toLowerCase().startsWith(prefix)).sort();
+      return {
+        ok: false,
+        available: ids.sort(),
+        detail: near.length
+          ? `Did you mean: ${near.slice(0, 5).join(", ")}?`
+          : `Available: ${ids.slice(0, 8).join(", ")}${ids.length > 8 ? ", …" : ""}`,
+      };
+    } catch (err) {
+      // If the listing call itself fails (offline, auth issue), don't block — let
+      // startConversation surface the real error.
+      return { ok: true, detail: `validateModel skipped: ${(err as Error).message}` };
     } finally {
       await client.stop().catch(() => undefined);
     }

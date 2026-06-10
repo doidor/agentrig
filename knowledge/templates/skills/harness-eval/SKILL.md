@@ -47,8 +47,8 @@ For each scenario in `.agentrig/eval/scenarios/*/`:
 family unless `--allow-same-family` is set (and records the override). Bare CLI:
 
 ```bash
-agentrig eval --dynamic --variant harness  --n 5 --producer-model claude-sonnet-4.5 --judge-model gpt-5
-agentrig eval --dynamic --variant baseline --n 5 --producer-model claude-sonnet-4.5 --judge-model gpt-5
+agentrig eval --dynamic --variant harness  --n 5 --producer-model claude-sonnet-4.5 --judge-model gpt-5.4
+agentrig eval --dynamic --variant baseline --n 5 --producer-model claude-sonnet-4.5 --judge-model gpt-5.4
 node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
 ```
 

@@ -145,17 +145,17 @@ async function runOneTrial(
   if (!isDogfood) {
     const provider = getProvider();
     const monitor = new ActivityMonitor().start();
-    const convo = await provider.startConversation({
-      cwd: wt,
-      systemMessage: SYSTEM_MESSAGE,
-      onEvent: monitor.handle,
-      ...(opts.producerModel ? { model: opts.producerModel } : {}),
-      ...(opts.timeoutMinutes ? { maxMs: opts.timeoutMinutes * 60 * 1000 } : {}),
-    });
+    let convo: Awaited<ReturnType<typeof provider.startConversation>> | null = null;
     try {
+      convo = await provider.startConversation({
+        cwd: wt,
+        systemMessage: SYSTEM_MESSAGE,
+        onEvent: monitor.handle,
+        ...(opts.producerModel ? { model: opts.producerModel } : {}),
+        ...(opts.timeoutMinutes ? { maxMs: opts.timeoutMinutes * 60 * 1000 } : {}),
+      });
       producerTranscript = await convo.send(buildProducerPrompt(promptText, opts.variant));
     } catch (err) {
-      monitor.stop();
       if (err instanceof AgentTimeoutError) {
         log.warn(`      producer timed out: ${err.message}`);
         producerTranscript = `[producer timed out: ${err.message}]`;
@@ -163,8 +163,10 @@ async function runOneTrial(
         throw err;
       }
     } finally {
+      // Stop the heartbeat first so a failure later (e.g. convo.end()) doesn't keep it
+      // ticking. setInterval was the silent leak that flooded the terminal pre-fix.
       monitor.stop();
-      await convo.end();
+      if (convo) await convo.end().catch(() => undefined);
     }
   }
 
@@ -191,21 +193,23 @@ async function runOneTrial(
       const monitor = new ActivityMonitor().start();
       const judgeOutPath = join(opts.artifactsDir, `${fm.id}.trial${trial}.judge.json`);
       const judgeCwd = join(opts.artifactsDir, `judge.${fm.id}.trial${trial}`);
-      mkdirSync(judgeCwd, { recursive: true });
-      // The judge sees ONLY: prompt, diff, transcript, oracle results, brief. NOT the producer worktree.
-      writeFileSync(join(judgeCwd, "prompt.md"), promptText);
-      writeFileSync(join(judgeCwd, "diff.patch"), diff);
-      writeFileSync(join(judgeCwd, "transcript.md"), producerTranscript || "");
-      writeFileSync(join(judgeCwd, "oracle.json"), JSON.stringify(oracleAxes, null, 2));
-      if (paths.judgeBriefMd) writeFileSync(join(judgeCwd, "judge_brief.md"), readFileSync(paths.judgeBriefMd, "utf8"));
-      const convo = await provider.startConversation({
-        cwd: judgeCwd,
-        systemMessage: SYSTEM_MESSAGE,
-        onEvent: monitor.handle,
-        ...(opts.judgeModel ? { model: opts.judgeModel } : {}),
-        ...(opts.timeoutMinutes ? { maxMs: Math.max(1, Math.floor((opts.timeoutMinutes ?? 30) / 3)) * 60 * 1000 } : {}),
-      });
+      let convo: Awaited<ReturnType<typeof provider.startConversation>> | null = null;
+      let judgeFailed = false;
       try {
+        mkdirSync(judgeCwd, { recursive: true });
+        // The judge sees ONLY: prompt, diff, transcript, oracle results, brief. NOT the producer worktree.
+        writeFileSync(join(judgeCwd, "prompt.md"), promptText);
+        writeFileSync(join(judgeCwd, "diff.patch"), diff);
+        writeFileSync(join(judgeCwd, "transcript.md"), producerTranscript || "");
+        writeFileSync(join(judgeCwd, "oracle.json"), JSON.stringify(oracleAxes, null, 2));
+        if (paths.judgeBriefMd) writeFileSync(join(judgeCwd, "judge_brief.md"), readFileSync(paths.judgeBriefMd, "utf8"));
+        convo = await provider.startConversation({
+          cwd: judgeCwd,
+          systemMessage: SYSTEM_MESSAGE,
+          onEvent: monitor.handle,
+          ...(opts.judgeModel ? { model: opts.judgeModel } : {}),
+          ...(opts.timeoutMinutes ? { maxMs: Math.max(1, Math.floor((opts.timeoutMinutes ?? 30) / 3)) * 60 * 1000 } : {}),
+        });
         await convo.send(buildJudgePrompt({
           scenario: fm.id,
           type: fm.type,
@@ -214,15 +218,24 @@ async function runOneTrial(
           rubricPath: resolve(repoRoot, ".agentrig/eval/axes.json"),
         }));
       } catch (err) {
-        if (err instanceof AgentTimeoutError) log.warn(`      judge timed out: ${err.message}`);
-        else throw err;
+        judgeFailed = true;
+        if (err instanceof AgentTimeoutError) {
+          log.warn(`      judge timed out: ${err.message}`);
+        } else {
+          // Don't bail the whole trial — soft axes will just be marked na below. Log so the
+          // operator sees the cause (e.g. "Model X is not available").
+          log.warn(`      judge failed (${(err as Error).message}); soft axes will be na for this trial`);
+        }
       } finally {
+        // Stop the heartbeat first so any later failure (e.g. convo.end()) doesn't keep it ticking.
         monitor.stop();
-        await convo.end();
+        if (convo) await convo.end().catch(() => undefined);
       }
-      const judgeOut = readJudgeScores(opts.artifactsDir, fm.id, trial);
-      if (judgeOut) judgeFlags = judgeAxesToFlags(judgeOut);
-      else log.warn(`      judge did not write ${judgeOutPath} — soft axes recorded as na`);
+      if (!judgeFailed) {
+        const judgeOut = readJudgeScores(opts.artifactsDir, fm.id, trial);
+        if (judgeOut) judgeFlags = judgeAxesToFlags(judgeOut);
+        else log.warn(`      judge did not write ${judgeOutPath} — soft axes recorded as na`);
+      }
     }
     // If no judge model OR judge failed to write, mark soft axes na so they're excluded from rollup.
     if (judgeFlags.length === 0) judgeFlags = (fm.judge_axes ?? []).map((a) => `${a}=na`);
@@ -255,6 +268,24 @@ export async function runDynamicEval(repoRoot: string, opts: DynamicRunOptions):
         `producer "${opts.producerModel}" and judge "${opts.judgeModel}" share family "${modelFamily(opts.producerModel)}". ` +
         `Pass --allow-same-family to override (recorded in every result).`,
       );
+    }
+  }
+
+  // Pre-flight model validation: catch typos in producer/judge model ids before we burn 30s
+  // of producer work just to crash at the judge call. This is what bit us when the default
+  // judge model was "gpt-5" (which doesn't exist; the real id is "gpt-5.4").
+  const provider = getProvider();
+  if (provider.validateModel) {
+    for (const [role, model] of [["producer", opts.producerModel], ["judge", opts.judgeModel]] as const) {
+      if (!model) continue;
+      const v = await provider.validateModel(model);
+      if (!v.ok) {
+        throw new Error(
+          `${role} model "${model}" not available from provider "${provider.name}". ${v.detail ?? ""} ` +
+          `Fix by editing .agentrig/agents/${role === "producer" ? "developer" : "reviewer"}.yml ` +
+          `or passing --${role}-model <id>.`,
+        );
+      }
     }
   }
 

@@ -24,7 +24,7 @@ agentrig init [path]
 | `--skip-agent` | Deterministic install — no agentic exploration. CI-safe. |
 | `--dry-run` | Show every file as `(new)`, `(preserve existing)`, or `(OVERWRITE)` without writing. |
 | `--yes` | Non-interactive (skip all prompts). |
-| `--model <id>` | Model for the investigation step (e.g. `claude-sonnet-4.5`, `gpt-5`). |
+| `--model <id>` | Model for the investigation step (e.g. `claude-sonnet-4.5`, `gpt-5.4`). |
 | `--verbose` | Stream the agent's exploration. |
 
 ## `update`
