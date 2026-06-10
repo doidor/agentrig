@@ -9,6 +9,36 @@ import { AgentTimeoutError } from "../agent/provider.js";
 import { listScenarios, locateScenario, loadScenario } from "../core/scenario-runner.js";
 import { runDynamicEval } from "./eval-dynamic.js";
 
+interface ResolvedModel {
+  src: string;
+  value: string;
+}
+
+/** Pick the first non-empty model in the precedence chain. */
+function resolveModel(chain: { src: string; value: string | null | undefined }[]): ResolvedModel | null {
+  for (const c of chain) {
+    if (c.value && c.value.trim()) return { src: c.src, value: c.value.trim() };
+  }
+  return null;
+}
+
+/** Read the `model:` key from each role yaml in the roster. Best-effort + tolerant of missing
+ *  roles so a partially-installed harness doesn't crash the eval. */
+function readRosterModels(repoRoot: string): { developer: string | null; reviewer: string | null; judge: string | null } {
+  const readModel = (relPath: string): string | null => {
+    const abs = join(repoRoot, relPath);
+    if (!existsSync(abs)) return null;
+    const text = readFileSync(abs, "utf8");
+    const m = text.match(/^\s*model\s*:\s*(.+?)\s*$/m);
+    return m ? m[1]!.trim() : null;
+  };
+  return {
+    developer: readModel(".agentrig/agents/developer.yml"),
+    reviewer: readModel(".agentrig/agents/reviewer.yml"),
+    judge: readModel(".agentrig/agents/judge.yml"),
+  };
+}
+
 /** Print what the dynamic eval measures: rubric types/axes/issue-codes + installed scenarios. */
 export function renderRubric(repoRoot: string, asJson: boolean): number {
   const axesPath = join(repoRoot, ".agentrig", "eval", "axes.json");
@@ -164,9 +194,32 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   // harness-lift comparisons are never single-trial coin flips).
   const trials = options.trials ?? (variant === "harness" && options.scenario ? 1 : variant === "baseline" ? 5 : 1);
 
-  // Producer/judge model resolution: explicit flags > options.model (back-compat) > provider default.
-  const producerModel = options.producerModel ?? options.model;
-  const judgeModel = options.judgeModel;
+  // Producer/judge model resolution chain (highest precedence first):
+  //   1. explicit --producer-model / --judge-model
+  //   2. AGENTRIG_PRODUCER_MODEL / AGENTRIG_JUDGE_MODEL env vars (same vars score.mjs reads)
+  //   3. --model flag (legacy back-compat — only sets the producer)
+  //   4. .agentrig/agents/developer.yml model → producer
+  //      .agentrig/agents/reviewer.yml model → judge
+  //      (the roster already enforces these are different families via the install-audit check)
+  //   5. nothing → provider falls back to its own default
+  const rosterModels = readRosterModels(repoRoot);
+  const producerResolved = resolveModel(
+    [
+      { src: "--producer-model", value: options.producerModel },
+      { src: "AGENTRIG_PRODUCER_MODEL", value: process.env.AGENTRIG_PRODUCER_MODEL },
+      { src: "--model", value: options.model },
+      { src: ".agentrig/agents/developer.yml", value: rosterModels.developer },
+    ],
+  );
+  const judgeResolved = resolveModel(
+    [
+      { src: "--judge-model", value: options.judgeModel },
+      { src: "AGENTRIG_JUDGE_MODEL", value: process.env.AGENTRIG_JUDGE_MODEL },
+      { src: ".agentrig/agents/reviewer.yml", value: rosterModels.reviewer },
+    ],
+  );
+  const producerModel = producerResolved?.value;
+  const judgeModel = judgeResolved?.value;
 
   // Per-run artifacts directory + meta.json.
   const runId = `run-${new Date().toISOString().replace(/[:.]/g, "-")}`;
@@ -179,8 +232,10 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
     startedAt,
     producerProvider: provider.name,
     producerModel: producerModel ?? null,
+    producerModelSource: producerResolved?.src ?? null,
     judgeProvider: provider.name,
     judgeModel: judgeModel ?? null,
+    judgeModelSource: judgeResolved?.src ?? null,
     allowSameFamily: Boolean(options.allowSameFamily),
     trials,
     seed: options.seed ?? null,
@@ -193,9 +248,16 @@ export async function evalCommand(repoRoot: string, options: EvalOptions): Promi
   const scopeLabel = options.scenario ? `scenario "${options.scenario}"` : "all scenarios";
   log.step(`running dynamic harness evaluation — ${scopeLabel} [variant: ${variant}, n=${trials}]…`);
   log.info(color.dim(`  Run ${runId}; scores + artifacts under ${artifactsDirRel}/`));
-  if (producerModel) log.info(color.dim(`  Producer: ${producerModel}`));
-  if (judgeModel) log.info(color.dim(`  Judge:    ${judgeModel}`));
-  if (!judgeModel) log.info(color.dim("  Judge:    (not set — soft axes will be recorded as na)"));
+  if (producerModel) {
+    log.info(color.dim(`  Producer: ${producerModel}   ← ${producerResolved!.src}`));
+  } else {
+    log.info(color.dim("  Producer: (provider default — no producer-model resolved)"));
+  }
+  if (judgeModel) {
+    log.info(color.dim(`  Judge:    ${judgeModel}   ← ${judgeResolved!.src}`));
+  } else {
+    log.info(color.dim("  Judge:    (not set — soft axes will be recorded as na)"));
+  }
 
   let timedOut = false;
   try {

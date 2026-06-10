@@ -138,11 +138,17 @@ harness-on run**; add `--static` for the fast no-model audit. Three layers, each
      **producer/judge family divergence** (override is recorded so reviewers can spot it).
 
   ```bash
-  agentrig eval --dynamic --producer-model claude-sonnet-4.5 --judge-model gpt-5
+  agentrig eval --dynamic                                    # defaults: developer.yml + reviewer.yml models
+  agentrig eval --dynamic --producer-model claude-sonnet-4.5 --judge-model gpt-5   # explicit override
   agentrig eval --dynamic --scenario fix-failing-test --n 5
   agentrig eval --rubric          # print rubric (axes, codes, scenarios) without running
   node .agentrig/eval/score.mjs report
   ```
+
+  By default, the producer model is read from `.agentrig/agents/developer.yml` and the judge from
+  `.agentrig/agents/reviewer.yml` — the install-completeness audit already enforces these come
+  from different model families. Override with explicit flags or `AGENTRIG_PRODUCER_MODEL` /
+  `AGENTRIG_JUDGE_MODEL` env vars.
 
 ### Does the harness actually help? (statistical harness lift)
 

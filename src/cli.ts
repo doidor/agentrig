@@ -75,8 +75,8 @@ ${color.bold("Commands:")}
                      --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
                      --scenario <id>          run one scenario only (e.g. fix-failing-test)
                      --variant <name>         label this run (default 'harness'; 'baseline' = harness OFF)
-                     --producer-model <id>    model for the producer agent
-                     --judge-model <id>       model for the independent judge (must be a different family)
+                     --producer-model <id>    producer model (default: developer.yml model)
+                     --judge-model <id>       judge model (default: reviewer.yml model — different family)
                      --allow-same-family      override the producer/judge family check (recorded in results)
                      --n <int>                trials per scenario (default 1 single, 5 in baseline mode)
                      --seed <int>             reproducibility seed (passed through where supported)

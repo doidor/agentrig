@@ -82,11 +82,39 @@ For each scenario in `.agentrig/eval/scenarios/<id>/`:
 
 ### Bare invocation
 
+`agentrig eval --dynamic` resolves models from `.agentrig/agents/developer.yml` (producer) and
+`.agentrig/agents/reviewer.yml` (judge) by default — the roster already enforces these come from
+different model families via the install-completeness audit. So the common path is just:
+
+```bash
+agentrig eval --dynamic
+```
+
+Override either model explicitly when running a one-off experiment:
+
 ```bash
 agentrig eval --dynamic \
   --producer-model claude-sonnet-4.5 \
   --judge-model gpt-5
 ```
+
+Or via env vars (handy in CI scripts):
+
+```bash
+AGENTRIG_PRODUCER_MODEL=claude-sonnet-4.5 \
+AGENTRIG_JUDGE_MODEL=gpt-5 \
+  agentrig eval --dynamic
+```
+
+Resolution chain (highest precedence first):
+
+1. `--producer-model` / `--judge-model` CLI flags
+2. `AGENTRIG_PRODUCER_MODEL` / `AGENTRIG_JUDGE_MODEL` env vars
+3. `--model` (legacy back-compat — only sets the producer)
+4. `.agentrig/agents/developer.yml` model (producer) / `.agentrig/agents/reviewer.yml` model (judge)
+5. Provider default
+
+The chosen model + source is logged at the start of the run and recorded in `meta.json`.
 
 ### Useful flags
 

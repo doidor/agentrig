@@ -66,8 +66,8 @@ agentrig eval [path]
 | `--rubric` | Print measured axes + issue codes + installed scenarios. |
 | `--scenario <id>` | Run only one scenario. |
 | `--variant <name>` | Tag the run (`harness` vs `baseline`) for paired-trial lift comparison. |
-| `--producer-model <id>` | Model that executes the scenario task. |
-| `--judge-model <id>` | Model that scores soft axes — **must be a different family** than the producer. |
+| `--producer-model <id>` | Model that executes the scenario task (default: `.agentrig/agents/developer.yml` model). |
+| `--judge-model <id>` | Model that scores soft axes — **must be a different family** than the producer (default: `.agentrig/agents/reviewer.yml` model). |
 | `--allow-same-family` | Override the producer/judge family check (recorded in every result). |
 | `--n <int>` | Trials per scenario (default 1 single, 5 in baseline mode). |
 | `--seed <int>` | Reproducibility seed (passed through where supported). |
