@@ -1,0 +1,61 @@
+checks:
+  # 1. The audit script must exit 0 after the fix.
+  - id: audit-passes
+    type: cmd
+    cmd: "npm test --silent"
+    expect: exit_zero
+    axis: correctness
+
+  # 2. The fix must reference the new artifact's INSTALLED dest path
+  #    (matching what audit.mjs cross-references against manifest.json).
+  - id: checks-json-references-new-artifact
+    type: file_contains
+    path: "knowledge/templates/eval/checks.json"
+    pattern: ".agentrig/agents/security-reviewer.yml"
+    axis: tool_discipline
+
+  # 3. The new entry must be a structural completeness check (path-exists).
+  - id: new-check-is-path-exists
+    type: cmd
+    cmd: "node -e \"const j=JSON.parse(require('fs').readFileSync('knowledge/templates/eval/checks.json','utf8')); const hit=(j.checks||[]).find(c=>c.path==='.agentrig/agents/security-reviewer.yml' && c.type==='path-exists'); process.exit(hit?0:1)\""
+    expect: exit_zero
+    axis: tool_discipline
+
+  # 4. None of the existing 3 checks (state-machine, developer, reviewer) may be
+  #    removed — the agent must ADD a check, not swap one out.
+  - id: existing-checks-preserved
+    type: cmd
+    cmd: "node -e \"const j=JSON.parse(require('fs').readFileSync('knowledge/templates/eval/checks.json','utf8')); const need=['.agentrig/harness/state-machine.yml','.agentrig/agents/developer.yml','.agentrig/agents/reviewer.yml']; const have=new Set((j.checks||[]).map(c=>c.path)); process.exit(need.every(p=>have.has(p))?0:1)\""
+    expect: exit_zero
+    axis: regression_risk
+
+  # 5. Only checks.json may change — no symptom-fixing by editing the auditor
+  #    or by removing the artifact from the manifest.
+  - id: only-checks-json-modified
+    type: diff_files
+    allowed:
+      - "knowledge/templates/eval/checks.json"
+    axis: scope
+
+  # 6. Explicitly forbid touching the auditor, the manifest, or any template
+  #    artifact (belt-and-braces alongside the `allowed` allowlist above).
+  - id: auditor-and-manifest-untouched
+    type: diff_files
+    forbidden:
+      - "audit.mjs"
+      - "knowledge/manifest.json"
+      - "knowledge/templates/harness/state-machine.yml"
+      - "knowledge/templates/agents/developer.yml"
+      - "knowledge/templates/agents/reviewer.yml"
+      - "knowledge/templates/agents/security-reviewer.yml"
+      - "package.json"
+    axis: regression_risk
+
+  # 7. Diff bounded: one new check entry is ~7-10 lines; allow some slack but
+  #    not enough for a refactor.
+  - id: diff-bounded
+    type: diff_stats
+    max_added_lines: 20
+    max_removed_lines: 3
+    max_files: 1
+    axis: scope

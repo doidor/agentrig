@@ -22,6 +22,8 @@ const BOOLEAN_FLAGS = new Set([
   "static",
   "dynamic",
   "rubric",
+  "scaffold",
+  "allow-same-family",
   "json",
   "no-tasks",
   "verbose",
@@ -73,6 +75,8 @@ ${color.bold("Commands:")}
   eval [path]      Evaluate the harness itself (defaults to the full agentic, harness-on run)
                      --static   fast deterministic structural audit, no model (use in CI)
                      --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
+                     --scaffold generate repo-specific scenarios via an agent turn, using the
+                                bundled generic scenarios as templates (--scaffold-count N, default 2)
                      --scenario <id>          run one scenario only (e.g. fix-failing-test)
                      --variant <name>         label this run (default 'harness'; 'baseline' = harness OFF)
                      --producer-model <id>    producer model (default: developer.yml model)
@@ -152,6 +156,8 @@ async function main(): Promise<number> {
           mode,
           json: Boolean(flags.json),
           rubric: Boolean(flags.rubric),
+          scaffold: Boolean(flags.scaffold),
+          ...(flags["scaffold-count"] != null ? { scaffoldCount: Number(flags["scaffold-count"]) } : {}),
           ...(model ? { model } : {}),
           ...(typeof flags["producer-model"] === "string" ? { producerModel: flags["producer-model"] } : {}),
           ...(typeof flags["judge-model"] === "string" ? { judgeModel: flags["judge-model"] } : {}),

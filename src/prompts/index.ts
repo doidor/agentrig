@@ -130,3 +130,83 @@ export function buildJudgePrompt(ctx: JudgeContext): string {
     : "(no soft axes for this scenario — write an empty axes array)";
   return `# Task — Score a completed scenario as an INDEPENDENT JUDGE\n\nYou are the **judge** for scenario \`${ctx.scenario}\` (type: \`${ctx.type}\`). The producer\nagent has already finished. Read these files in your cwd to do your scoring:\n\n- \`prompt.md\`     — the exact task the producer was given\n- \`diff.patch\`    — the change the producer produced\n- \`transcript.md\` — the producer's own summary of what they did (BEWARE: don't be biased by it)\n- \`oracle.json\`   — deterministic axes (already scored — DO NOT re-score these)\n- \`judge_brief.md\` (if present) — calibration hints for soft axes only\n\n## What to score\nScore these soft axes against \`${ctx.rubricPath}\`:\n${axesList}\n\nTiers are strict: \`0\` / \`0.5\` / \`1.0\`. Any score < 1.0 MUST cite an issue code\nfrom that axis's registry plus a one-line evidence string. Use \`confidence: 0\` for\naxes you genuinely cannot observe.\n\n## How to submit\nWrite your scores to \`${ctx.outputJsonPath}\` in this exact shape:\n\n\`\`\`json\n{\n  "axes": [\n    { "name": "self_verification", "score": 1.0, "confidence": 1 },\n    { "name": "clarity",           "score": 0.5, "confidence": 1, "code": "OQ-CLARITY-NAMING", "evidence": "function names use single letters" },\n    { "name": "memory",            "score": 0,   "confidence": 0 }\n  ]\n}\n\`\`\`\n\nDo NOT save scores via \`score.mjs\` yourself — the orchestrator does that.\n\n## Independence\nDo NOT defer to the producer's reasoning. Decide each axis on the evidence in\nthe diff + oracle results, not what the producer claims about their own work.\nIf the diff contradicts the transcript, the diff wins.\n`;
 }
+
+export interface ScaffoldExample {
+  id: string;
+  scenarioYml: string;
+  promptMd: string;
+  oracleYml: string;
+}
+
+export interface ScaffoldContext {
+  count: number;
+  contextMd: string;
+  examples: ScaffoldExample[];
+  axesAvailable: { types: string[]; axisNames: string[] };
+}
+
+/** Scaffold-scenarios prompt — handed to an agent during `agentrig eval --scaffold`. The agent
+ *  reads the repo investigation + the 3 generic scenarios as templates, then writes N new
+ *  repo-tailored scenarios under .agentrig/eval/scenarios/. */
+export function buildScaffoldScenariosPrompt(ctx: ScaffoldContext): string {
+  const examplesText = ctx.examples.map((e) =>
+    `### Example: \`${e.id}\`\n\n**scenario.yml**\n\`\`\`yaml\n${e.scenarioYml.trim()}\n\`\`\`\n\n**prompt.md** (first 800 chars)\n\`\`\`markdown\n${e.promptMd.slice(0, 800)}\n\`\`\`\n\n**oracle.yml**\n\`\`\`yaml\n${e.oracleYml.trim()}\n\`\`\``,
+  ).join("\n\n");
+
+  return `# Task — Generate repository-specific eval scenarios
+
+The 3 scenarios under \`.agentrig/eval/scenarios/\` are language-agnostic JS micro-fixtures. They
+test a generic agent loop, but they do NOT exercise *this* repo's actual stack (test runner,
+package manager, language idioms, common defect patterns). Your job: write ${ctx.count} new
+scenario(s) that ARE specific to this repo.
+
+## Repo investigation (from \`.agentrig/context.md\`)
+
+\`\`\`
+${ctx.contextMd.trim() || "(no context.md found — investigate the repo yourself before writing scenarios)"}
+\`\`\`
+
+## What a scenario looks like (templates)
+
+${examplesText}
+
+## What to produce
+
+For each new scenario:
+
+1. Create a directory \`.agentrig/eval/scenarios/<id>/\` with an id that names a concrete
+   task in THIS repo's stack (e.g. \`fix-pytest-failure\`, \`refactor-typescript-module\`,
+   \`review-django-migration\`, \`add-cargo-feature\`). NO generic ids — \`fix-failing-test\` is taken.
+2. Write \`scenario.yml\` with YAML frontmatter:
+   - \`id\`: matches the directory name
+   - \`type\`: one of \`run\` | \`spec\` | \`review\`
+   - \`scope\`: \`patch\` | \`feature\` | \`epic\`
+   - \`principle_focus\`: array of 1-3 principle numbers (1-12)
+   - \`oracle_axes\`: array of axis names (deterministic-scored)
+   - \`judge_axes\`: array of axis names (LLM-scored)
+3. Write \`prompt.md\` — the exact task handed to the producer agent. NO ambiguity, NO "invent your own spec."
+4. Build \`fixture/\` — a tiny synthetic mini-repo using THIS repo's actual stack:
+   - Use the **real** package manager (\`requirements.txt\` / \`go.mod\` / \`package.json\` / \`Cargo.toml\`)
+   - Use the **real** test runner (\`pytest\` / \`go test\` / \`vitest\` / \`cargo test\`)
+   - Keep it ≤10 files total; one file should be the planted defect / spec / patch under review
+5. Write \`oracle.yml\` — deterministic checks (cmd, diff_stats, diff_files, file_contains, file_missing).
+   The \`cmd\` checks MUST use this repo's actual test command, not \`npm test\`.
+6. Write \`README.md\` — 1-2 paragraphs describing what the scenario tests + what a defect looks like.
+7. Write \`judge_brief.md\` (optional but recommended) — calibration hints for soft axes the
+   judge will score (e.g. "1.0 = wrote a wiki entry, 0.5 = mentioned in summary, 0 = silent").
+
+## Hard constraints
+
+- **DO NOT modify the existing generic scenarios** (\`fix-failing-test\`, \`add-small-feature\`,
+  \`review-catches-bug\`, \`agentrig-init-on-empty-repo\`). They stay as both templates AND running scenarios.
+- **DO NOT touch any file outside \`.agentrig/eval/scenarios/\`.**
+- **Axis names must come from the live registry.** Valid types: ${ctx.axesAvailable.types.join(", ")}.
+  Valid axis names (use only these): ${ctx.axesAvailable.axisNames.join(", ")}.
+- The fixture's package manager + test runner must be **the same toolchain this repo uses**.
+  Check \`AGENTS.md\` for the install/test commands.
+- Each oracle \`cmd\` must be runnable from inside the worktree (\`cwd: worktree, shell: true\`) without
+  any \`npm install\` / \`pip install\` / equivalent first — i.e., the fixture should be self-contained
+  or rely on stdlib only. If the test command needs deps, include a tiny dependency-free alternative.
+
+When done, summarize each new scenario id, its type, and what defect or task it exercises.`;
+}

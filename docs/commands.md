@@ -63,6 +63,7 @@ agentrig eval [path]
 | Flag | Purpose |
 | --- | --- |
 | `--static` | Structural completeness + quality probes only — no model. CI-safe. |
+| `--scaffold` | Generate repo-specific scenarios via an agent turn (use `--scaffold-count N`, default 2). |
 | `--rubric` | Print measured axes + issue codes + installed scenarios. |
 | `--scenario <id>` | Run only one scenario. |
 | `--variant <name>` | Tag the run (`harness` vs `baseline`) for paired-trial lift comparison. |

@@ -218,6 +218,29 @@ Everything under `.agentrig/eval/` is editable:
 - **Checks** — `.agentrig/eval/checks.json` (tighten or expand the structural audit)
 - **Calibration** — `.agentrig/eval/calibration/<type>/*.yml`
 
+### Generating repo-specific scenarios (`eval --scaffold`)
+
+The 3 bundled scenarios are language-agnostic JS micro-fixtures — useful as templates, but they
+don't exercise *your* repo's test runner, package manager, or common defect patterns. Run:
+
+```bash
+agentrig eval --scaffold                  # generate 2 repo-tailored scenarios (default)
+agentrig eval --scaffold --scaffold-count 3
+agentrig eval --scaffold --timeout 10     # raise the per-agent-turn cap (default 45min)
+```
+
+`--scaffold` reads `.agentrig/context.md` (the investigation `init` wrote about your repo) +
+the 3 generic scenarios as templates, then asks the agent to generate N new scenarios under
+`.agentrig/eval/scenarios/<id>/` that use your repo's actual stack. Each generated scenario is
+validated against `axes.json`; invalid output is flagged but not silently deleted, so you can
+inspect + fix it by hand.
+
+The agent is constrained to:
+- Use only the axis names already in `axes.json` (no inventing axes)
+- Use your repo's actual test runner / package manager
+- Keep the fixture ≤10 files
+- Touch only `.agentrig/eval/scenarios/`
+
 Confirm what's actually measured with `agentrig eval --rubric`.
 
 ---

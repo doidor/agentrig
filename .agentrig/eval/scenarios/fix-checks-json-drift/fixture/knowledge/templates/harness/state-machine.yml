@@ -1,0 +1,14 @@
+name: state-machine
+description: |
+  Stub state-machine template for the fix-checks-json-drift fixture. Content
+  is intentionally minimal — the scenario tests checks.json drift, not state-
+  machine semantics.
+states:
+  - name: queued
+  - name: implementing
+  - name: reviewing
+  - name: merged
+transitions:
+  - { from: queued, to: implementing, trigger: claim }
+  - { from: implementing, to: reviewing, trigger: ready_for_review }
+  - { from: reviewing, to: merged, trigger: approved }

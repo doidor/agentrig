@@ -8,6 +8,7 @@ import { getProvider } from "../agent/index.js";
 import { AgentTimeoutError } from "../agent/provider.js";
 import { listScenarios, locateScenario, loadScenario } from "../core/scenario-runner.js";
 import { runDynamicEval } from "./eval-dynamic.js";
+import { scaffoldScenarios } from "./eval-scaffold.js";
 
 interface ResolvedModel {
   src: string;
@@ -153,11 +154,31 @@ export interface EvalOptions {
   variant?: string;
   timeoutMinutes?: number;
   rubric?: boolean;
+  scaffold?: boolean;         // generate repo-specific scenarios via an agent turn
+  scaffoldCount?: number;     // how many to generate (default 2)
 }
 
 export async function evalCommand(repoRoot: string, options: EvalOptions): Promise<number> {
   if (options.rubric) {
     return renderRubric(repoRoot, Boolean(options.json));
+  }
+  if (options.scaffold) {
+    if (!isInstalled(repoRoot)) {
+      log.error("No harness installed. Run `agentrig init` before `agentrig eval --scaffold`.");
+      return 1;
+    }
+    try {
+      const res = await scaffoldScenarios(repoRoot, {
+        count: options.scaffoldCount ?? 2,
+        ...(options.producerModel ?? options.model ? { producerModel: options.producerModel ?? options.model! } : {}),
+        ...(options.timeoutMinutes ? { timeoutMinutes: options.timeoutMinutes } : {}),
+      });
+      if (options.json) console.log(JSON.stringify(res, null, 2));
+      return res.invalid.length === 0 ? 0 : 1;
+    } catch (err) {
+      log.error(`scaffold failed: ${(err as Error).message}`);
+      return 1;
+    }
   }
   if (options.mode === "static") {
     const report = auditHarness(repoRoot);
