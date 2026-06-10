@@ -1,158 +1,296 @@
 ---
 title: Evaluating the harness
-description: Measure whether AgentRig actually helps — static structural audit, dynamic agentic eval, and harness-lift comparison.
+description: Three layers — install completeness, quality probes, fixture-based dynamic eval with paired sign-test lift — plus judge calibration. Honest about what each does and does not prove.
 order: 4
 ---
 
 # Evaluating the harness
 
-A harness that nobody measures is just decoration. AgentRig ships **two evaluation modes** so you can tell whether the harness in your repo is healthy and whether it actually helps your agents do better work.
+A harness nobody measures is decoration. AgentRig ships **three layers** of evaluation, each
+making a **bounded** claim. Don't over-read what any one of them proves.
 
-## Mode 1 — static audit (`eval --static`)
+| Layer | Proves | Does NOT prove | Cost |
+|---|---|---|---|
+| **A1 — install completeness** | every canonical artifact present where the manifest declares | the artifacts *work*, or that agents respect them | ~1 second, no model |
+| **A2 — quality probes** | content sanity (parseable YAML/JSON, no unfilled `{{PLACEHOLDER}}`, distinct model **families**, every skill has frontmatter, axes have issue codes) | semantic quality of the content | ~1 second, no model |
+| **B — dynamic behavioral eval** | how the harness *changes agent behavior* on fixed fixtures, with deterministic oracles for hard axes + an independent judge for soft axes, with paired sign-test lift vs a baseline | absolute "is this agent good" — only relative to baseline | minutes to hours, real model spend |
 
-A deterministic structural audit. Runs in milliseconds, no model calls — safe for CI.
+All three persist results under `.agentrig/eval/results/` via `score.mjs`. Results are
+**validated on read AND on write** (`schemaVersion: 2`) — never hand-edit JSON; invalid records
+are quarantined into `results/_legacy/`.
+
+---
+
+## Layer A1 + A2 — static audit
+
+Deterministic. Dependency-free. Safe in CI.
 
 ```bash
-npx @doidor/agentrig eval --static
+agentrig eval --static                 # human report, A1 and A2 in separate sections
+agentrig eval --static --json          # machine-readable
+agentrig eval --static --min 80        # fail CI if Install Completeness < 80%
 ```
 
-What it checks (35 checks across the 12 principles):
+Or the dep-free script directly (handy in fresh worktrees):
+
+```bash
+node .agentrig/eval/static-audit.mjs
+```
+
+Sample output:
 
 ```text
-[PASS] P1  Orchestration contract documented
-[PASS] P1  Workflow is an explicit state machine
-[PASS] P1  Transition trigger taxonomy declared
-[PASS] P2  Model tiers defined for cost/quality routing
-[PASS] P2  Roles have dedicated prompts
-[PASS] P2  Specialized roles run different models
-…
-[PASS] P12 AGENTS.md lists the installed skills
+AgentRig — install completeness audit
+  what this proves: every canonical artifact is present and minimally well-formed.
+  what this does NOT prove: that those artifacts work, or that agents respect them.
 
-Harness Score: 100%  (35/35 full credit)
+  Layer A1 — structural completeness
+  [PASS] P1  Workflow is an explicit, connected state machine (DAG with queued→merged path)
+  [PASS] P2  Multiple specialized agent roles installed
+  …
+
+  Layer A2 — quality probes
+  [PASS] P2  Developer and reviewer use DIFFERENT model families (not just different ids)
+  [PASS] P4  Every skill declares description + allowed-tools (not just self-verify)
+  [PASS] P6  axes.json has at least one issue code per axis
+  [PASS] P12 AGENTS.md has no unfilled {{PLACEHOLDER}} tokens
+  …
+
+  Install Completeness: 100%  (33/33 full credit)
+  Quality Probes:       100%  (6/6 full credit)
 ```
 
-Use it as a quality gate in CI:
+CI gates on **Install Completeness** with `--min`. **Quality Probes** are diagnostic — they
+surface drift without failing the build.
+
+---
+
+## Layer B — dynamic behavioral eval
+
+For each scenario in `.agentrig/eval/scenarios/<id>/`:
+
+1. **Seed** a throwaway worktree from `scenarios/<id>/fixture/`.
+2. **Producer** model runs `prompt.md` in the worktree. For `--variant harness` the AgentRig
+   harness is staged into the worktree first; for `--variant baseline` the agent runs bare.
+3. **Oracle** (`scenarios/<id>/oracle.yml`) deterministically scores hard axes (correctness,
+   tests, scope, regression_risk, …) by running commands and inspecting the diff. **No LLM.**
+4. **Judge** model — a **different family** from the producer — runs in a separate
+   `provider.startConversation()` call in its own cwd containing only `prompt.md`,
+   `diff.patch`, `transcript.md`, `oracle.json`, and `judge_brief.md`. It does NOT see the
+   producer worktree or reasoning trace. It writes scores to a JSON file the orchestrator
+   validates against `axes.json`.
+
+### Bare invocation
+
+`agentrig eval --dynamic` resolves models from `.agentrig/agents/developer.yml` (producer) and
+`.agentrig/agents/reviewer.yml` (judge) by default — the roster already enforces these come from
+different model families via the install-completeness audit. So the common path is just:
 
 ```bash
-# Fail the build if the harness regressed
-npx @doidor/agentrig eval --static --min 80
+agentrig eval --dynamic
 ```
 
-For machine-readable output:
+Override either model explicitly when running a one-off experiment:
 
 ```bash
-npx @doidor/agentrig eval --static --json
+agentrig eval --dynamic \
+  --producer-model claude-sonnet-4.6 \
+  --judge-model gpt-5.5
 ```
 
-```json
-{
-  "harnessScore": 100,
-  "aggregate": 1,
-  "results": [
-    { "id": "state-machine", "principle": 1, "title": "…", "score": 1, "evidence": "" },
-    …
-  ]
-}
-```
-
-## Mode 2 — dynamic agentic eval (`eval`)
-
-This is what you want when you ask "is the harness actually making my agents better?". `eval` defaults to the full harness-ON run: it executes every installed scenario against an agent operating *inside* your harness, then scores both the implementation work and the agent's behavior on a multi-axis rubric.
+Or via env vars (handy in CI scripts):
 
 ```bash
-# Full agentic eval — every scenario, both implementation + review
-npx @doidor/agentrig eval
-
-# One scenario at a time
-npx @doidor/agentrig eval --scenario fix-failing-test
-
-# Tag the variant (for harness-lift comparisons)
-npx @doidor/agentrig eval --variant harness
-npx @doidor/agentrig eval --variant baseline
+AGENTRIG_PRODUCER_MODEL=claude-sonnet-4.6 \
+AGENTRIG_JUDGE_MODEL=gpt-5.5 \
+  agentrig eval --dynamic
 ```
 
-### What's evaluated
+Resolution chain (highest precedence first):
 
-`eval --rubric` prints the full registry of axes and issue codes:
+1. `--producer-model` / `--judge-model` CLI flags
+2. `AGENTRIG_PRODUCER_MODEL` / `AGENTRIG_JUDGE_MODEL` env vars
+3. `--model` (legacy back-compat — only sets the producer)
+4. `.agentrig/agents/developer.yml` model (producer) / `.agentrig/agents/reviewer.yml` model (judge)
+5. Provider default
 
-```text
-RUN — Implementation run (the harness doing a task)
-  output_quality
-    correctness          codes: OQ-CORRECT-WRONG, OQ-CORRECT-PARTIAL, OQ-CORRECT-EDGE
-    scope                codes: OQ-SCOPE-CHURN, OQ-SCOPE-UNRELATED, OQ-SCOPE-INCOMPLETE
-    tests                codes: OQ-TESTS-MISSING, OQ-TESTS-WEAK, OQ-TESTS-BROKEN
-    clarity              codes: OQ-CLARITY-NAMING, OQ-CLARITY-COMPLEXITY, OQ-CLARITY-COMMENTS
-  agent_behavior
-    self_verification    codes: AB-VERIFY-SKIPPED, AB-VERIFY-REDHANDOFF, AB-VERIFY-PARTIAL
-    gate_compliance      codes: AB-GATE-SKIPPED, AB-GATE-HUMANLABEL, AB-GATE-ORDER
-    tool_discipline      codes: AB-TOOLS-OVERLIMIT, AB-TOOLS-UNSCOPED, AB-TOOLS-NOISE
-    escalation           codes: AB-ESCALATE-LATE, AB-ESCALATE-THRASH, AB-ESCALATE-NONE
-  long_term_impact
-    memory               codes: LT-MEMORY-NOLOG, LT-MEMORY-REPEAT, LT-MEMORY-DUP
-    regression_risk      codes: LT-REGRESS-LIKELY, LT-REGRESS-UNTESTED
-    maintainability      codes: LT-MAINTAIN-DEBT, LT-MAINTAIN-COUPLING
+The chosen model + source is logged at the start of the run and recorded in `meta.json`.
 
-SPEC — Task/issue spec quality (before implementation)
-  spec_quality
-    clarity, acceptance_criteria, scope_bounded, testability, context
+### Useful flags
 
-REVIEW — Review process quality (the reviewer's behavior)
-  review_quality
-    finding_correctness, severity_calibration, …
-```
+| Flag | Purpose |
+| --- | --- |
+| `--scenario <id>` | Run one scenario (`fix-failing-test` / `add-small-feature` / `review-catches-bug`) |
+| `--variant <name>` | Tag the run (`harness` vs `baseline` for A/B lift) |
+| `--producer-model <id>` | Model that runs the task |
+| `--judge-model <id>` | Model that scores soft axes — MUST be a different family |
+| `--allow-same-family` | Override the family check (recorded in every result) |
+| `--n <int>` | Trials per scenario (default 1 single; default 5 in baseline mode) |
+| `--seed <int>` | Reproducibility seed (passed through where supported) |
+| `--timeout <min>` | Absolute cap per agent turn (default 45) |
 
-Each axis is scored on a 0 / 0.5 / 1 scale; the pass threshold is **≥ 0.8 aggregate**. The rubric registry lives in `.agentrig/eval/axes.json` and the prose explanation in `.agentrig/eval/RUBRIC.md` — both are editable in your repo, so you can extend or override what's evaluated.
+### Rubric rules (enforced by `score.mjs`)
 
-### Where the scenarios live
+1. **Strict 3-tier** scores: `0` / `0.5` / `1.0`.
+2. **Issue code required.** Any axis < 1.0 with `confidence > 0` must carry an issue code from
+   that axis's bounded registry plus a one-line evidence string.
+3. **Confidence-gated.** An axis you couldn't observe is `=na` (confidence 0) and excluded from rollups.
+4. **Weighted aggregation.** Axes carry an optional `weight` (default 1) and `veto: true`.
+   The aggregate is a weighted mean of observed axes.
+5. **Pass rule:** `aggregate ≥ passThreshold` AND no observed axis at 0 AND no veto axis < 1.0.
+   Veto fails are surfaced in `failReason`.
 
-Scenarios are isolated repro tasks (fix-failing-test, add-small-feature, …) that an agent runs in a hermetic per-agent worktree. They live in `.agentrig/eval/scenarios/<id>/` — you can add your own.
+### Lifecycle types
 
-## Harness lift — does the harness *actually help*?
+| `--type` | Categories | Veto axes |
+|---|---|---|
+| `spec` | spec_quality (5 axes) | `acceptance_criteria` |
+| `run` | output_quality, agent_behavior, long_term_impact (10 axes) | `correctness`, `gate_compliance` |
+| `review` | review_quality (7 axes) | `finding_correctness`, `blocking_decision` |
 
-The hard question. AgentRig answers it by running the same scenarios under two variants:
+Inspect the live rubric in your repo:
 
 ```bash
-# Run #1: harness ON
-npx @doidor/agentrig eval --variant harness
-
-# Run #2: harness OFF (baseline)
-# (run the scenarios in a sibling worktree where .agents/, AGENTS.md,
-#  and projected surfaces have been removed)
-npx @doidor/agentrig eval --variant baseline
+agentrig eval --rubric
 ```
 
-Then compare:
+---
+
+## Statistical lift — does the harness actually help?
+
+Single-trial deltas are coin flips. The eval requires **n ≥ 3** paired trials for any verdict
+other than `INCONCLUSIVE`. Pattern:
 
 ```bash
-npx @doidor/agentrig eval --compare --baseline baseline --variant harness
+agentrig eval --dynamic --variant harness  --n 5 \
+  --producer-model claude-sonnet-4.6 --judge-model gpt-5.5
+agentrig eval --dynamic --variant baseline --n 5 \
+  --producer-model claude-sonnet-4.6 --judge-model gpt-5.5
+
+node .agentrig/eval/score.mjs compare --scenario <id> --baseline baseline
 ```
 
-This emits a per-axis delta and a HELPS/HURTS/NEUTRAL verdict. If the harness isn't producing a meaningful lift on the axes you care about, that's a signal to revise the principles in `.agentrig/PRINCIPLES.md`, tune your rules, or change the role prompts in `.agentrig/agents/`.
+`compare --baseline` pairs trial *i* of harness with trial *i* of baseline, computes the
+**median delta** and a **binomial sign-test p-value**, and prints one of three verdicts:
+
+- **HELPS** — p < 0.05 and median > 0.05
+- **HURTS** — p < 0.05 and median < -0.05
+- **INCONCLUSIVE** — n < 3, p ≥ 0.05, or |median| < 0.05
+
+A HELPS verdict on a real fixture, in a different model family than the judge, is the only thing
+that justifies the line "AgentRig improved agent behavior here." Anything less is honest
+**inconclusive**.
+
+---
+
+## Calibrating the judge
+
+A judge that returns 1.0 on every axis passes every save validation but tells you nothing.
+`.agentrig/eval/calibration/` ships **hand-labeled** rubric instances (scenario inputs + transcript
++ diff + ground-truth axes). Two-step flow:
+
+```bash
+# 1. Have your judge model score one of the seed instances and write
+#    {"axes":[{"name":"...","score":1.0,"confidence":1}, …]} to /tmp/judge-out.json.
+# 2. Score the judge against ground truth.
+node .agentrig/eval/score.mjs calibrate \
+  --judge gpt-5.5 \
+  --instance .agentrig/eval/calibration/run/seed-correct.yml \
+  --judge-scores /tmp/judge-out.json
+
+# Roll up across instances.
+node .agentrig/eval/score.mjs calibrate --report
+```
+
+`agentrig doctor` reads the rollup and **fails (exit 1) on any judge averaging below 80%
+agreement** within ±0.5 tier of the hand-labeled truth. See
+[`.agentrig/eval/calibration/README.md`](https://github.com/doidor/agentrig/blob/main/knowledge/templates/eval/calibration/README.md)
+for the instance format and how to grow the calibration set.
+
+---
 
 ## Per-repo customization
 
-The rubric, axes, and scenarios are all in `.agentrig/eval/` — **editable in your repo**. AgentRig ships a sensible default set, but your evaluation should reflect what *your* team cares about:
+Everything under `.agentrig/eval/` is editable:
 
-- Add a scenario for the most failure-prone task in your repo (a flaky test you want agents to fix, a refactor you want them to do safely).
-- Add an axis specific to your domain (e.g. `accessibility_compliance` for a frontend repo).
-- Tune `axes.json` thresholds to be stricter than the defaults.
+- **Scenarios** — `.agentrig/eval/scenarios/<id>/` (drop in your own fixture + oracle.yml)
+- **Axes** — `.agentrig/eval/axes.json` (add domain-specific axes like `accessibility_compliance`)
+- **Checks** — `.agentrig/eval/checks.json` (tighten or expand the structural audit)
+- **Calibration** — `.agentrig/eval/calibration/<type>/*.yml`
 
-After editing, run `npx @doidor/agentrig eval --rubric` to confirm what's actually being measured.
+### Bundled vs repo-specific scenarios
 
-## CI integration
+Scenarios that ship with `agentrig init` (currently `add-small-feature`, `fix-failing-test`,
+`review-catches-bug`) are marked `bundled: true` in their `scenario.yml`. **`eval --dynamic`
+excludes them from the default run** — you want signal about *your* repo's stack and conventions,
+not generic JS micro-fixtures.
 
-```yaml
-# .github/workflows/agentrig-eval.yml
-name: AgentRig harness
-on: [pull_request]
-jobs:
-  static-audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
-        with: { node-version: '22' }
-      - run: npx -y @doidor/agentrig@latest eval --static --min 90
+```bash
+agentrig eval --dynamic                   # only repo-specific scenarios (default)
+agentrig eval --dynamic --include-bundled # also run the bundled template scenarios
+agentrig eval --dynamic --scenario fix-failing-test  # explicit ids always run, bundled or not
 ```
 
-This blocks PRs that drop the Harness Score below 90%.
+If you've never run `--scaffold`, the default run will be empty and the CLI will tell you so:
+
+```text
+No repo-specific scenarios found.
+Generate some with: agentrig eval --scaffold
+Or run the bundled template scenarios anyway: agentrig eval --dynamic --include-bundled
+```
+
+### Generating repo-specific scenarios (`eval --scaffold`)
+
+The 3 bundled scenarios are language-agnostic JS micro-fixtures — useful as templates, but they
+don't exercise *your* repo's test runner, package manager, or common defect patterns. Run:
+
+```bash
+agentrig eval --scaffold                  # generate 2 repo-tailored scenarios (default)
+agentrig eval --scaffold --scaffold-count 3
+agentrig eval --scaffold --timeout 10     # raise the per-agent-turn cap (default 45min)
+```
+
+`--scaffold` reads `.agentrig/context.md` (the investigation `init` wrote about your repo) +
+the 3 generic scenarios as templates, then asks the agent to generate N new scenarios under
+`.agentrig/eval/scenarios/<id>/` that use your repo's actual stack. Each generated scenario is
+validated against `axes.json`; invalid output is flagged but not silently deleted, so you can
+inspect + fix it by hand.
+
+The agent is constrained to:
+- Use only the axis names already in `axes.json` (no inventing axes)
+- Use your repo's actual test runner / package manager
+- Keep the fixture ≤10 files
+- Touch only `.agentrig/eval/scenarios/`
+- Omit `bundled: true` so the new scenarios run by default
+
+Confirm what's actually measured with `agentrig eval --rubric`.
+
+---
+
+## When to run what
+
+| When | What |
+|---|---|
+| Every PR | Layer A1 + A2 via `eval --static` (CI gate at `--min 80` or higher) |
+| Nightly on `main` | Layer B with `--n 5` × `harness` and `baseline`, then `compare --baseline baseline` |
+| Before publishing AgentRig itself | `score.mjs calibrate --report` ≥ 80% agreement for the default judge |
+| When prompts/skills/rules change | Manual `eval --dynamic --variant harness-v2 --n 5` + compare against the previous `harness` variant |
+
+## CI
+
+The dynamic eval is too expensive for every PR. Recommended split:
+
+```yaml
+# ci.yml — every PR (cheap, deterministic, no model)
+- run: npx -y @doidor/agentrig@latest eval --static --min 100
+
+# agentrig-eval.yml — nightly on main + manual dispatch (real model spend)
+on:
+  schedule: [{ cron: "17 6 * * *" }]
+  workflow_dispatch:
+```
+
+The full nightly workflow ships at
+[`.github/workflows/agentrig-eval.yml`](https://github.com/doidor/agentrig/blob/main/.github/workflows/agentrig-eval.yml)
+— it runs both variants with n=5, computes lift, uploads JSON artifacts, and posts/updates a
+tracking issue with the verdict table.

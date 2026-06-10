@@ -147,7 +147,8 @@ const tasks = loadTasks(stateLabels);
 const data = {
   generatedAt: new Date().toISOString(),
   repo: repoRoot,
-  harnessScore: audit?.harnessScore ?? null,
+  installCompleteness: audit?.installCompleteness ?? null,
+  qualityProbes: audit?.qualityProbes ?? null,
   principles: audit?.principles ?? [],
   roster,
   tasks,
@@ -178,8 +179,12 @@ function renderTerminal(d) {
   console.log(`\n${bold("AgentRig — harness dashboard")}  ${dim(d.repo)}`);
   console.log(rule);
 
-  const scoreColor = d.harnessScore == null ? dim : d.harnessScore >= 80 ? green : d.harnessScore >= 50 ? yellow : red;
-  console.log(`${bold("Harness Score")}  ${scoreColor(d.harnessScore == null ? "n/a" : d.harnessScore + "%")}`);
+  const scoreColor = d.installCompleteness == null ? dim : d.installCompleteness >= 80 ? green : d.installCompleteness >= 50 ? yellow : red;
+  console.log(`${bold("Install Completeness")}  ${scoreColor(d.installCompleteness == null ? "n/a" : d.installCompleteness + "%")}`);
+  if (d.qualityProbes != null) {
+    const qColor = d.qualityProbes >= 80 ? green : d.qualityProbes >= 50 ? yellow : red;
+    console.log(`${bold("Quality Probes")}        ${qColor(d.qualityProbes + "%")}`);
+  }
   if (d.principles.length) {
     const weak = d.principles.filter((p) => p.score < 1).map((p) => `P${p.principle} ${(p.score * 100).toFixed(0)}%`);
     console.log(dim(`  weak principles: ${weak.length ? weak.join(", ") : "none — all full credit"}`));
@@ -227,7 +232,8 @@ function renderTerminal(d) {
 
 function renderHtml(d) {
   const esc = (s) => String(s).replace(/[&<>]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[m]));
-  const scoreClass = d.harnessScore == null ? "na" : d.harnessScore >= 80 ? "good" : d.harnessScore >= 50 ? "warn" : "bad";
+  const scoreClass = d.installCompleteness == null ? "na" : d.installCompleteness >= 80 ? "good" : d.installCompleteness >= 50 ? "warn" : "bad";
+  const qualityClass = d.qualityProbes == null ? "na" : d.qualityProbes >= 80 ? "good" : d.qualityProbes >= 50 ? "warn" : "bad";
   const rosterRows = d.roster.map((a) => `<tr><td>${esc(a.role)}</td><td>${esc(a.model || "?")}</td><td>${esc(a.tier || "")}</td></tr>`).join("");
   let tasksHtml;
   if (!d.tasks.available) {
@@ -252,7 +258,8 @@ table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:.25rem .
 </style></head><body>
 <h1>AgentRig — harness dashboard</h1>
 <p class="muted">${esc(d.repo)} · generated ${esc(d.generatedAt)}</p>
-<h2>Harness Score</h2><p class="score ${scoreClass}">${d.harnessScore == null ? "n/a" : d.harnessScore + "%"}</p>
+<h2>Install Completeness</h2><p class="score ${scoreClass}">${d.installCompleteness == null ? "n/a" : d.installCompleteness + "%"}</p>
+${d.qualityProbes != null ? `<h2>Quality Probes</h2><p class="score ${qualityClass}">${d.qualityProbes}%</p>` : ""}
 <h2>Agents (${d.roster.length})</h2><table><tr><th>Role</th><th>Model</th><th>Tier</th></tr>${rosterRows}</table>
 <h2>Tasks</h2>${tasksHtml}
 <h2>Evals</h2>${evalRows ? `<table><tr><th></th><th>Scenario</th><th>Score</th><th>Judge</th></tr>${evalRows}</table><p class="muted">overall ${d.evals.overall.toFixed(2)}</p>` : '<p class="muted">No dynamic eval runs yet.</p>'}

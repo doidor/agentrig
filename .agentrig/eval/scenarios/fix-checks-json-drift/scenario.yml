@@ -1,0 +1,26 @@
+---
+id: fix-checks-json-drift
+type: run
+scope: patch
+principle_focus: [6, 12]
+description: >-
+  AgentRig-specific scenario: a new principle artifact has been added to
+  `knowledge/manifest.json` but no matching entry exists in
+  `knowledge/templates/eval/checks.json`, so the static audit would silently
+  ignore it (Critical Rule 2 in AGENTS.md). The agent must detect the drift,
+  add a well-formed check entry that mirrors the existing schema, and
+  self-verify — without touching the auditor or the manifest.
+
+# Deterministic axes scored by oracle.yml (no LLM needed):
+oracle_axes:
+  - correctness       # the audit script exits 0 (drift gone)
+  - tool_discipline   # the new check entry references the missing artifact path
+  - scope             # diff bounded; only checks.json modified
+  - regression_risk   # auditor and manifest left untouched (no symptom-fixing)
+
+# Soft axes scored by the LLM judge (P3):
+judge_axes:
+  - self_verification
+  - memory
+  - maintainability
+---

@@ -11,4 +11,5 @@ export default defineConfig({
   // Layout
   contentDir: "docs",
   outDir: "site",
+  layoutsDir: "layouts",
 });

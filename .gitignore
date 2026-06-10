@@ -10,3 +10,7 @@ node_modules/
 site/
 .markbook/
 docs/principles.md
+# Markbook auto-installs its agent skills into vendor surfaces it detects
+# (.agents/, .claude/, etc.). They are a markbook concern, not part of the
+# agentrig harness — keep them out of this repo.
+.agents/skills/markbook-*

@@ -1,0 +1,7 @@
+role: security-reviewer
+description: |
+  Stub security-reviewer role for the fix-checks-json-drift fixture. This is
+  the artifact that was newly added to manifest.json but is missing its
+  corresponding entry in checks.json.
+model: google/gemini-2.5-pro
+prompt_file: security-reviewer.md

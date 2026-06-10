@@ -51,13 +51,15 @@ export function runCli(args, opts = {}) {
   }
 }
 
-/** Run a node script (e.g. an installed .mjs) in a cwd; returns { status, stdout, stderr }. */
-export function runNode(scriptPath, args, cwd) {
+/** Run a node script (e.g. an installed .mjs) in a cwd; returns { status, stdout, stderr }.
+ *  Pass `{ env }` to override the child process environment. */
+export function runNode(scriptPath, args, cwd, extraOpts = {}) {
   try {
     const stdout = execFileSync(process.execPath, [scriptPath, ...args], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       cwd,
+      ...extraOpts,
     });
     return { status: 0, stdout, stderr: "" };
   } catch (err) {

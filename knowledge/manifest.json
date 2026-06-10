@@ -1,6 +1,6 @@
 {
   "$schema": "agentrig-manifest/1",
-  "knowledgeVersion": "0.3.3",
+  "knowledgeVersion": "0.5.0",
   "description": "Declares which best-practice artifacts AgentRig installs into a target repo and where. `src` is relative to the knowledge/ root; `dest` is relative to the target repo root. `kind`: file | dir | template. Templates contain {{PLACEHOLDERS}} the agent fills from its investigation; deterministic installs substitute known values and leave the rest for the agent.",
   "artifacts": [
     {
@@ -120,6 +120,13 @@
       "kind": "dir"
     },
     {
+      "id": "skill-log-gotcha",
+      "principle": 8,
+      "src": "templates/skills/log-gotcha",
+      "dest": ".agents/skills/log-gotcha",
+      "kind": "dir"
+    },
+    {
       "id": "skill-fix-ci",
       "principle": 4,
       "src": "templates/skills/fix-ci",
@@ -227,6 +234,14 @@
       "src": "templates/eval/scenarios",
       "dest": ".agentrig/eval/scenarios",
       "kind": "dir"
+    },
+    {
+      "id": "eval-calibration",
+      "principle": 6,
+      "src": "templates/eval/calibration",
+      "dest": ".agentrig/eval/calibration",
+      "kind": "dir",
+      "refresh": "preserve"
     },
     {
       "id": "eval-sandbox",

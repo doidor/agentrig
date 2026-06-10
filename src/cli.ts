@@ -22,6 +22,9 @@ const BOOLEAN_FLAGS = new Set([
   "static",
   "dynamic",
   "rubric",
+  "scaffold",
+  "allow-same-family",
+  "include-bundled",
   "json",
   "no-tasks",
   "verbose",
@@ -73,16 +76,25 @@ ${color.bold("Commands:")}
   eval [path]      Evaluate the harness itself (defaults to the full agentic, harness-on run)
                      --static   fast deterministic structural audit, no model (use in CI)
                      --rubric   print what's evaluated (rubric axes, issue codes, scenarios)
-                     --scenario <id>   run one scenario only (e.g. fix-failing-test)
-                     --variant <name>  label this run (default 'harness'; use 'baseline' for harness-OFF)
-                     --timeout <min>   absolute cap per agent turn (default 45)
+                     --scaffold generate repo-specific scenarios via an agent turn, using the
+                                bundled generic scenarios as templates (--scaffold-count N, default 2)
+                     --include-bundled   include the generic 'bundled' template scenarios in the run
+                                         (default: only repo-specific scenarios run)
+                     --scenario <id>          run one scenario only (e.g. fix-failing-test)
+                     --variant <name>         label this run (default 'harness'; 'baseline' = harness OFF)
+                     --producer-model <id>    producer model (default: developer.yml model)
+                     --judge-model <id>       judge model (default: reviewer.yml model — different family)
+                     --allow-same-family      override the producer/judge family check (recorded in results)
+                     --n <int>                trials per scenario (default 1 single, 5 in baseline mode)
+                     --seed <int>             reproducibility seed (passed through where supported)
+                     --timeout <min>          absolute cap per agent turn (default 45)
   doctor [path]    Quick health check (installed? agent reachable? score?)
   dashboard [path] Show agent roster, live GitHub tasks, harness score, and evals
                      --html [file]  write a self-contained HTML dashboard
                      --no-tasks     skip live GitHub lookups (offline)
 
 ${color.bold("Options:")}
-  --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.5, gpt-5)
+  --model <id>     Model to use for agentic steps (e.g. claude-sonnet-4.6, gpt-5.5)
   --dry-run        Show what would happen without writing or calling the model
   --force          (init) overwrite existing user files (off by default; init is non-destructive)
   --skip-agent     Install/update the canonical harness without the agentic steps
@@ -147,7 +159,15 @@ async function main(): Promise<number> {
           mode,
           json: Boolean(flags.json),
           rubric: Boolean(flags.rubric),
+          scaffold: Boolean(flags.scaffold),
+          ...(flags["scaffold-count"] != null ? { scaffoldCount: Number(flags["scaffold-count"]) } : {}),
+          ...(flags["include-bundled"] ? { includeBundled: true } : {}),
           ...(model ? { model } : {}),
+          ...(typeof flags["producer-model"] === "string" ? { producerModel: flags["producer-model"] } : {}),
+          ...(typeof flags["judge-model"] === "string" ? { judgeModel: flags["judge-model"] } : {}),
+          ...(flags["allow-same-family"] ? { allowSameFamily: true } : {}),
+          ...(flags.n != null ? { trials: Number(flags.n) } : {}),
+          ...(flags.seed != null ? { seed: Number(flags.seed) } : {}),
           ...(flags.min != null ? { min: Number(flags.min) } : {}),
           ...(typeof flags.scenario === "string" ? { scenario: flags.scenario } : {}),
           ...(typeof flags.variant === "string" ? { variant: flags.variant } : {}),
@@ -177,4 +197,9 @@ async function main(): Promise<number> {
   }
 }
 
-main().then((code) => process.exit(code));
+// Setting process.exitCode (instead of calling process.exit immediately) lets pending
+// stdout writes drain when output is piped to another process — required because the
+// JSON audit report can exceed the macOS pipe buffer and would otherwise be truncated.
+main().then((code) => {
+  process.exitCode = code;
+});

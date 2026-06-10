@@ -55,6 +55,7 @@
   "license": "MIT",
   "dependencies": {
     "@github/copilot-sdk": "^1.0.0",
+    "yaml": "^2.9.0",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
@@ -68,8 +69,8 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
-    "@doidor/markbook": "^0.1.2",
-    "@doidor/markbook-core": "^0.1.2",
+    "@doidor/markbook": "^0.2.0",
+    "@doidor/markbook-core": "^0.2.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
   }

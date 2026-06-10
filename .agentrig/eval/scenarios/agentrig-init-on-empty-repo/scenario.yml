@@ -1,0 +1,19 @@
+---
+id: agentrig-init-on-empty-repo
+type: run
+scope: feature
+principle_focus: [11, 12]
+description: >-
+  Dogfood scenario: run `agentrig init --skip-agent` on a brand-new empty repo
+  and verify the harness installed itself correctly. This is the ONE scenario
+  that actually tests AgentRig the *product* (init/compile/manifest/audit).
+  Runs entirely without a model — pure pass/fail.
+
+# Every axis is oracle-scored; no LLM judge needed for this scenario.
+oracle_axes:
+  - correctness        # install-completeness >= 80%
+  - regression_risk    # `agentrig compile` is idempotent (no drift on second run)
+  - tool_discipline    # init wrote the expected manifest artifacts
+
+judge_axes: []          # no soft axes — fully deterministic
+---

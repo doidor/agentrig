@@ -16,16 +16,16 @@ states:
   - name: parked          # self-parked: needs a human (low reversibility)
 
 transitions:
-  - from: ingested        to: queued           trigger: agent      role: triager     gate: human_approval
-  - from: queued          to: implementing     trigger: agent      role: developer
-  - from: implementing    to: reviewing        trigger: agent      role: developer   gate: self_verify_passed
-  - from: reviewing       to: judging          trigger: agent      role: reviewer
-  - from: reviewing       to: implementing     trigger: agent      role: reviewer    reason: changes_requested
-  - from: judging         to: ready_to_merge   trigger: agent      role: judge       gate: rubric_passed
-  - from: judging         to: implementing     trigger: agent      role: judge       reason: below_threshold
-  - from: ready_to_merge  to: merged           trigger: human      gate: human_approval   # principle 9
-  - from: any             to: parked           trigger: auto       reason: low_reversibility_or_stuck
-  - from: any             to: closed           trigger: human
+  - { from: ingested,        to: queued,           trigger: agent,  role: triager,    gate: human_approval }
+  - { from: queued,          to: implementing,     trigger: agent,  role: developer }
+  - { from: implementing,    to: reviewing,        trigger: agent,  role: developer,  gate: self_verify_passed }
+  - { from: reviewing,       to: judging,          trigger: agent,  role: reviewer }
+  - { from: reviewing,       to: implementing,     trigger: agent,  role: reviewer,   reason: changes_requested }
+  - { from: judging,         to: ready_to_merge,   trigger: agent,  role: judge,      gate: rubric_passed }
+  - { from: judging,         to: implementing,     trigger: agent,  role: judge,      reason: below_threshold }
+  - { from: ready_to_merge,  to: merged,           trigger: human,  gate: human_approval }   # principle 9
+  - { from: any,             to: parked,           trigger: auto,   reason: low_reversibility_or_stuck }
+  - { from: any,             to: closed,           trigger: human }
 
 # Principle 3: GitHub labels mirror DAG state. Human-only labels must never be applied by an agent.
 labels:
@@ -48,9 +48,15 @@ limits:
   requeue_if_stuck_hours: 4
 
 hooks:
+  # Cheap, deterministic, no model — safe on every PR.
   pre_pr:
     - self-verify
   pre_merge:
+    - install-completeness   # Layer A: structural audit + quality probes (no model)
+  # Layer B (dynamic behavioral eval) is expensive: it spawns the harness end-to-end
+  # under a separate judge model with N>=5 trials per scenario. Run nightly on main,
+  # NOT per-PR. See .agentrig/eval/RUBRIC.md for cost notes.
+  nightly:
     - harness-eval
 
 # --- Trigger taxonomy (principle 1) ------------------------------------------
@@ -101,5 +107,5 @@ issue_comments:
 # Keep adjacent pipeline roles on DIFFERENT model families (single-model-bias mitigation).
 model_tiers:
   cheap:    { models: [claude-haiku-4.5, gpt-5-mini], use: "triage, high-volume analysis" }
-  standard: { models: [claude-sonnet-4.5, gpt-5.4],   use: "implementation" }
-  premium:  { models: [claude-opus-4.5, gpt-5],       use: "review, judging, auditing" }
+  standard: { models: [claude-sonnet-4.6, gpt-5.4],   use: "implementation" }
+  premium:  { models: [claude-opus-4.8, gpt-5.5],     use: "review, judging, auditing" }

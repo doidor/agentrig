@@ -1,6 +1,6 @@
 {
-  "$schema": "agentrig-eval-axes/1",
-  "description": "Rubric registry for the dynamic harness eval. Defines, per rubric TYPE, the categories, their axes, and a BOUNDED issue-code list per axis. score.mjs validates judge output against this: scores must be 0/0.5/1.0, and any axis < 1.0 (with confidence > 0) must carry an evidence string and an issue code drawn from that axis's list. Inspired by epichan's agent_scoring/issue_spec/review_scoring registries.",
+  "$schema": "agentrig-eval-axes/2",
+  "description": "Rubric registry for the dynamic harness eval. Defines, per rubric TYPE, the categories, their axes, and a BOUNDED issue-code list per axis. score.mjs validates judge output against this: scores must be 0/0.5/1.0, and any axis < 1.0 (with confidence > 0) must carry an evidence string and an issue code drawn from that axis's list. Axes can declare `weight` (default 1.0) and `veto: true`; a veto axis < 1.0 fails the scenario regardless of aggregate. Inspired by epichan's pydantic-validated scoring.",
   "tiers": [0, 0.5, 1.0],
   "passThreshold": 0.8,
   "types": {
@@ -8,21 +8,21 @@
       "label": "Implementation run (the harness doing a task)",
       "categories": {
         "output_quality": {
-          "correctness": ["OQ-CORRECT-WRONG", "OQ-CORRECT-PARTIAL", "OQ-CORRECT-EDGE"],
-          "scope": ["OQ-SCOPE-CHURN", "OQ-SCOPE-UNRELATED", "OQ-SCOPE-INCOMPLETE"],
-          "tests": ["OQ-TESTS-MISSING", "OQ-TESTS-WEAK", "OQ-TESTS-BROKEN"],
-          "clarity": ["OQ-CLARITY-NAMING", "OQ-CLARITY-COMPLEXITY", "OQ-CLARITY-COMMENTS"]
+          "correctness": { "codes": ["OQ-CORRECT-WRONG", "OQ-CORRECT-PARTIAL", "OQ-CORRECT-EDGE"], "weight": 2, "veto": true },
+          "scope":       { "codes": ["OQ-SCOPE-CHURN", "OQ-SCOPE-UNRELATED", "OQ-SCOPE-INCOMPLETE"] },
+          "tests":       { "codes": ["OQ-TESTS-MISSING", "OQ-TESTS-WEAK", "OQ-TESTS-BROKEN"] },
+          "clarity":     { "codes": ["OQ-CLARITY-NAMING", "OQ-CLARITY-COMPLEXITY", "OQ-CLARITY-COMMENTS"], "weight": 0.5 }
         },
         "agent_behavior": {
-          "self_verification": ["AB-VERIFY-SKIPPED", "AB-VERIFY-REDHANDOFF", "AB-VERIFY-PARTIAL"],
-          "gate_compliance": ["AB-GATE-SKIPPED", "AB-GATE-HUMANLABEL", "AB-GATE-ORDER"],
-          "tool_discipline": ["AB-TOOLS-OVERLIMIT", "AB-TOOLS-UNSCOPED", "AB-TOOLS-NOISE"],
-          "escalation": ["AB-ESCALATE-LATE", "AB-ESCALATE-THRASH", "AB-ESCALATE-NONE"]
+          "self_verification": { "codes": ["AB-VERIFY-SKIPPED", "AB-VERIFY-REDHANDOFF", "AB-VERIFY-PARTIAL"] },
+          "gate_compliance":   { "codes": ["AB-GATE-SKIPPED", "AB-GATE-HUMANLABEL", "AB-GATE-ORDER"], "veto": true },
+          "tool_discipline":   { "codes": ["AB-TOOLS-OVERLIMIT", "AB-TOOLS-UNSCOPED", "AB-TOOLS-NOISE"] },
+          "escalation":        { "codes": ["AB-ESCALATE-LATE", "AB-ESCALATE-THRASH", "AB-ESCALATE-NONE"] }
         },
         "long_term_impact": {
-          "memory": ["LT-MEMORY-NOLOG", "LT-MEMORY-REPEAT", "LT-MEMORY-DUP"],
-          "regression_risk": ["LT-REGRESS-LIKELY", "LT-REGRESS-UNTESTED"],
-          "maintainability": ["LT-MAINTAIN-DEBT", "LT-MAINTAIN-COUPLING"]
+          "memory":          { "codes": ["LT-MEMORY-NOLOG", "LT-MEMORY-REPEAT", "LT-MEMORY-DUP"] },
+          "regression_risk": { "codes": ["LT-REGRESS-LIKELY", "LT-REGRESS-UNTESTED"] },
+          "maintainability": { "codes": ["LT-MAINTAIN-DEBT", "LT-MAINTAIN-COUPLING"] }
         }
       }
     },
@@ -30,11 +30,11 @@
       "label": "Task/issue spec quality (before implementation)",
       "categories": {
         "spec_quality": {
-          "clarity": ["SP-CLARITY-VAGUE", "SP-CLARITY-AMBIGUOUS"],
-          "acceptance_criteria": ["SP-AC-MISSING", "SP-AC-UNTESTABLE"],
-          "scope_bounded": ["SP-SCOPE-TOOBIG", "SP-SCOPE-UNBOUNDED"],
-          "testability": ["SP-TEST-NOORACLE", "SP-TEST-NOREPRO"],
-          "context": ["SP-CONTEXT-MISSING", "SP-CONTEXT-STALE"]
+          "clarity":             { "codes": ["SP-CLARITY-VAGUE", "SP-CLARITY-AMBIGUOUS"] },
+          "acceptance_criteria": { "codes": ["SP-AC-MISSING", "SP-AC-UNTESTABLE"], "veto": true },
+          "scope_bounded":       { "codes": ["SP-SCOPE-TOOBIG", "SP-SCOPE-UNBOUNDED"] },
+          "testability":         { "codes": ["SP-TEST-NOORACLE", "SP-TEST-NOREPRO"] },
+          "context":             { "codes": ["SP-CONTEXT-MISSING", "SP-CONTEXT-STALE"] }
         }
       }
     },
@@ -42,13 +42,13 @@
       "label": "Review process quality (the reviewer's behavior)",
       "categories": {
         "review_quality": {
-          "finding_correctness": ["RV-FIND-WRONG", "RV-FIND-UNSUPPORTED"],
-          "severity_calibration": ["RV-SEV-OVER", "RV-SEV-UNDER"],
-          "false_positive_rate": ["RV-FP-NOISE", "RV-FP-STYLE"],
-          "coverage": ["RV-COV-MISSEDBUG", "RV-COV-SHALLOW"],
-          "actionability": ["RV-ACT-VAGUE", "RV-ACT-NOREPRO"],
-          "independence": ["RV-IND-SAMEMODEL", "RV-IND-RUBBERSTAMP"],
-          "blocking_decision": ["RV-BLOCK-WRONGPASS", "RV-BLOCK-WRONGFAIL"]
+          "finding_correctness": { "codes": ["RV-FIND-WRONG", "RV-FIND-UNSUPPORTED"], "weight": 2, "veto": true },
+          "severity_calibration":{ "codes": ["RV-SEV-OVER", "RV-SEV-UNDER"] },
+          "false_positive_rate": { "codes": ["RV-FP-NOISE", "RV-FP-STYLE"] },
+          "coverage":            { "codes": ["RV-COV-MISSEDBUG", "RV-COV-SHALLOW"] },
+          "actionability":       { "codes": ["RV-ACT-VAGUE", "RV-ACT-NOREPRO"] },
+          "independence":        { "codes": ["RV-IND-SAMEMODEL", "RV-IND-RUBBERSTAMP"] },
+          "blocking_decision":   { "codes": ["RV-BLOCK-WRONGPASS", "RV-BLOCK-WRONGFAIL"], "veto": true }
         }
       }
     }

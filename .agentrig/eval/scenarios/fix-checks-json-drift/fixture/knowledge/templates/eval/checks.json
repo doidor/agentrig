@@ -1,0 +1,33 @@
+{
+  "$schema": "agentrig-harness-checks/1",
+  "description": "Mini checks.json used by the fix-checks-json-drift scenario. NOTE: one declared manifest artifact has no matching check below — the agent must add it.",
+  "checks": [
+    {
+      "id": "state-machine",
+      "principle": 1,
+      "title": "Workflow state machine installed",
+      "type": "path-exists",
+      "path": ".agentrig/harness/state-machine.yml",
+      "layer": "completeness",
+      "weight": 1
+    },
+    {
+      "id": "developer",
+      "principle": 2,
+      "title": "Developer role installed",
+      "type": "path-exists",
+      "path": ".agentrig/agents/developer.yml",
+      "layer": "completeness",
+      "weight": 1
+    },
+    {
+      "id": "reviewer",
+      "principle": 2,
+      "title": "Reviewer role installed",
+      "type": "path-exists",
+      "path": ".agentrig/agents/reviewer.yml",
+      "layer": "completeness",
+      "weight": 1
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+id: seed-fix-failing-test-correct
+scenario: fix-failing-test
+type: run
+prompt: |-
+  A unit test in this repo is failing. Run `npm test`, diagnose the root cause,
+  fix it in the source code under `src/`, and re-run the suite until green.
+  Do not delete or skip the failing test. Self-verify before handoff.
+
+transcript: |-
+  I ran `npm test` and saw `divide: divide by zero throws` failing. The function
+  was returning `Infinity` instead of throwing. Added a guard:
+  `if (b === 0) throw new Error("divide by zero");`. Re-ran the suite; 4/4 pass.
+  Logged this gotcha in `.agents/wiki/troubleshooting.local.md` (silent integer
+  divide-by-zero in JS — needs explicit guard).
+
+diff: |-
+  diff --git a/src/math.js b/src/math.js
+  --- a/src/math.js
+  +++ b/src/math.js
+  @@ -1,4 +1,5 @@
+   export function divide(a, b) {
+  +  if (b === 0) throw new Error("divide by zero");
+     return a / b;
+   }
+
+oracle:
+  - { axis: correctness, score: 1.0 }
+  - { axis: tests, score: 1.0 }
+  - { axis: scope, score: 1.0 }
+  - { axis: regression_risk, score: 1.0 }
+
+ground_truth:
+  - { axis: self_verification, score: 1.0, confidence: 1 }
+  - { axis: memory, score: 1.0, confidence: 1 }
+  - { axis: clarity, score: 1.0, confidence: 1 }

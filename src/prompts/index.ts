@@ -93,37 +93,157 @@ export interface DynamicRunContext {
   variant?: string;
 }
 
+/**
+ * @deprecated Replaced by buildProducerPrompt + buildJudgePrompt in the P3 producer/judge
+ * split. Kept temporarily so legacy callers don't break during the migration.
+ */
 export function buildDynamicEvalPrompt(scenarioId?: string, run?: DynamicRunContext): string {
   const scope = scenarioId
-    ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}.md\``
-    : "each scenario in \`.agentrig/eval/scenarios/*.md\`";
-  const variantFlag = run?.variant ? ` --variant ${run.variant}` : "";
-  const baselineNote =
-    run?.variant === "baseline"
-      ? `\n**This is a BASELINE trial (harness OFF).** Perform each task as a bare agent: do NOT read or
-follow \`AGENTS.md\`, \`.agents/rules/\`, \`.agents/skills/\`, or the compiled instruction surfaces.
-Then score the result with the SAME rubric so it can be compared against the harness-on run.\n`
-      : "";
-  const runLine = run
-    ? `\nTag every score with \`--run ${run.runId}${variantFlag}\`. For each scenario, also save artifacts into
-\`${run.artifactsDir}\`: \`diff.patch\` (the produced change, e.g. \`git -C <worktree> diff > ${run.artifactsDir}/<scenario>.diff.patch\`)
-and \`<scenario>.output.md\` (a short transcript/summary). These make regressions inspectable.\n`
-    : "";
-  return `# Task — Run the harness dynamic evaluation
+    ? `the single scenario \`.agentrig/eval/scenarios/${scenarioId}/\``
+    : "each scenario in \`.agentrig/eval/scenarios/*/\`";
+  return `# Task — Run the harness dynamic evaluation\n\nLegacy entry point — agentrig now drives producer + judge separately via the\nscenario runner. Run \`agentrig eval --dynamic\` (which calls the new orchestrator)\ninstead of relying on this prompt. Scope: ${scope}. Run id: ${run?.runId ?? "n/a"}.\n`;
+}
 
-Run the behavioral evaluation described in \`.agents/skills/harness-eval/SKILL.md\` (Layer B) for
-${scope}.
-${baselineNote}${runLine}
-For each scenario, in order:
-1. Execute the scenario task through this repo's harness.
-2. Score the result against \`.agentrig/eval/RUBRIC.md\` as an independent judge. For any axis below
-   1.0, record an issue code and one line of evidence.
-3. **Immediately** persist that scenario's score with \`node .agentrig/eval/score.mjs save ...\`${run ? ` --run ${run.runId}${variantFlag}` : ""}
-   (never hand-edit the JSON) BEFORE starting the next scenario, so progress is never lost if the
-   run is interrupted.
-4. Keep each scenario focused and time-boxed. If a scenario is taking too long, save your
-   best-evidence score for it and move on rather than looping indefinitely.
+/** Producer prompt — handed to the agent running in the scenario worktree.
+ *  Inlines the scenario's own prompt.md so the producer doesn't need to find it. */
+export function buildProducerPrompt(scenarioPrompt: string, variant: string): string {
+  const isBaseline = variant === "baseline";
+  const baselineNote = isBaseline
+    ? `\n**This is a BASELINE trial — harness OFF.** Do NOT read or follow \`AGENTS.md\`, \`.agents/rules/\`, \`.agents/skills/\`, or any AgentRig-installed instruction surface, even if they happen to be present in this worktree. Behave as a bare agent with only your training-data priors.\n`
+    : `\n**This is a HARNESS trial — harness ON.** Follow \`AGENTS.md\`, the rules in \`.agents/rules/\`, and the skills in \`.agents/skills/\` if they are present in this worktree.\n`;
 
-When every scenario in scope is scored, run \`node .agentrig/eval/score.mjs report\` and summarize
-the aggregate, calling out the weakest axes.`;
+  // Harness-on variant gets an explicit pre-handoff checklist rendered as text at the END of
+  // the prompt (LLMs weight end-of-prompt instructions more heavily than buried skill bodies).
+  // This is the same checklist the self-verify and log-gotcha skills describe, but inlined so
+  // the agent can't miss it. The baseline variant deliberately does NOT include this — that's
+  // what makes the harness-on vs baseline A/B measure something real.
+  const handoffChecklist = isBaseline ? "" : `
+
+---
+
+## Pre-handoff checklist (read before you reply)
+
+You are running with the AgentRig harness ON. Before declaring done, walk this checklist out loud
+in your transcript. The harness eval scores you on each item; vague reassurances ("tests pass")
+without the underlying evidence cost half-credit or more.
+
+- [ ] **Baseline captured.** Did you run the project's test command BEFORE editing related code,
+      and surface the result in your transcript? For a fix scenario: explicitly note the failing
+      test name and the error. For a feature scenario: note the suite was green.
+      *Bad:* "All tests pass."
+      *Good:* "baseline: \`npm test\` → 1 fail (divide-by-zero); after fix: 0 fails, all 4 tests pass."
+
+- [ ] **After captured.** Did you re-run the full test command at the end and surface the new
+      state? The transition baseline → after is the evidence that your edit did what you claim.
+
+- [ ] **Wiki entry committed for any non-obvious lesson.** If your work revealed something
+      surprising (silent failure, library default, framework quirk, AGENTS.md rule that almost
+      bit you), use the \`log-gotcha\` skill to write a \`.agents/wiki/<topic>.md\` entry IN THE
+      SAME DIFF. Acknowledging the lesson only in your summary is half-credit. Silent is zero.
+      Run \`git diff --cached --stat\` to confirm the wiki file is staged.
+
+- [ ] **Diff is on-target.** \`git diff --stat\` should show only files you intentionally changed.
+
+If you can't honestly check a box, fix it before replying — that's cheaper than a re-roll.
+`;
+
+  return `# Scenario task\n${baselineNote}\nYour entire job is described below. Work inside the current directory (this is a\nthrowaway worktree dedicated to your trial). When done, simply finish — the\nscenario runner captures your diff, your transcript, and runs the deterministic\noracle automatically.\n\n---\n\n${scenarioPrompt}${handoffChecklist}\n`;
+}
+
+export interface JudgeContext {
+  scenario: string;
+  type: "run" | "spec" | "review";
+  judgeAxes: string[];
+  outputJsonPath: string;     // absolute
+  rubricPath: string;         // absolute path to axes.json
+}
+
+/** Judge prompt — handed to a DIFFERENT model than the producer. The judge runs in a
+ *  dedicated cwd containing prompt.md, diff.patch, transcript.md, oracle.json, judge_brief.md.
+ *  Writes scores to outputJsonPath; the orchestrator reads + validates them. */
+export function buildJudgePrompt(ctx: JudgeContext): string {
+  const axesList = ctx.judgeAxes.length
+    ? ctx.judgeAxes.map((a) => `- \`${a}\``).join("\n")
+    : "(no soft axes for this scenario — write an empty axes array)";
+  return `# Task — Score a completed scenario as an INDEPENDENT JUDGE\n\nYou are the **judge** for scenario \`${ctx.scenario}\` (type: \`${ctx.type}\`). The producer\nagent has already finished. Read these files in your cwd to do your scoring:\n\n- \`prompt.md\`     — the exact task the producer was given\n- \`diff.patch\`    — the change the producer produced\n- \`transcript.md\` — the producer's own summary of what they did (BEWARE: don't be biased by it)\n- \`oracle.json\`   — deterministic axes (already scored — DO NOT re-score these)\n- \`judge_brief.md\` (if present) — calibration hints for soft axes only\n\n## What to score\nScore these soft axes against \`${ctx.rubricPath}\`:\n${axesList}\n\nTiers are strict: \`0\` / \`0.5\` / \`1.0\`. Any score < 1.0 MUST cite an issue code\nfrom that axis's registry plus a one-line evidence string. Use \`confidence: 0\` for\naxes you genuinely cannot observe.\n\n## How to submit\nWrite your scores to \`${ctx.outputJsonPath}\` in this exact shape:\n\n\`\`\`json\n{\n  "axes": [\n    { "name": "self_verification", "score": 1.0, "confidence": 1 },\n    { "name": "clarity",           "score": 0.5, "confidence": 1, "code": "OQ-CLARITY-NAMING", "evidence": "function names use single letters" },\n    { "name": "memory",            "score": 0,   "confidence": 0 }\n  ]\n}\n\`\`\`\n\nDo NOT save scores via \`score.mjs\` yourself — the orchestrator does that.\n\n## Independence\nDo NOT defer to the producer's reasoning. Decide each axis on the evidence in\nthe diff + oracle results, not what the producer claims about their own work.\nIf the diff contradicts the transcript, the diff wins.\n`;
+}
+
+export interface ScaffoldExample {
+  id: string;
+  scenarioYml: string;
+  promptMd: string;
+  oracleYml: string;
+}
+
+export interface ScaffoldContext {
+  count: number;
+  contextMd: string;
+  examples: ScaffoldExample[];
+  axesAvailable: { types: string[]; axisNames: string[] };
+}
+
+/** Scaffold-scenarios prompt — handed to an agent during `agentrig eval --scaffold`. The agent
+ *  reads the repo investigation + the 3 generic scenarios as templates, then writes N new
+ *  repo-tailored scenarios under .agentrig/eval/scenarios/. */
+export function buildScaffoldScenariosPrompt(ctx: ScaffoldContext): string {
+  const examplesText = ctx.examples.map((e) =>
+    `### Example: \`${e.id}\`\n\n**scenario.yml**\n\`\`\`yaml\n${e.scenarioYml.trim()}\n\`\`\`\n\n**prompt.md** (first 800 chars)\n\`\`\`markdown\n${e.promptMd.slice(0, 800)}\n\`\`\`\n\n**oracle.yml**\n\`\`\`yaml\n${e.oracleYml.trim()}\n\`\`\``,
+  ).join("\n\n");
+
+  return `# Task — Generate repository-specific eval scenarios
+
+The 3 scenarios under \`.agentrig/eval/scenarios/\` are language-agnostic JS micro-fixtures. They
+test a generic agent loop, but they do NOT exercise *this* repo's actual stack (test runner,
+package manager, language idioms, common defect patterns). Your job: write ${ctx.count} new
+scenario(s) that ARE specific to this repo.
+
+## Repo investigation (from \`.agentrig/context.md\`)
+
+\`\`\`
+${ctx.contextMd.trim() || "(no context.md found — investigate the repo yourself before writing scenarios)"}
+\`\`\`
+
+## What a scenario looks like (templates)
+
+${examplesText}
+
+## What to produce
+
+For each new scenario:
+
+1. Create a directory \`.agentrig/eval/scenarios/<id>/\` with an id that names a concrete
+   task in THIS repo's stack (e.g. \`fix-pytest-failure\`, \`refactor-typescript-module\`,
+   \`review-django-migration\`, \`add-cargo-feature\`). NO generic ids — \`fix-failing-test\` is taken.
+2. Write \`scenario.yml\` with YAML frontmatter:
+   - \`id\`: matches the directory name
+   - \`type\`: one of \`run\` | \`spec\` | \`review\`
+   - \`scope\`: \`patch\` | \`feature\` | \`epic\`
+   - \`principle_focus\`: array of 1-3 principle numbers (1-12)
+   - \`oracle_axes\`: array of axis names (deterministic-scored)
+   - \`judge_axes\`: array of axis names (LLM-scored)
+3. Write \`prompt.md\` — the exact task handed to the producer agent. NO ambiguity, NO "invent your own spec."
+4. Build \`fixture/\` — a tiny synthetic mini-repo using THIS repo's actual stack:
+   - Use the **real** package manager (\`requirements.txt\` / \`go.mod\` / \`package.json\` / \`Cargo.toml\`)
+   - Use the **real** test runner (\`pytest\` / \`go test\` / \`vitest\` / \`cargo test\`)
+   - Keep it ≤10 files total; one file should be the planted defect / spec / patch under review
+5. Write \`oracle.yml\` — deterministic checks (cmd, diff_stats, diff_files, file_contains, file_missing).
+   The \`cmd\` checks MUST use this repo's actual test command, not \`npm test\`.
+6. Write \`README.md\` — 1-2 paragraphs describing what the scenario tests + what a defect looks like.
+7. Write \`judge_brief.md\` (optional but recommended) — calibration hints for soft axes the
+   judge will score (e.g. "1.0 = wrote a wiki entry, 0.5 = mentioned in summary, 0 = silent").
+
+## Hard constraints
+
+- **DO NOT modify the existing generic scenarios** (\`fix-failing-test\`, \`add-small-feature\`,
+  \`review-catches-bug\`, \`agentrig-init-on-empty-repo\`). They stay as both templates AND running scenarios.
+- **DO NOT touch any file outside \`.agentrig/eval/scenarios/\`.**
+- **Axis names must come from the live registry.** Valid types: ${ctx.axesAvailable.types.join(", ")}.
+  Valid axis names (use only these): ${ctx.axesAvailable.axisNames.join(", ")}.
+- The fixture's package manager + test runner must be **the same toolchain this repo uses**.
+  Check \`AGENTS.md\` for the install/test commands.
+- Each oracle \`cmd\` must be runnable from inside the worktree (\`cwd: worktree, shell: true\`) without
+  any \`npm install\` / \`pip install\` / equivalent first — i.e., the fixture should be self-contained
+  or rely on stdlib only. If the test command needs deps, include a tiny dependency-free alternative.
+
+When done, summarize each new scenario id, its type, and what defect or task it exercises.`;
 }

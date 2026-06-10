@@ -1,0 +1,447 @@
+<!doctype html>
+<!--
+  AgentRig home — custom landing layout.
+
+  Drops the default Markbook chrome (header / sidebar / TOC) and stacks:
+    sticky top nav → hero (title + tagline from frontmatter) → markdown
+    content → footer.
+
+  Opt in by adding `layout: landing` to a page's frontmatter (only
+  index.md uses it today). Every other page falls back to Markbook's
+  default shell because `config.layout` is not set.
+
+  Layout placeholders:
+    {{ content }}       — rendered page body (REQUIRED; exactly one)
+    {{ head }}          — Markbook-required <head> bits (keep)
+    {{ bodyEnd }}       — Markbook-required body-end scripts (keep)
+    {{ search }}        — Pagefind search input slot
+    {{ themeToggle }}   — dark/light toggle button
+    {{ title }}         — page title (HTML-escaped)
+    {{ description }}   — page description (HTML-escaped)
+    {{ siteTitle }}     — config.title (HTML-escaped)
+    {{ browserTitle }}  — what Markbook would put in <title> (HTML-escaped)
+    {{ frontmatter.x }} — arbitrary frontmatter (HTML-escaped via dot path)
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ browserTitle }}</title>
+  <meta name="description" content="{{ description }}">
+  {{ head }}
+  <style>
+    /* AgentRig landing — scoped under .site-landing so it never leaks
+       into other pages that share this site's user CSS. */
+    .site-landing {
+      --ar-bg: #ffffff;
+      --ar-bg-elev: #f5f7fb;
+      --ar-bg-soft: #eef1f8;
+      --ar-fg: #0a1228;
+      --ar-fg-muted: #4b5470;
+      --ar-border: #e2e6f0;
+      --ar-accent: #3b82f6;
+      --ar-accent-fg: #ffffff;
+      --ar-accent-hover: #2563eb;
+      --ar-link: #2563eb;
+      --ar-code-bg: #f5f7fb;
+      --ar-radius: 8px;
+      --ar-font-sans: var(--mb-font-sans, -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif);
+      --ar-font-mono: var(--mb-font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+      background: var(--ar-bg);
+      color: var(--ar-fg);
+      font-family: var(--ar-font-sans);
+    }
+    [data-theme=dark] .site-landing {
+      --ar-bg: #0a1228;
+      --ar-bg-elev: #131c38;
+      --ar-bg-soft: #0f1730;
+      --ar-fg: #e6ecf5;
+      --ar-fg-muted: #93a0bd;
+      --ar-border: rgba(255, 255, 255, 0.08);
+      --ar-accent: #60a5fa;
+      --ar-accent-fg: #0a1228;
+      --ar-accent-hover: #93c5fd;
+      --ar-link: #93c5fd;
+      --ar-code-bg: #0a1228;
+    }
+
+    .site-topnav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem 2rem;
+      background: color-mix(in srgb, var(--ar-bg) 85%, transparent);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--ar-border);
+    }
+    .site-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--ar-fg);
+      text-decoration: none;
+    }
+    .site-brand:hover { text-decoration: none; }
+    .site-brand-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background: var(--ar-fg);
+      color: var(--ar-bg);
+      border-radius: 7px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: -0.02em;
+      font-family: var(--ar-font-mono);
+    }
+    [data-theme=dark] .site-brand-logo {
+      background: var(--ar-accent);
+      color: var(--ar-accent-fg);
+    }
+    .site-topnav-search {
+      flex: 0 1 260px;
+      min-width: 0;
+      margin-left: auto;
+    }
+    .site-topnav-search:empty { display: none; }
+    .site-topnav-links {
+      display: flex;
+      gap: 1.25rem;
+    }
+    .site-topnav-links a {
+      color: var(--ar-fg-muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+    .site-topnav-links a:hover { color: var(--ar-fg); }
+
+    .site-hero {
+      padding: 6rem 2rem 5rem;
+      text-align: center;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(59, 130, 246, 0.12), transparent 55%),
+        radial-gradient(ellipse at 80% 60%, rgba(99, 102, 241, 0.08), transparent 60%);
+      border-bottom: 1px solid var(--ar-border);
+    }
+    .site-hero-inner {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    .site-hero-eyebrow {
+      display: inline-block;
+      margin: 0 0 1rem;
+      padding: 0.3rem 0.85rem;
+      background: var(--ar-bg-elev);
+      border: 1px solid var(--ar-border);
+      border-radius: 999px;
+      font-family: var(--ar-font-mono);
+      font-size: 0.74rem;
+      color: var(--ar-fg-muted);
+      letter-spacing: 0.04em;
+    }
+    .site-hero-eyebrow strong {
+      color: var(--ar-accent);
+      font-weight: 700;
+    }
+    .site-hero h1 {
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin: 0 0 1.25rem;
+    }
+    .site-hero-tagline {
+      font-size: 1.2rem;
+      line-height: 1.55;
+      color: var(--ar-fg-muted);
+      margin: 0 auto 2.5rem;
+      max-width: 640px;
+    }
+    .site-hero-ctas {
+      display: inline-flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .site-cta-primary,
+    .site-cta-secondary {
+      display: inline-block;
+      padding: 0.85rem 1.5rem;
+      border-radius: var(--ar-radius);
+      font-weight: 600;
+      font-size: 0.98rem;
+      text-decoration: none;
+      transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+    .site-cta-primary {
+      background: var(--ar-accent);
+      color: var(--ar-accent-fg);
+    }
+    .site-cta-primary:hover {
+      background: var(--ar-accent-hover);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+    .site-cta-secondary {
+      border: 1px solid var(--ar-border);
+      color: var(--ar-fg);
+      background: var(--ar-bg-elev);
+    }
+    .site-cta-secondary:hover {
+      border-color: var(--ar-accent);
+      color: var(--ar-fg);
+      text-decoration: none;
+    }
+    .site-install {
+      max-width: 560px;
+      margin: 2.25rem auto 0;
+      padding: 0.85rem 1.1rem;
+      background: var(--ar-code-bg);
+      border: 1px solid var(--ar-border);
+      border-radius: var(--ar-radius);
+      font-family: var(--ar-font-mono);
+      font-size: 0.88rem;
+      color: var(--ar-fg);
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .site-install:before {
+      content: "$";
+      color: var(--ar-accent);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .site-main { display: block; }
+
+    .site-section {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+    .site-section + .site-section {
+      border-top: 1px solid var(--ar-border);
+    }
+    .site-section h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      margin: 0 0 0.5rem;
+      color: var(--ar-fg);
+    }
+    .site-section-lede {
+      font-size: 1.05rem;
+      color: var(--ar-fg-muted);
+      max-width: 680px;
+      margin: 0 0 2.5rem;
+      line-height: 1.6;
+    }
+    .site-section p { color: var(--ar-fg-muted); line-height: 1.6; }
+    .site-section a { color: var(--ar-link); }
+    .site-section code {
+      font-family: var(--ar-font-mono);
+      font-size: 0.85em;
+      background: var(--ar-code-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      color: var(--ar-fg);
+    }
+
+    .site-hero-spotlight {
+      margin: 0 0 2rem;
+      padding: 1.25rem 1.4rem;
+      background: var(--ar-bg-elev);
+      border: 1px solid var(--ar-border);
+      border-left: 3px solid var(--ar-accent);
+      border-radius: var(--ar-radius);
+    }
+    .site-hero-spotlight h3 {
+      font-size: 1rem;
+      margin: 0 0 0.35rem;
+      color: var(--ar-fg);
+      font-weight: 600;
+    }
+    .site-hero-spotlight p {
+      font-size: 0.93rem;
+      line-height: 1.55;
+      color: var(--ar-fg-muted);
+      margin: 0;
+    }
+
+    .site-section.site-manifesto {
+      text-align: center;
+      padding: 4.5rem 2rem;
+      max-width: 880px;
+    }
+    .site-manifesto-quote {
+      font-size: clamp(1.5rem, 3.2vw, 2.15rem);
+      font-weight: 500;
+      letter-spacing: -0.015em;
+      line-height: 1.35;
+      color: var(--ar-fg);
+      margin: 0;
+    }
+    .site-manifesto-quote em {
+      font-style: normal;
+      color: var(--ar-accent);
+      font-weight: 700;
+    }
+
+    .site-feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+    .site-feature {
+      padding: 1.5rem;
+      background: var(--ar-bg-elev);
+      border: 1px solid var(--ar-border);
+      border-radius: var(--ar-radius);
+    }
+    .site-feature-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--ar-accent) 15%, transparent);
+      color: var(--ar-accent);
+      font-size: 1.1rem;
+      margin-bottom: 0.85rem;
+    }
+    .site-feature h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.005em;
+      color: var(--ar-fg);
+    }
+    .site-feature p {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--ar-fg-muted);
+      margin: 0;
+    }
+
+    .site-guide-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .site-guide-card {
+      display: block;
+      padding: 1.25rem 1.4rem;
+      background: var(--ar-bg-elev);
+      border: 1px solid var(--ar-border);
+      border-radius: var(--ar-radius);
+      color: var(--ar-fg);
+      text-decoration: none;
+      transition: border-color 0.15s ease, transform 0.12s ease;
+    }
+    .site-guide-card:hover {
+      border-color: var(--ar-accent);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+    .site-guide-card strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+      color: var(--ar-fg);
+    }
+    .site-guide-card span {
+      font-size: 0.88rem;
+      color: var(--ar-fg-muted);
+      line-height: 1.55;
+    }
+
+    .site-footer {
+      border-top: 1px solid var(--ar-border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--ar-fg-muted);
+    }
+    .site-footer a {
+      color: var(--ar-fg-muted);
+      text-decoration: underline;
+      text-decoration-color: var(--ar-border);
+    }
+    .site-footer a:hover {
+      color: var(--ar-accent);
+      text-decoration-color: currentColor;
+    }
+
+    /* Plug in Markbook's Pagefind search styles to the topnav slot. */
+    .site-topnav-search .markbook-search-ui {
+      width: 100%;
+      max-width: none;
+      margin-left: 0;
+    }
+
+    @media (max-width: 720px) {
+      .site-topnav { padding: 0.85rem 1rem; flex-wrap: wrap; gap: 0.75rem; }
+      .site-topnav-links { order: 3; width: 100%; gap: 1rem; flex-wrap: wrap; }
+      .site-topnav-search { flex: 1 1 100%; margin-left: 0; }
+      .site-hero { padding: 4rem 1.25rem 3rem; }
+      .site-section { padding: 3.5rem 1.25rem; }
+    }
+  </style>
+</head>
+<body class="site-landing">
+  <nav class="site-topnav" aria-label="Site">
+    <a class="site-brand" href="./index.html">
+      <span class="site-brand-logo" aria-hidden="true">AR</span>
+      {{ siteTitle }}
+    </a>
+    <div class="site-topnav-search">{{ search }}</div>
+    <div class="site-topnav-links">
+      <a href="./getting-started.html">Get started</a>
+      <a href="./principles.html">Principles</a>
+      <a href="./commands.html">Commands</a>
+      <a href="./evals.html">Evals</a>
+      <a href="https://github.com/doidor/agentrig">GitHub</a>
+    </div>
+    {{ themeToggle }}
+  </nav>
+
+  <section class="site-hero">
+    <div class="site-hero-inner">
+      <span class="site-hero-eyebrow"><strong>npm</strong> · @doidor/agentrig</span>
+      <h1>{{ title }}</h1>
+      <p class="site-hero-tagline">{{ description }}</p>
+      <div class="site-hero-ctas">
+        <a class="site-cta-primary" href="./getting-started.html">Get started →</a>
+        <a class="site-cta-secondary" href="https://github.com/doidor/agentrig">Star on GitHub</a>
+      </div>
+      <div class="site-install" role="text" aria-label="Install command">npx @doidor/agentrig init</div>
+    </div>
+  </section>
+
+  <main class="site-main">
+    <article data-pagefind-body>
+      {{ content }}
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    Open source · MIT licensed ·
+    <a href="https://github.com/doidor/agentrig">doidor/agentrig</a> ·
+    <a href="https://www.npmjs.com/package/@doidor/agentrig">npm</a> ·
+    <a href="./llms.txt">All pages as markdown ↓</a>
+  </footer>
+
+  {{ bodyEnd }}
+</body>
+</html>

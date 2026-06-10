@@ -1,0 +1,4 @@
+role: developer
+description: Stub developer role for the fix-checks-json-drift fixture.
+model: anthropic/claude-sonnet-4
+prompt_file: developer.md

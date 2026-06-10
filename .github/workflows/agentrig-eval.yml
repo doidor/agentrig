@@ -1,0 +1,130 @@
+name: AgentRig dynamic eval (nightly + manual)
+
+# Layer B (the LLM-driven behavioral eval) is expensive: it spawns the harness
+# end-to-end under a separate judge model, with N>=5 trials per scenario for
+# harness-lift comparisons. It is NOT run on every PR — only nightly on main
+# and on explicit workflow_dispatch.
+#
+# Layer A (install-completeness + quality probes) IS run on every PR; see ci.yml.
+on:
+  schedule:
+    - cron: "17 6 * * *"  # 06:17 UTC nightly
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Single scenario id (leave blank for all)"
+        required: false
+        type: string
+      trials:
+        description: "Trials per scenario (default 5)"
+        required: false
+        default: "5"
+        type: string
+      producer_model:
+        description: "Producer model id (e.g. claude-sonnet-4.5)"
+        required: false
+        type: string
+      judge_model:
+        description: "Judge model id — MUST be a different family"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write   # to post the verdict on a long-lived tracking issue
+
+jobs:
+  dynamic-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22.x", cache: npm }
+      - run: npm ci
+      - run: npm run build
+      # Self-audit must stay green before we even consider Layer B
+      - run: node dist/cli.js eval --static . --min 100
+
+      # Two trials sets: harness ON and harness OFF (baseline). Per-scenario delta
+      # is computed by `score.mjs compare --baseline baseline` below.
+      - name: Run harness variant
+        env:
+          # Requires repo secrets configured for whichever provider you use.
+          AGENTRIG_PROVIDER: ${{ vars.AGENTRIG_PROVIDER || 'copilot' }}
+        run: |
+          TRIALS="${{ inputs.trials || '5' }}"
+          SCENARIO_FLAG=""
+          [ -n "${{ inputs.scenario }}" ] && SCENARIO_FLAG="--scenario ${{ inputs.scenario }}"
+          PRODUCER_FLAG=""
+          [ -n "${{ inputs.producer_model }}" ] && PRODUCER_FLAG="--producer-model ${{ inputs.producer_model }}"
+          JUDGE_FLAG=""
+          [ -n "${{ inputs.judge_model }}" ] && JUDGE_FLAG="--judge-model ${{ inputs.judge_model }}"
+          node dist/cli.js eval --dynamic --variant harness --n "$TRIALS" $SCENARIO_FLAG $PRODUCER_FLAG $JUDGE_FLAG
+
+      - name: Run baseline variant
+        env:
+          AGENTRIG_PROVIDER: ${{ vars.AGENTRIG_PROVIDER || 'copilot' }}
+        run: |
+          TRIALS="${{ inputs.trials || '5' }}"
+          SCENARIO_FLAG=""
+          [ -n "${{ inputs.scenario }}" ] && SCENARIO_FLAG="--scenario ${{ inputs.scenario }}"
+          PRODUCER_FLAG=""
+          [ -n "${{ inputs.producer_model }}" ] && PRODUCER_FLAG="--producer-model ${{ inputs.producer_model }}"
+          JUDGE_FLAG=""
+          [ -n "${{ inputs.judge_model }}" ] && JUDGE_FLAG="--judge-model ${{ inputs.judge_model }}"
+          node dist/cli.js eval --dynamic --variant baseline --n "$TRIALS" $SCENARIO_FLAG $PRODUCER_FLAG $JUDGE_FLAG
+
+      - name: Compute harness lift
+        id: compare
+        run: |
+          mkdir -p eval-output
+          # Compare every scenario that has both variants present.
+          for f in $(node .agentrig/eval/score.mjs report --json | jq -r '.results[].scenario' | sort -u); do
+            node .agentrig/eval/score.mjs compare --scenario "$f" --baseline baseline --json > "eval-output/$f.compare.json" || true
+          done
+          # Roll up into a single summary line per scenario for the issue comment.
+          {
+            echo "## Dynamic eval — harness lift vs baseline"
+            echo ""
+            echo "| scenario | n | median Δ | wins/losses | p-value | verdict |"
+            echo "|---|---|---|---|---|---|"
+            for f in eval-output/*.compare.json; do
+              jq -r '
+                .scenario as $s
+                | (.lift[]? | select(.variant == "harness")
+                   | "| \($s) | \(.n) | \(.medianDelta) | \(.wins)/\(.losses) | \(.pValue) | \(.verdict) |")
+              ' "$f"
+            done
+          } > eval-output/summary.md
+          cat eval-output/summary.md
+
+      - name: Upload eval artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-eval-${{ github.run_number }}
+          path: |
+            .agentrig/eval/results/
+            eval-output/
+
+      # Optional: open / update a tracking issue with the latest summary.
+      # The issue search uses a stable title so we update rather than spam.
+      - name: Update tracking issue
+        if: github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("node:fs");
+            const body = fs.readFileSync("eval-output/summary.md", "utf8");
+            const title = "AgentRig — nightly dynamic-eval lift";
+            const { data: issues } = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} in:title is:issue "${title}"`,
+            });
+            const found = issues.items.find((i) => i.title === title && i.state === "open");
+            const fullBody = `Run #${context.runNumber} (${new Date().toISOString()})\n\n${body}\n\n[run logs](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+            if (found) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: found.number, body: fullBody });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body: fullBody });
+            }

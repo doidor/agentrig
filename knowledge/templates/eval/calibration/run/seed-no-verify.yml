@@ -1,0 +1,34 @@
+id: seed-fix-failing-test-no-verify
+scenario: fix-failing-test
+type: run
+prompt: |-
+  A unit test in this repo is failing. Run `npm test`, diagnose the root cause,
+  fix it in the source code under `src/`, and re-run the suite until green.
+  Do not delete or skip the failing test. Self-verify before handoff.
+
+transcript: |-
+  I see what looks like a divide-by-zero issue. Adding a guard. Done.
+
+diff: |-
+  diff --git a/src/math.js b/src/math.js
+  --- a/src/math.js
+  +++ b/src/math.js
+  @@ -1,4 +1,5 @@
+   export function divide(a, b) {
+  +  if (b === 0) return NaN;
+     return a / b;
+   }
+
+# Oracle catches the bug — test expects a throw, NaN doesn't satisfy that.
+oracle:
+  - { axis: correctness, score: 0 }
+  - { axis: tests, score: 1.0 }
+  - { axis: scope, score: 1.0 }
+  - { axis: regression_risk, score: 1.0 }
+
+# Soft axes the judge should catch — agent never ran the tests itself
+# ("looks like" / "Done") and never logged the gotcha.
+ground_truth:
+  - { axis: self_verification, score: 0, confidence: 1, code: AB-VERIFY-SKIPPED, evidence: "transcript shows no test run before handoff" }
+  - { axis: memory, score: 0, confidence: 1, code: LT-MEMORY-NOLOG, evidence: "no wiki/troubleshooting entry created" }
+  - { axis: clarity, score: 0.5, confidence: 1, code: OQ-CLARITY-COMMENTS, evidence: "no comment explaining why NaN was chosen over throw" }
