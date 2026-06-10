@@ -1,8 +1,9 @@
 # Triager role (principle 2, 9). Moves `ingested` tasks to `queued`: recommend labels/assignees,
-# size the work, and gate on human approval for low-reversibility calls. Uses a fast, cheap model
-# on purpose — triage is high-volume and should not burn a premium tier.
+# size the work, and gate on human approval for low-reversibility calls. Currently uses a top-tier
+# GPT model at user request — a cheap tier (gpt-5-mini, claude-haiku-4.5) would suffice for
+# routine routing and would be a sensible cost optimization if triage volume scales up.
 role: triager
-model: gpt-5-mini
-model_tier: low
+model: gpt-5.5
+model_tier: high
 allowed_tools: [read, grep, glob, bash]
 prompt: agents/triager.md
