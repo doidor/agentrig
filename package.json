@@ -1,6 +1,6 @@
 {
   "name": "@doidor/agentrig",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "AgentRig — an agentic meta-harness. A CLI that investigates a repository and installs (and evaluates) a best-practice agent harness.",
   "type": "module",
   "bin": {
