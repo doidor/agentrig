@@ -1,6 +1,10 @@
 ---
 name: harness-eval
 description: Evaluate THIS repository's agent harness — a deterministic structure audit (A1) plus content quality probes (A2), plus an isolated producer/judge dynamic eval (B) with paired sign-test A/B variant comparison.
+triggers:
+  - "evaluate / score the harness (static or dynamic)"
+  - "did a harness change improve or regress it?"
+  - before merging changes to skills/rules/agents/prompts
 allowed-tools: Bash Read Grep Glob
 argument-hint: "[--static|--dynamic] [--scenario id] [--variant v] [--n trials]"
 ---

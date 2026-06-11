@@ -4,6 +4,6 @@
 # routine routing and would be a sensible cost optimization if triage volume scales up.
 role: triager
 model: gpt-5.5
-model_tier: high
+model_tier: premium
 allowed_tools: [read, grep, glob, bash]
 prompt: agents/triager.md

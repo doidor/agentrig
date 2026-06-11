@@ -13,11 +13,7 @@ Before adding an entry, confirm no existing entry covers it. If one does, **shar
 adding a near-duplicate. Each entry should be: a title, the symptom, the root cause, the fix, and a
 one-line prevention.
 
-## Entry template
-```markdown
-### <short title>
-- **Symptom:** what went wrong / how it showed up
-- **Cause:** the real root cause
-- **Fix:** the change that resolved it
-- **Prevention:** the rule/skill wording that would have stopped it (feed to skill-improver)
-```
+## Adding an entry
+Copy `_TEMPLATE.md` to `.agents/wiki/<slug>.md`, fill its four sections, and add a one-line link to
+the **Index** in `index.md` (newest first). See `index.md` for what belongs in the wiki vs a skill,
+rule, or `AGENTS.md`.

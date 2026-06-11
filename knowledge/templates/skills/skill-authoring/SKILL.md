@@ -4,7 +4,7 @@ description: Admission bar and structure for writing a new skill, so the skill l
 triggers:
   - "create / add a new skill"
   - "this procedure keeps coming up"
-allowed-tools: Read Edit Grep Glob
+allowed-tools: Read Write Edit Grep Glob
 argument-hint: "<skill-name>"
 ---
 

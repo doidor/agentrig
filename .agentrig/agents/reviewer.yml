@@ -2,6 +2,6 @@
 # to mitigate single-model bias — divergent verdicts surface problems neither model alone catches.
 role: reviewer
 model: gpt-5.5
-model_tier: high
+model_tier: premium
 allowed_tools: [read, grep, glob, bash]
 prompt: agents/reviewer.md
