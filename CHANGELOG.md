@@ -1,5 +1,14 @@
 # @doidor/agentrig
 
+## 0.11.2
+
+### Patch Changes
+
+- [#19](https://github.com/doidor/agentrig/pull/19) [`dd90c32`](https://github.com/doidor/agentrig/commit/dd90c32348a9756fd443ad93975d1418e9cb3fff) Thanks [@doidor](https://github.com/doidor)! - Docs: surface `agentrig eval --scaffold` (repo-tailored eval scenario generation) much earlier so
+  users discover it right away. It now appears in the README quickstart and the "Evaluating the
+  harness" intro callout, the docs landing-page feature card, the getting-started "Evaluate" step, and
+  a top-of-page pointer in the evals guide — instead of being buried at the bottom of the eval docs.
+
 ## 0.11.1
 
 ### Patch Changes
