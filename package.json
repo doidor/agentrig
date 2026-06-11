@@ -27,7 +27,7 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/copy-prompt-templates.mjs",
     "dev": "tsc -p tsconfig.json --watch",
     "clean": "rm -rf dist",
     "prepare": "npm run build",

@@ -1,6 +1,7 @@
 ---
 globs: ["**/*"]
 description: Baseline coding standards applied to every change in this repo.
+priority: 3
 ---
 
 # Coding standards (reflex)

@@ -4,7 +4,7 @@ description: Turn a reviewer/judge failure into an instruction-surface change th
 triggers:
   - "a mistake recurred"
   - "reviewer feedback points at a missing rule/skill"
-allowed-tools: Read Edit Grep Glob
+allowed-tools: Read Write Edit Grep Glob
 argument-hint: "<short description of the failure>"
 ---
 

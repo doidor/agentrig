@@ -1,0 +1,1 @@
+**This is a BASELINE trial — harness OFF.** Do NOT read or follow `AGENTS.md`, `.agents/rules/`, `.agents/skills/`, or any AgentRig-installed instruction surface, even if they happen to be present in this worktree. Behave as a bare agent with only your training-data priors.
