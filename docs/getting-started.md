@@ -69,13 +69,17 @@ whatever's actually in `.agents/skills/`. `doctor` on a fresh install reports
 ## 3. Evaluate
 
 ```bash
+agentrig eval --scaffold          # generate eval scenarios tailored to your repo's stack
 agentrig eval --static --min 80   # CI gate: fail if Install Completeness < 80%
 agentrig eval                     # full agentic run — harness vs baseline
 ```
 
-`--static` is deterministic and runs in milliseconds (no model). The full agentic run scores
-both the implementation work (via deterministic oracle) and agent behavior (via an independent
-judge in a different model family). [Full rubric →](./evals.html)
+**`eval --scaffold` is the fastest way to make the eval kit yours** — it reads the repo
+investigation from `init` and writes fixture-based scenarios that use your real test runner and
+package manager, instead of the generic bundled templates. `--static` is deterministic and runs in
+milliseconds (no model). The full agentic run scores both the implementation work (via a
+deterministic oracle) and agent behavior (via an independent judge in a different model family).
+[Full rubric →](./evals.html)
 
 ## Next
 

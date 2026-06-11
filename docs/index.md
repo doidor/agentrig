@@ -54,8 +54,9 @@ order: 0
     <div class="site-feature">
       <div class="site-feature-icon">🧪</div>
       <h3>Evals you can run</h3>
-      <p>Install-completeness + quality probes (deterministic) plus fixture-based agentic eval
-      with an independent judge and paired sign-test lift — answer <em>"is this harness paying
+      <p>Install-completeness + quality probes (deterministic), plus fixture-based agentic eval
+      with an independent judge and paired sign-test lift. <code>eval --scaffold</code> even
+      generates the scenarios from <em>your</em> repo's stack — answer <em>"is this harness paying
       for the tokens it spends?"</em> with a real verdict. <a href="./evals.html">How →</a></p>
     </div>
     <div class="site-feature">

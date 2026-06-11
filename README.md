@@ -23,10 +23,11 @@ You keep **one** source of truth (`AGENTS.md` + rules + skills); AgentRig compil
 evolve, and ships a way to **evaluate the harness itself**.
 
 ```bash
-npx @doidor/agentrig init        # investigate this repo, install a tailored harness, compile all surfaces
-npx @doidor/agentrig compile     # re-project AGENTS.md + rules into every agent surface (local + remote)
-npx @doidor/agentrig eval        # score the harness (deterministic, no model needed)
-npx @doidor/agentrig update      # pull in the latest best practices
+npx @doidor/agentrig init            # investigate this repo, install a tailored harness, compile all surfaces
+npx @doidor/agentrig compile         # re-project AGENTS.md + rules into every agent surface (local + remote)
+npx @doidor/agentrig eval --scaffold # auto-generate eval scenarios tailored to YOUR repo's stack
+npx @doidor/agentrig eval            # score the harness (add --static for the no-model audit)
+npx @doidor/agentrig update          # pull in the latest best practices
 ```
 
 > Or install it globally — `npm i -g @doidor/agentrig` — and run `agentrig <command>`.
@@ -104,6 +105,12 @@ the generated files. Commit them so remote agents (and teammates' tools) pick th
 | 12 Instructions are source of truth | `AGENTS.md` (Critical Rules + auto-generated skills inventory) + package-local AGENTS.md |
 
 ## Evaluating the harness itself
+
+> **Generate eval scenarios tailored to your repo — one command.** `agentrig eval --scaffold` reads
+> the investigation `init` wrote about your repo (`.agentrig/context.md`) and writes fixture-based
+> scenarios that exercise *your* stack's real test runner, package manager, and defect patterns —
+> then validates them against the axis registry. The bundled scenarios are only generic templates;
+> this is how the eval kit becomes specific to *your* repo.
 
 This is a first-class feature, not an afterthought — and it's **repo-specific and runnable by you**.
 The eval kit installs into your repo (`.agentrig/eval/`) and is tailored to it during `init`, so you
@@ -230,7 +237,7 @@ preserved-file decision in `.agentrig/state.json` so the next update doesn't re-
 | `agentrig compile [path]` | Project AGENTS.md + rules into every agent surface (local + remote); re-populates auto-maintained marker blocks (e.g. `AGENTRIG:skills-inventory`) |
 | `agentrig update [path] [--diff] [--auto-fix]` | Re-sync the latest best practices (re-compiles surfaces). `--diff` classifies preserved-file drift (🔴 broken / 🟡 stale / 🟢 enhancement / ⚪ mixed); `--auto-fix` runs `fix` after the refresh |
 | `agentrig fix [path] [--dry-run]` | Deterministically repair the install: restore broken YAML from canonical, replace unknown model ids with `auto`. No agent needed; `.bak` files are written before each change |
-| `agentrig eval [path] [--static\|--rubric] [--scenario id] [--variant name] [--n trials] [--producer-model id] [--judge-model id]` | Evaluate the harness (default: agentic; `--static` for the cheap CI-safe audit; `--rubric` shows what's measured) |
+| `agentrig eval [path] [--scaffold] [--static\|--rubric] [--scenario id] [--variant name] [--n trials] [--producer-model id] [--judge-model id]` | Evaluate the harness (default: agentic; `--scaffold` generates repo-tailored scenarios from your stack; `--static` for the cheap CI-safe audit; `--rubric` shows what's measured) |
 | `agentrig dashboard [path] [--html [file]] [--no-tasks] [--json]` | Roster, live GitHub tasks, score, evals |
 | `agentrig doctor [path] [--json]` | Health check (installed? agent reachable? score? **validation findings**? **linked-checkout vs npm latest**?) |
 

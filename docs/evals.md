@@ -19,6 +19,12 @@ All three persist results under `.agentrig/eval/results/` via `score.mjs`. Resul
 **validated on read AND on write** (`schemaVersion: 2`) — never hand-edit JSON; invalid records
 are quarantined into `results/_legacy/`.
 
+> **New here? Generate scenarios for your repo first.** Layer B needs scenarios, and the bundled
+> ones are generic JS templates. **`agentrig eval --scaffold`** reads the investigation `init` wrote
+> (`.agentrig/context.md`) and writes fixture-based scenarios that use *your* repo's real test
+> runner, package manager, and defect patterns — see [Per-repo customization](#per-repo-customization)
+> below.
+
 ---
 
 ## Layer A1 + A2 — static audit
