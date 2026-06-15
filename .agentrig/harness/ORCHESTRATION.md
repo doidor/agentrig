@@ -1,8 +1,8 @@
 # Orchestration contract (principles 1, 3, 10)
 
 How AgentRig expects a harness engine to drive `.agentrig/harness/state-machine.yml`. AgentRig
-*installs* this contract as plain text; a runner (the epi-platform engine, a CI job, or your own
-script) executes it. Synthesized from epichan's engine.
+*installs* this contract as plain text; a runner (a CI job or your own
+script) executes it.
 
 ## 1. Triggers: who may move state
 Every transition declares a `trigger` kind (`triggers.kinds` in the state machine):

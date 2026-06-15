@@ -71,7 +71,7 @@ triggers:
     human: "A person performs a low-reversibility action (e.g. merge approval)."
 
 # Reactive transitions: GitHub webhook events map straight to a state (low latency), while the
-# pollers below repair anything missed (self-healing). Adopted from epichan.
+# pollers below repair anything missed (self-healing).
 event_to_state:
   "pull_request.review_comment": implementing   # reviewer asked for changes -> back to dev
   "check_suite.completed.failure": implementing  # CI went red -> fix it

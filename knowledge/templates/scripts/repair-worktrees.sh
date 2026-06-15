@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # Hermetic per-agent worktrees (principle 7) + safe crash recovery.
-# Adapted from epichan's repair_agent_worktrees.py.
 #
 # Usage:
 #   repair-worktrees.sh add <agent-id> [branch]   Create/reuse an isolated worktree, print its path
