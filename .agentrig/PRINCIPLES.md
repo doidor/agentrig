@@ -2,8 +2,6 @@
 
 > This is AgentRig's **canonical, editable** copy of the harness principles. Edit it freely;
 > `agentrig update` will carry your edits into any repo that uses AgentRig.
-> Synthesized from `infinity-microsoft/epichan`, `office-shared/fluent-agent`, and
-> `microsoft/fluentui`.
 
 A *harness* is the surrounding scaffolding (orchestration, prompts, skills, memory, evaluation)
 that lets autonomous coding agents reliably **triage → implement → review → judge → merge** with

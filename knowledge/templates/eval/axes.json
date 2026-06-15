@@ -1,6 +1,6 @@
 {
   "$schema": "agentrig-eval-axes/2",
-  "description": "Rubric registry for the dynamic harness eval. Defines, per rubric TYPE, the categories, their axes, and a BOUNDED issue-code list per axis. score.mjs validates judge output against this: scores must be 0/0.5/1.0, and any axis < 1.0 (with confidence > 0) must carry an evidence string and an issue code drawn from that axis's list. Axes can declare `weight` (default 1.0) and `veto: true`; a veto axis < 1.0 fails the scenario regardless of aggregate. Inspired by epichan's pydantic-validated scoring.",
+  "description": "Rubric registry for the dynamic harness eval. Defines, per rubric TYPE, the categories, their axes, and a BOUNDED issue-code list per axis. score.mjs validates judge output against this: scores must be 0/0.5/1.0, and any axis < 1.0 (with confidence > 0) must carry an evidence string and an issue code drawn from that axis's list. Axes can declare `weight` (default 1.0) and `veto: true`; a veto axis < 1.0 fails the scenario regardless of aggregate.",
   "tiers": [0, 0.5, 1.0],
   "passThreshold": 0.8,
   "types": {

@@ -6,7 +6,7 @@ Each scenario is a replayable benchmark task with YAML frontmatter:
 ---
 id: <scenario-id>
 type: run | spec | review     # which rubric in axes.json to score against
-scope: patch | feature | epic # size class (epichan-style)
+scope: patch | feature | epic # size class
 base_commit: <sha|HEAD>       # pin so the task is replayable from an exact state
 principle_focus: [..]         # which harness principles this stresses
 prompt: >- ...                # the task handed to the harness

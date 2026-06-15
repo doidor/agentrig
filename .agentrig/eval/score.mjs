@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // AgentRig dynamic-eval aggregator (principle 6). Owns the results JSON shape and VALIDATES every
 // score against the rubric registry in axes.json — so results are never hand-edited and a judge
-// cannot invent axes, tiers, or issue codes. Inspired by epichan's pydantic-validated scoring.
+// cannot invent axes, tiers, or issue codes.
 //
 // Usage:
 //   node score.mjs save --type run --task add-small-feature --scenario add-small-feature \
