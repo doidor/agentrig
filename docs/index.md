@@ -69,7 +69,9 @@ order: 0
       <div class="site-feature-icon">🛡</div>
       <h3>No lock-in</h3>
       <p>Local files, MIT licensed, no hosted service. Switching primary agents is a config
-      change, not a rewrite.</p>
+      change, not a rewrite — and you can recreate the whole harness by pointing any agent at this
+      docsite's <code>llms.txt</code>, no CLI required.
+      <a href="./getting-started.html#recreate-the-harness-without-the-cli-no-lock-in">How →</a></p>
     </div>
   </div>
 </section>

@@ -2,12 +2,12 @@
 
 [![CI](https://github.com/doidor/agentrig/actions/workflows/ci.yml/badge.svg)](https://github.com/doidor/agentrig/actions/workflows/ci.yml)
 [![Release](https://github.com/doidor/agentrig/actions/workflows/release.yml/badge.svg)](https://github.com/doidor/agentrig/actions/workflows/release.yml)
-[![Docs](https://github.com/doidor/agentrig/actions/workflows/docs.yml/badge.svg)](https://doidor.github.io/agentrig)
+[![Docs](https://github.com/doidor/agentrig/actions/workflows/docs.yml/badge.svg)](https://tudorpopa.com/agentrig)
 [![npm](https://img.shields.io/npm/v/@doidor/agentrig)](https://www.npmjs.com/package/@doidor/agentrig)
 [![node](https://img.shields.io/node/v/@doidor/agentrig)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**An agentic meta-harness — a harness of harnesses.** [Read the docs →](https://doidor.github.io/agentrig)
+**An agentic meta-harness — a harness of harnesses.** [Read the docs →](https://tudorpopa.com/agentrig)
 
 AgentRig is a lightweight CLI that installs a **best-practice agent harness** into any repository and
 then **projects it into every agent's native format** — so *any* agent benefits without lock-in,
@@ -228,6 +228,25 @@ agentrig update --auto-fix # repair deterministic A1 failures (broken YAML / unk
 `update` refreshes AgentRig-owned files in place, asks the agent to merge changes into files you
 customize (like `AGENTS.md`), validates the result (YAML + model ids), and records every
 preserved-file decision in `.agentrig/state.json` so the next update doesn't re-nag.
+
+## No lock-in — recreate the harness without the CLI
+
+The harness is plain text plus a few dependency-free scripts; **nothing at runtime depends on the npm
+package** once it's installed. If you'd rather not keep `agentrig` in your toolchain at all, point any
+coding agent at the docsite's machine-readable index and have it rebuild the harness by hand:
+
+```text
+https://tudorpopa.com/agentrig/llms.txt
+```
+
+That [llmstxt.org](https://llmstxt.org/) index exposes every docs page in plain text — the
+[12 principles](https://tudorpopa.com/agentrig/principles.html) (a complete per-principle artifact
+inventory), the [surface projection map](https://tudorpopa.com/agentrig/agent-surfaces.html), and
+the [install-completeness audit](https://tudorpopa.com/agentrig/evals.html) the agent can self-check
+against. Exact, copy-paste file contents live alongside it in
+[`knowledge/templates/`](knowledge/templates/). It's the same content `agentrig init` installs — just
+driven by your own agent, with no dependency to keep updated.
+[Walkthrough + a ready-to-use prompt →](https://tudorpopa.com/agentrig/getting-started.html#recreate-the-harness-without-the-cli-no-lock-in)
 
 ## Commands
 
