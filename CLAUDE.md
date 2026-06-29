@@ -55,6 +55,7 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
   new agent types.
 - **Skills (procedural memory):** `.agents/skills/` (the block below is auto-populated on `agentrig compile` / `update` by walking this directory — both AgentRig-bundled and user-added skills appear)
 
+- `address-review-comments` — Read PR review feedback, fix or reject each requested change, reply per thread, resolve every thread, and verify zero threads remain.
 - `fix-ci` — Diagnose and fix a failing CI run for the current branch, then re-verify.
 - `harness-eval` — Evaluate THIS repository's agent harness — a deterministic structure audit (A1) plus content quality probes (A2), plus an isolated producer/judge dynamic eval (B) with paired sign-test A/B variant comparison.
 - `log-gotcha` — Record a newly-discovered gotcha to `.agents/wiki/` BEFORE handoff — the harness's feedback loop. The wiki is how the next agent doesn't repeat your discovery.
@@ -64,6 +65,8 @@ See `.agentrig/context.md` for the full, agent-authored investigation of this re
 - `markbook-init` — Scaffold a new Markbook documentation site in the current project — generates markbook.config.ts, a sample docs page + story, and suggests package.json scripts.
 - `markbook-layout` — Create or modify an HTML layout file for a Markbook site — gives you a known-good shell with all required `{{ }}` placeholders wired up, and registers it in markbook.config.ts.
 - `markbook-style` — Apply a pre-baked visual preset (minimal / vibrant / corporate / github / nord) to a Markbook site. Writes a CSS file of --mb-* token overrides and wires it into markbook.config.ts.
+- `no-self-approve` — Never cast an approving review on a PR your own (shared) agent identity authored — approval must come from an independent reviewer.
+- `resolve-conflicts` — Rebase the PR branch onto the default branch, resolve conflicts keeping both intents, and verify mergeability before pushing.
 - `self-verify` — Run the project's own build/test/lint and converge before handing work to a reviewer. Requires explicit baseline → after evidence — the suite must be shown to change state, not just be "green at the end".
 - `skill-authoring` — Admission bar and structure for writing a new skill, so the skill library stays lean and discoverable.
 - `skill-improver` — Turn a reviewer/judge failure into an instruction-surface change that passes a prevention test.

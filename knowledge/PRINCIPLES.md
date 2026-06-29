@@ -22,10 +22,12 @@ contract; agents do not invent transitions and reviewers cannot skip gates.
 ## 2. Specialize roles, vary models
 Route each state to a *role* (`triager`, `developer`, `reviewer`, `judge`), each with a short prompt
 and its own `model_tier`. Run the reviewer on a **different model than the developer** — single-model
--bias mitigation matters more than any prompt tweak. The roster is extensible: add new agent types
-(`designer`, `security-reviewer`, …) by dropping a `<role>.{yml,md}` in and wiring a transition.
-**Artifact:** `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` (+ `README.md`) with
-distinct models.
+-bias mitigation matters more than any prompt tweak. A read-only **`security-reviewer`** ships as an
+optional fifth role (it audits the diff for security/privacy risk on a non-developer model). The
+roster is extensible: add more agent types (`designer`, `release-manager`, …) by dropping a
+`<role>.{yml,md}` in and wiring a transition.
+**Artifact:** `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` (+ optional
+`security-reviewer.{yml,md}`, + `README.md`) with distinct models.
 
 ## 3. Externalize state in a system of record
 GitHub is the source of truth. Labels are the contract, not decoration. Pollers reconcile the

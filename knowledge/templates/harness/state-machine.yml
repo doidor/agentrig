@@ -21,6 +21,7 @@ transitions:
   - { from: implementing,    to: reviewing,        trigger: agent,  role: developer,  gate: self_verify_passed }
   - { from: reviewing,       to: judging,          trigger: agent,  role: reviewer }
   - { from: reviewing,       to: implementing,     trigger: agent,  role: reviewer,   reason: changes_requested }
+  - { from: reviewing,       to: implementing,     trigger: agent,  role: security-reviewer, reason: security_changes_requested }  # optional specialized gate (principle 2)
   - { from: judging,         to: ready_to_merge,   trigger: agent,  role: judge,      gate: rubric_passed }
   - { from: judging,         to: implementing,     trigger: agent,  role: judge,      reason: below_threshold }
   - { from: ready_to_merge,  to: merged,           trigger: human,  gate: human_approval }   # principle 9
@@ -53,6 +54,7 @@ hooks:
     - self-verify
   pre_merge:
     - install-completeness   # Layer A: structural audit + quality probes (no model)
+    - no-self-approve        # reject approver == author (shared bot identity) — independent approval required
   # Layer B (dynamic behavioral eval) is expensive: it spawns the harness end-to-end
   # under a separate judge model with N>=5 trials per scenario. Run nightly on main,
   # NOT per-PR. See .agentrig/eval/RUBRIC.md for cost notes.

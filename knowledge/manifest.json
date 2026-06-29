@@ -1,6 +1,6 @@
 {
   "$schema": "agentrig-manifest/1",
-  "knowledgeVersion": "0.6.2",
+  "knowledgeVersion": "0.7.0",
   "description": "Declares which best-practice artifacts AgentRig installs into a target repo and where. `src` is relative to the knowledge/ root; `dest` is relative to the target repo root. `kind`: file | dir | template. Templates contain {{PLACEHOLDERS}} the agent fills from its investigation; deterministic installs substitute known values and leave the rest for the agent.",
   "artifacts": [
     {
@@ -257,6 +257,43 @@
       "dest": ".agentrig/dashboard/dashboard.mjs",
       "kind": "file",
       "mode": "0755"
+    },
+    {
+      "id": "role-security-reviewer-yml",
+      "principle": 2,
+      "src": "templates/agents/security-reviewer.yml",
+      "dest": ".agentrig/agents/security-reviewer.yml",
+      "kind": "file",
+      "refresh": "preserve"
+    },
+    {
+      "id": "role-security-reviewer-md",
+      "principle": 2,
+      "src": "templates/agents/security-reviewer.md",
+      "dest": ".agentrig/agents/security-reviewer.md",
+      "kind": "file",
+      "refresh": "preserve"
+    },
+    {
+      "id": "skill-no-self-approve",
+      "principle": 9,
+      "src": "templates/skills/no-self-approve",
+      "dest": ".agents/skills/no-self-approve",
+      "kind": "dir"
+    },
+    {
+      "id": "skill-resolve-conflicts",
+      "principle": 4,
+      "src": "templates/skills/resolve-conflicts",
+      "dest": ".agents/skills/resolve-conflicts",
+      "kind": "dir"
+    },
+    {
+      "id": "skill-address-review-comments",
+      "principle": 4,
+      "src": "templates/skills/address-review-comments",
+      "dest": ".agents/skills/address-review-comments",
+      "kind": "dir"
     }
   ]
 }

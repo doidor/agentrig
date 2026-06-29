@@ -12,6 +12,7 @@ single-model-bias mitigation surfaces problems no single model would catch alone
 | **developer**| `developer.{yml,md}`| `claude-opus-4.8` (premium)  | `queued → implementing → reviewing` |
 | **reviewer** | `reviewer.{yml,md}` | `gpt-5.5` (premium)          | `reviewing` |
 | **judge**    | `judge.{yml,md}`    | `claude-opus-4.8` (premium)  | `judging → ready_to_merge` |
+| **security-reviewer** _(optional)_ | `security-reviewer.{yml,md}` | `gpt-5.5` (premium) | extra read-only gate during `reviewing` |
 
 > Keep the **reviewer on a different model family than the developer**. The audit
 > (`agentrig eval --static`) checks for this.
@@ -28,6 +29,6 @@ single-model-bias mitigation surfaces problems no single model would catch alone
    `trigger: agent` and `role: <role>`.
 3. If the role needs a new procedure, add a skill under `.agents/skills/`.
 
-Example roles you might add: `designer` (visual/UX work), `security-reviewer`, `release-manager`,
-`docs-writer`. The pipeline is yours to extend — the state machine is the contract that keeps it
-coherent.
+A `security-reviewer` ships by default (optional, read-only — see the roster above). Other roles you
+might add: `designer` (visual/UX work), `release-manager`, `docs-writer`. The pipeline is yours to
+extend — the state machine is the contract that keeps it coherent.
