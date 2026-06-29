@@ -92,9 +92,9 @@ the generated files. Commit them so remote agents (and teammates' tools) pick th
 | Principle | Artifact |
 |----------:|----------|
 | 1  Explicit state machine | `.agentrig/harness/state-machine.yml` + `ORCHESTRATION.md` (a workflow *contract* for whatever runtime you use) |
-| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` on distinct `model_tiers` + `README.md` |
+| 2  Specialized roles, varied models | `.agentrig/agents/{triager,developer,reviewer,judge}.{yml,md}` (+ optional read-only `security-reviewer`) on distinct `model_tiers` + `README.md` |
 | 3  System of record | label↔state map + reconciliation/recovery cadences + MCP GitHub server + `agentrig dashboard` |
-| 4  Skills & rules | `.agents/skills/*/SKILL.md` (incl. `verify-loop`, `skill-authoring`), `.agents/rules/` (security, code-review, …, priority-ordered) |
+| 4  Skills & rules | `.agents/skills/*/SKILL.md` (incl. `verify-loop`, `skill-authoring`, `resolve-conflicts`, `address-review-comments`, `no-self-approve`), `.agents/rules/` (security, code-review, …, priority-ordered) |
 | 5  Self-verify before handoff | `.agents/skills/self-verify/` + generalized `verify-loop/` |
 | 6  Rubric-driven evaluation | `.agentrig/eval/` (axes.json registry, multi-rubric lifecycle, sandbox, A/B) + `.agents/skills/harness-eval/` |
 | 7  Hermetic worktrees | `scripts/repair-worktrees.sh` (add + safe archive-before-reset repair) |

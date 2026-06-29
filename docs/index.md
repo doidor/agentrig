@@ -48,7 +48,7 @@ order: 0
     <div class="site-feature">
       <div class="site-feature-icon">🧱</div>
       <h3>12 principles, scaffolded</h3>
-      <p>State machine, role prompts (triager / developer / reviewer / judge), skills, rules,
+      <p>State machine, role prompts (triager / developer / reviewer / judge / security-reviewer), skills, rules,
       wiki — all editable. <a href="./principles.html">Read them →</a></p>
     </div>
     <div class="site-feature">

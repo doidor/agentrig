@@ -1,0 +1,8 @@
+# Security-reviewer role (principle 2). OPTIONAL specialized reviewer that audits the diff for
+# security/privacy/compliance risk on a DIFFERENT model family than the developer (single-model-bias
+# mitigation). Read-only: it reports findings and a verdict — it does not edit code.
+role: security-reviewer
+model: gpt-5.5
+model_tier: premium
+allowed_tools: [read, grep, glob, bash]
+prompt: agents/security-reviewer.md

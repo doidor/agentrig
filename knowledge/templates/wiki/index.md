@@ -15,6 +15,13 @@ way. It is **not** a mirror of the docs or skills.
 If a gotcha becomes a reusable procedure, **promote it to a skill** and leave a one-line pointer
 here.
 
+## What makes a good entry
+- **Good:** a greppable title, a concrete symptom (real error text), the true root cause, the exact
+  fix, a one-line prevention — and, where useful, PR/commit provenance under `## Related`.
+- **Weak (don't add):** a restatement of the docs, a vague "be careful with X", or a near-duplicate
+  of an existing entry — **sharpen the existing entry instead** (see the admission test in
+  `README.md`).
+
 ## Index
 _Add a one-line link per entry as you create it, newest first._
 - (none yet)
