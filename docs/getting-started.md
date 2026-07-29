@@ -81,6 +81,43 @@ milliseconds (no model). The full agentic run scores both the implementation wor
 deterministic oracle) and agent behavior (via an independent judge in a different model family).
 [Full rubric →](./evals.html)
 
+## Recreate the harness without the CLI (no lock-in)
+
+AgentRig is **plain text plus a few dependency-free scripts** — once a harness is installed, nothing
+at runtime reads from the npm package. So you never have to keep the CLI around. If you'd rather not
+run `agentrig` at all, **point your coding agent at this docsite's `llms.txt` and ask it to recreate
+the harness**:
+
+```text
+https://tudorpopa.com/agentrig/llms.txt
+```
+
+`llms.txt` is the [llmstxt.org](https://llmstxt.org/) index of this entire docsite in plain text —
+every page, agent-readable, no scraping. It gives an agent everything it needs to stand the harness
+up by hand:
+
+- **What to build** — the [12 principles](./principles.html) are a complete, per-principle **artifact
+  inventory**: each one names the exact file(s) it installs and where (`.agentrig/harness/state-machine.yml`,
+  `.agentrig/agents/<role>.{yml,md}`, `.agents/skills/`, `.agents/rules/`, `.agentrig/eval/`, …).
+- **How to wire surfaces** — [Agent surfaces](./agent-surfaces.html) is the exact one-source →
+  every-surface projection map (Copilot, Claude, Cursor, Codex, MCP) plus the symlink layout.
+- **How to verify it** — [Evaluating the harness](./evals.html) documents the deterministic
+  install-completeness + quality-probe audit, so the agent can self-check its work to 100%.
+- **Exact file contents** — every artifact ships as editable plain text in the public repo under
+  [`knowledge/templates/`](https://github.com/doidor/agentrig/tree/main/knowledge/templates). Tell
+  the agent to copy each file verbatim from there, then tailor the `{{PLACEHOLDERS}}` to your repo.
+
+A practical prompt:
+
+> Read `https://tudorpopa.com/agentrig/llms.txt` and every page it links. Then recreate the
+> AgentRig harness in this repository: for each of the 12 principles, create the artifact it names by
+> copying the canonical file from `github.com/doidor/agentrig/tree/main/knowledge/templates`, fill in
+> the `{{PLACEHOLDERS}}` for this repo, project `AGENTS.md` + `.agents/rules/` to every agent surface,
+> and confirm the install-completeness audit reaches 100%.
+
+This is the same content `agentrig init` would install — just driven by your own agent, with no
+dependency to keep updated. Re-point it at `llms.txt` whenever you want to pull newer best practices.
+
 ## Next
 
 - [Commands reference →](./commands.html) — every flag.
