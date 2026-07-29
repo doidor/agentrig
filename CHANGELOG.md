@@ -1,5 +1,32 @@
 # @doidor/agentrig
 
+## 0.12.0
+
+### Minor Changes
+
+- [#24](https://github.com/doidor/agentrig/pull/24) [`ce544d8`](https://github.com/doidor/agentrig/commit/ce544d84dd7bc521af8556815db6895ca3708709) Thanks [@doidor](https://github.com/doidor)! - Pick up four battle-tested patterns from the Epichan production harness:
+
+  - **security-reviewer** role (principle 2) — an optional, read-only specialized reviewer on a
+    different model family than the developer, with a Blocking/Warning/Informational severity model
+    and an explicit APPROVE / REQUEST CHANGES verdict.
+  - **no-self-approve** skill + a `pre_merge` gate (principles 9, 10) — agents on a shared bot identity
+    must never approve their own PRs; independent approval is required.
+  - **resolve-conflicts** skill (principles 4, 7) — rebase-first conflict repair that verifies
+    mergeability before pushing.
+  - **address-review-comments** skill (principles 4, 5) — reply to and resolve every review thread,
+    then verify zero threads remain.
+
+  Also enriches the wiki entry/index conventions with optional PR/commit provenance and good-vs-weak
+  entry guidance. Bumps `knowledgeVersion` to 0.7.0 so `agentrig update` installs the new artifacts.
+
+### Patch Changes
+
+- [#23](https://github.com/doidor/agentrig/pull/23) [`fae869b`](https://github.com/doidor/agentrig/commit/fae869b47aba08b47b630e7aa4aaf0c04176bbd4) Thanks [@doidor](https://github.com/doidor)! - Docs: document recreating the harness without the CLI by pointing an agent at the docsite's
+  `llms.txt`. Adds a "Recreate the harness without the CLI (no lock-in)" walkthrough (with a
+  ready-to-use prompt) to Getting started, updates the home-page "No lock-in" card and the README, and
+  makes the canonical `knowledge/templates/` the explicit source for exact, copy-paste artifact
+  contents. No behavior or installed-artifact changes — documentation only.
+
 ## 0.11.3
 
 ### Patch Changes
