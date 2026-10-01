@@ -1,0 +1,12 @@
+{
+  "name": "agentrig-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:build": "node scripts/sync-docs.mjs && markbook build"
+  },
+  "devDependencies": {
+    "@doidor/markbook": "0.6.0",
+    "@doidor/markbook-core": "0.6.0"
+  }
+}

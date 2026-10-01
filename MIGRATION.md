@@ -24,7 +24,7 @@ any removals or replacements yourself, especially generated files used by agent 
 | Triager/developer/reviewer/judge YAML and model tiers | Builder plus the fresh, read-only Paranoid prompt; no model IDs, role YAML, or workflow-state ownership. Add a specialist reviewer for high-risk work if needed. |
 | `.agentrig/harness/`, labels, pollers, worktree repair | Optional state-machine/external-record and isolated-worktree recipes when concurrency or automated queues justify them. |
 | `.agentrig/eval/`, dashboard, generated vendor instructions, MCP/setup files | Not part of Core. Keep or hand-author *existing target-specific* files that your tools genuinely require; do not delete them as part of a blanket migration. |
-| npm build/publish machinery and old docs site | The Git-versioned specification and its native assets; validation requires only Node.js. Do not infer that a new release tag already exists. |
+| npm CLI build/publish machinery | The Git-versioned specification and its native assets; validation requires only Node.js. A private docs-only package builds a website mirror, not a CLI. Do not infer that a new release tag already exists. |
 
 The published `@doidor/agentrig@0.12.0` package is the **historical CLI path**, not the new
 document-first workflow. If you must reproduce an old CLI run, pin that version explicitly

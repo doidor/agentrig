@@ -12,3 +12,5 @@ priority: 1
   than concatenating untrusted SQL or shell commands; escape untrusted output for its destination.
 - Do not bypass authentication, TLS, CSRF protection, or other security checks, or widen privileges
   to make a change pass. Review auth, crypto, and input-boundary changes explicitly.
+- Treat PR builds as untrusted; grant publishing and OIDC permissions only to the gated deploy job
+  that needs them, not to the whole workflow.

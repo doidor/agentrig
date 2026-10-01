@@ -4,3 +4,8 @@
 *.tgz
 dist/
 node_modules/
+site/
+.markbook/
+docs/principles.md
+docs/migration.md
+.agents/skills/markbook-*

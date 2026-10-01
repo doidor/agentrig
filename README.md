@@ -6,6 +6,11 @@ profile; the linked `.agents/` prompts, skill, and rule are directly copyable. A
 [`validate.mjs`](validate.mjs) checks the installed structure. There is no AgentRig installer, npm
 CLI, model runtime, or automatic migration.
 
+The [documentation site](https://tudorpopa.com/agentrig/) provides a short guide
+and mirrors the canonical specification. Its private npm package contains only
+docs build tools; installing a Core harness never requires it. Agents can use
+the site's [plain-text index](https://tudorpopa.com/agentrig/llms.txt).
+
 ## Bootstrap
 
 Choose **one Git revision containing the document-first files**. Clone the repository and, for a
@@ -45,3 +50,7 @@ node /path/to/agentrig/validate.mjs /path/to/target
 ```
 
 Migrating from the former CLI? See [MIGRATION.md](MIGRATION.md). License: [MIT](LICENSE).
+
+To build the site locally: `npm ci && npm run docs:build`. The full specification
+and migration pages are generated from the root Markdown files, not edited in
+`docs/`.

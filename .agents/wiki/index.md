@@ -16,6 +16,8 @@ here.
 
 ## Index
 _Add a one-line link per entry as you create it, newest first._
+- [pages-pr-permissions](./pages-pr-permissions.md) — isolate Pages/OIDC write access from
+  untrusted pull-request builds.
 - [markdown-link-shapes](./markdown-link-shapes.md) — valid rule links may use code labels,
   inline titles, or references.
 - [optional-wiki-core-profile](./optional-wiki-core-profile.md) — core prompts and skills must

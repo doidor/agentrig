@@ -4,7 +4,8 @@
 
 AgentRig is a specification, directly copyable native assets, and a small static validator. An
 agent can install a repository-local harness by reading this document and the linked assets; no
-AgentRig CLI, model provider, npm package, installer, manifest, or state database is involved.
+AgentRig CLI, model provider, published npm package, installer, manifest, or state database is
+involved. A separate, dev-only documentation build mirrors this file on the website.
 The goal is the smallest harness that supports reliable work in the *target* repository, not the
 largest set of artifacts an installer can produce.
 
