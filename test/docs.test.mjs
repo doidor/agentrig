@@ -46,10 +46,18 @@ test("relative links work at localhost root and at the deployed /agentrig/ path"
   }
 });
 
-test("onboarding points to llms.txt instead of a repository clone", () => {
+test("onboarding shows the reviewed one-sentence prompt with the configured domain", () => {
+  const config = source("markbook.config.ts").toString("utf8");
+  const siteUrl = config.match(/\bsiteUrl:\s*"([^"]+)"/)?.[1];
+  assert.ok(siteUrl, "markbook.config.ts needs a siteUrl");
+  const prompt = `Read ${siteUrl}/llms.txt, tailor its Core harness to this repo without overwriting existing work, run the repo’s checks and validator, and request an independent Paranoid review.`;
   const home = site("index.html").toString("utf8");
   const start = source("docs/getting-started.md").toString("utf8");
-  assert.match(home, /href="\.\/llms\.txt"/);
-  assert.match(start, /http:\/\/localhost:8000\/llms\.txt/);
-  assert.doesNotMatch(home + start, /git clone|npx\s+@doidor\/agentrig\s+init/i);
+  const readme = source("README.md").toString("utf8");
+  const spec = source("AGENT-RIG.md").toString("utf8");
+  assert.ok(home.includes(`<div class="site-install" role="text">${prompt}</div>`));
+  assert.ok(start.includes(prompt));
+  assert.ok(readme.includes(prompt));
+  assert.ok(spec.includes(`${siteUrl}/llms.txt`));
+  assert.doesNotMatch(home + start + readme + spec, /http:\/\/localhost:8000\/llms\.txt|git clone|npx\s+@doidor\/agentrig\s+init/i);
 });

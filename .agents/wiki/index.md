@@ -16,6 +16,10 @@ here.
 
 ## Index
 _Add a one-line link per entry as you create it, newest first._
+- [markbook-preview-port](./markbook-preview-port.md) — Markbook 0.6 preview binds
+  `dev.port + 1000`, so check the actual listener.
+- [preview-server-lifecycle](./preview-server-lifecycle.md) — a successful docs build does not
+  mean a localhost preview server is still running.
 - [docsite-asset-triggers](./docsite-asset-triggers.md) — include every published Core source
   in Docs workflow triggers to prevent stale site assets.
 - [docsite-core-links](./docsite-core-links.md) — changing documentation link mapping requires

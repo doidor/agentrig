@@ -68,12 +68,12 @@ state.
 
 ## Bootstrap a target repository
 
-1. **Choose one entrypoint.** Give your agent this docsite's `llms.txt` URL, which links the full
-   specification, four verbatim Core assets, and the static validator from the same site build.
-   For a local agent using a preview on port 8000, use
-   `http://localhost:8000/llms.txt`; remote agents need a reachable URL such as
-   `https://tudorpopa.com/agentrig/llms.txt`. No repository checkout is required. For a
-   reproducible pinned snapshot instead of a moving site, fetch this specification and its
+1. **Choose one entrypoint.** Give your agent
+   `https://tudorpopa.com/agentrig/llms.txt`, which links the full specification, four
+   verbatim Core assets, and the static validator from the same site build. For an
+   unpublished local preview, use that preview's `llms.txt` URL instead; the agent must be
+   able to reach it. No repository checkout is required. For a reproducible pinned
+   snapshot instead of a moving site, fetch this specification and its
    assets from the **same existing Git tag or commit** via raw URLs; do not assume a new tag
    already exists.
 2. **Investigate before writing.** Read the target's existing instructions, README, manifests,
