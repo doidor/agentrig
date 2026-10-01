@@ -4,20 +4,11 @@ description: Security reflexes applied to every change. Specialized — highest 
 priority: 1
 ---
 
-# Security rules (reflex)
+# Security
 
-Apply on every edit. When in doubt, stop and flag rather than guess.
-
-- **No secrets in source.** Never commit tokens, keys, passwords, or connection strings. Read them
-  from environment/secret stores. If you spot a committed secret, stop and report it.
-- **Validate and sanitize all external input** (request bodies, query params, CLI args, file
-  contents, env). Reject/normalize before use.
-- **No injection.** Use parameterized queries; never string-concatenate SQL/shell/HTML from input.
-  Avoid `eval`, dynamic `require`, and shelling out with unsanitized input.
-- **Escape on output** to prevent XSS; use the framework's escaping, not hand-rolled.
-- **Least privilege.** Don't broaden file, network, or token scopes to make something work.
-- **Don't disable security controls** (auth checks, CSRF, TLS verification, lint security rules) to
-  pass a test or unblock a build.
-- **Dependencies:** prefer maintained, pinned versions; don't add a dependency to avoid a few lines.
-
-If a change touches auth, crypto, or input boundaries, call it out explicitly for review.
+- Keep secrets out of source; use the repository's configured secret store. Report a discovered
+  committed secret without copying it into logs or diffs.
+- Validate untrusted input at boundaries. Use parameterized queries and safe process APIs rather
+  than concatenating untrusted SQL or shell commands; escape untrusted output for its destination.
+- Do not bypass authentication, TLS, CSRF protection, or other security checks, or widen privileges
+  to make a change pass. Review auth, crypto, and input-boundary changes explicitly.

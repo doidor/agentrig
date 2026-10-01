@@ -1,32 +1,17 @@
 ---
 name: address-review-comments
-description: Read PR review feedback, fix or reject each requested change, reply per thread, resolve every thread, and verify zero threads remain.
-triggers:
-  - pull_request.review_comment
-  - reviewer requested changes
-allowed-tools: Bash Read Grep Glob
+description: Address every review thread and top-level change request with a fix or reasoned reply, then check remaining feedback.
+allowed-tools: Bash Read Write Edit Grep Glob
 ---
 
-# address-review-comments (principles 4, 5)
+# Address review comments
 
-Read the PR feedback and address each requested change. Mark each addressed thread **resolved** so
-the review watcher can see feedback was handled. You are **repairing**, not re-reviewing — preserve
-the PR's original scope.
-
-## Steps
-1. **List unresolved feedback** — every active review thread, **plus** any PR-level "request
-   changes" review body (those can block merge without a resolvable thread; treat them as required
-   feedback too). Use the repo's forge CLI/API (e.g. `gh pr view` / `gh api` for GitHub).
-2. **For each thread:** if valid, make the fix, commit, push; if you disagree, reply explaining why.
-3. **Reply on every thread before resolving it**, one short line stating what was done:
-   - `Fixed in <sha>: <summary>` · `Won't fix: <reason>` · `Already addressed in <sha>: <pointer>`.
-   The per-thread audit trail is what builds reviewer confidence — don't substitute a single summary
-   comment.
-4. **Resolve every thread you replied to.** Many repos gate merge on "conversation resolution", so a
-   replied-but-unresolved thread still blocks.
-5. **Verify zero active threads remain** before declaring done, and confirm every PR-level
-   changes-requested review was addressed or explicitly rejected, fixes committed and pushed.
-6. Run `self-verify` before handoff.
-
-## Repair-mode rules
-- Do not bounce the task back without evidence: fix, reply, resolve, push.
+1. Read all unresolved review threads and top-level changes-requested review bodies. Record each
+   concrete request, including those without a resolvable thread; keep fixes within the task scope.
+2. Fix valid findings and explain disagreements with evidence. Follow the repository's
+   `AGENTS.md` **Commands** through `self-verify` before reporting a fix as verified.
+3. When authorized to update the pull request, reply to each thread with the fix or reason for
+   declining, then resolve eligible threads. Do not substitute a single summary comment for
+   per-thread replies or make unauthorized commits, pushes, or upstream changes.
+4. Recheck active threads and top-level requests. Report any that remain and why; claim completion
+   only when all requested feedback has been addressed and every resolvable thread is resolved.

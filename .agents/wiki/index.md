@@ -1,7 +1,6 @@
-# Agent wiki — index & routing
+# Agent wiki index
 
-This wiki holds **learned gotchas and war stories** — durable lessons an agent discovered the hard
-way. It is **not** a mirror of the docs or skills.
+This wiki holds learned gotchas, not current policy or repeated documentation.
 
 ## What belongs where
 | Kind of knowledge | Goes in |
@@ -10,22 +9,23 @@ way. It is **not** a mirror of the docs or skills.
 | A repeatable procedure ("how to do X") | a skill (`.agents/skills/`) |
 | A passive, always-on constraint | a rule (`.agents/rules/`) |
 | Repo-wide policy / critical rules | `AGENTS.md` |
-| Common error → fix lookups | `troubleshooting.md` (in this dir) |
+| Common error → fix lookups | [`troubleshooting.md`](./troubleshooting.md) |
 
 If a gotcha becomes a reusable procedure, **promote it to a skill** and leave a one-line pointer
 here.
 
-## What makes a good entry
-- **Good:** a greppable title, a concrete symptom (real error text), the true root cause, the exact
-  fix, a one-line prevention — and, where useful, PR/commit provenance under `## Related`.
-- **Weak (don't add):** a restatement of the docs, a vague "be careful with X", or a near-duplicate
-  of an existing entry — **sharpen the existing entry instead** (see the admission test in
-  `README.md`).
-
 ## Index
 _Add a one-line link per entry as you create it, newest first._
-- [skills-inventory-populator-enumerates-disk](./skills-inventory-populator-enumerates-disk.md) — `AGENTRIG:<name>` populators that mirror user-extensible dirs must walk the disk, not the manifest.
-
----
-Wiki **policy** (tiers + admission test) lives in `README.md`; the **entry format** lives in
-`_TEMPLATE.md`. Don't restate them here.
+- [markdown-link-shapes](./markdown-link-shapes.md) — valid rule links may use code labels,
+  inline titles, or references.
+- [optional-wiki-core-profile](./optional-wiki-core-profile.md) — core prompts and skills must
+  not make an optional knowledge base a hidden prerequisite.
+- [removed-skills-leave-empty-directories](./removed-skills-leave-empty-directories.md) —
+  deleting a skill file does not remove its directory from the working tree.
+- [frontmatter-adjacent-fields](./frontmatter-adjacent-fields.md) — probe frontmatter by field and
+  normalize whitespace when checking wrapped prose.
+- [apply-patch-partial-updates](./apply-patch-partial-updates.md) — a failed multi-file patch can
+  leave earlier hunks applied; inspect status and retry only pending hunks.
+- [skills-inventory-populator-enumerates-disk](./skills-inventory-populator-enumerates-disk.md) —
+  historical lesson from the former CLI: preserve user-added assets rather than assuming a fixed
+  manifest enumerates them.

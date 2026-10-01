@@ -1,16 +1,6 @@
-.agentrig/dashboard/dashboard.html
-.agentrig/eval/results/
 .agents/wiki/*.local.md
 .DS_Store
 *.log
 *.tgz
 dist/
 node_modules/
-# Markbook docsite build output + cache + generated page
-site/
-.markbook/
-docs/principles.md
-# Markbook auto-installs its agent skills into vendor surfaces it detects
-# (.agents/, .claude/, etc.). They are a markbook concern, not part of the
-# agentrig harness — keep them out of this repo.
-.agents/skills/markbook-*
