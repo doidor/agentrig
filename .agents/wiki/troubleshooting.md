@@ -12,10 +12,10 @@ adding here over re-debugging the same thing twice. Keep each entry tight.
 
 ## Entries
 ### `git push` cannot prompt even though `gh` is authenticated
-- **Symptom:** An unattended HTTPS push stops with `Cannot prompt because user interactivity has been disabled`.
-- **Cause:** Git's configured credential helpers did not supply the active GitHub CLI account's credentials.
-- **Fix:** Use GitHub CLI's credential helper for that one push: `git -c credential.helper='!gh auth git-credential' push`.
-- **Prevention:** Check `gh auth status` and use a scoped helper, not an embedded token or a global credential change.
+- **Symptom:** An unattended HTTPS push cannot prompt; using `gh`'s helper then reports a 403 to the active account.
+- **Cause:** Git's helpers did not supply `gh` credentials, and the active account lacks push access to the target repository.
+- **Fix:** Use a scoped `gh auth git-credential` helper only with an authorized account, or request access / create a fork with approval.
+- **Prevention:** Check both active identity and repository push permissions; never embed tokens or switch stored identities without authorization.
 - **Discovered:** 2026-10-01 during PR creation for the document-first refactor.
 
 ### Legacy setup-steps validation reports missing PyYAML as invalid YAML
