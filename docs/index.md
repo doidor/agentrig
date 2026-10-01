@@ -1,6 +1,6 @@
 ---
 title: AgentRig
-description: A meta-harness for agent harnesses. Investigate any repo, install best-practice agent rules, skills, and surfaces — every agent reads from one source.
+description: One clear specification for a repository-local coding-agent harness, not another installer.
 layout: landing
 order: 0
 ---
@@ -13,65 +13,43 @@ order: 0
 </section>
 
 <section class="site-section">
-  <h2>One source, every agent</h2>
+  <h2>One document, tailored to your repository</h2>
   <p class="site-section-lede">
-    AgentRig treats <strong>AGENTS.md</strong> + <code>.agents/rules/</code> as the single
-    source of truth and compiles it into Copilot, Claude, Cursor, Codex, OpenCode, and MCP.
-    Edit once; every surface updates.
+    Point an agent at this site's <a href="./llms.txt">llms.txt</a>.
+    It links the full specification and exact Core files from one site build, so
+    the agent can inspect your repository and add only what makes sense there.
   </p>
   <div class="site-hero-spotlight">
-    <h3>Safe on existing repos</h3>
-    <p><code>init</code> is non-destructive by default — your existing <code>AGENTS.md</code>,
-    <code>.mcp.json</code>, and rules are preserved verbatim.
-    <a href="./getting-started.html#adopting-agentrig-in-a-repo-that-already-has-an-agent-harness">Details →</a></p>
+    <h3>Not another agent runtime</h3>
+    <p>No AgentRig CLI, installer, or model integration is required in your project.
+    The canonical text and directly copyable assets are the product.</p>
   </div>
 </section>
 
 <section class="site-section">
   <h2>What you get</h2>
   <p class="site-section-lede">
-    A turnkey harness built around <a href="./principles.html">12 principles</a> from production
-    agent systems — and a compiler that projects it into every surface.
+    A small Core profile; more elaborate orchestration is a conditional recipe,
+    not a default dependency.
   </p>
   <div class="site-feature-grid">
     <div class="site-feature">
-      <div class="site-feature-icon">🧭</div>
-      <h3>AGENTS.md as source of truth</h3>
-      <p>Plain markdown. Glob-scoped reflex rules in <code>.agents/rules/</code>. No DSL.</p>
+      <span class="site-feature-icon" aria-hidden="true">&#x1F9ED;</span>
+      <h3>Practical engineering principles</h3>
+      <p>KISS, DRY, fail fast, and least surprise guide every change without
+      adding another framework to your repository.</p>
     </div>
     <div class="site-feature">
-      <div class="site-feature-icon">🔁</div>
-      <h3>Compiles to every surface</h3>
-      <p>Projects into Copilot, Claude Code, Cursor, Codex, OpenCode, and VS Code MCP in one
-      command. <a href="./agent-surfaces.html">Surface map →</a></p>
+      <span class="site-feature-icon" aria-hidden="true">&#x1F6E1;</span>
+      <h3>Two complementary roles</h3>
+      <p>Builder implements and self-verifies; an independent, read-only
+      Paranoid reviewer checks for consequential defects.</p>
     </div>
     <div class="site-feature">
-      <div class="site-feature-icon">🧱</div>
-      <h3>12 principles, scaffolded</h3>
-      <p>State machine, role prompts (triager / developer / reviewer / judge / security-reviewer), skills, rules,
-      wiki — all editable. <a href="./principles.html">Read them →</a></p>
-    </div>
-    <div class="site-feature">
-      <div class="site-feature-icon">🧪</div>
-      <h3>Evals you can run</h3>
-      <p>Install-completeness + quality probes (deterministic), plus fixture-based agentic eval
-      with an independent judge and paired sign-test lift. <code>eval --scaffold</code> even
-      generates the scenarios from <em>your</em> repo's stack — answer <em>"is this harness paying
-      for the tokens it spends?"</em> with a real verdict. <a href="./evals.html">How →</a></p>
-    </div>
-    <div class="site-feature">
-      <div class="site-feature-icon">📈</div>
-      <h3>Live dashboard</h3>
-      <p>Terminal or HTML. Agent roster, live GitHub tasks per harness label, audit score —
-      offline.</p>
-    </div>
-    <div class="site-feature">
-      <div class="site-feature-icon">🛡</div>
-      <h3>No lock-in</h3>
-      <p>Local files, MIT licensed, no hosted service. Switching primary agents is a config
-      change, not a rewrite — and you can recreate the whole harness by pointing any agent at this
-      docsite's <code>llms.txt</code>, no CLI required.
-      <a href="./getting-started.html#recreate-the-harness-without-the-cli-no-lock-in">How →</a></p>
+      <span class="site-feature-icon" aria-hidden="true">&#x1F9EA;</span>
+      <h3>Evidence over ceremony</h3>
+      <p>Run the repository's own checks, then use a dependency-free validator
+      for structural conformance. It does not claim to prove agent behavior.</p>
     </div>
   </div>
 </section>
@@ -79,31 +57,21 @@ order: 0
 <section class="site-section">
   <h2>Pick a starting point</h2>
   <div class="site-guide-grid">
+    <a class="site-guide-card" href="./llms.txt">
+      <strong>One URL for your agent</strong>
+      <span>Open llms.txt for the specification, native assets, and validator.</span>
+    </a>
     <a class="site-guide-card" href="./getting-started.html">
-      <strong>Getting started →</strong>
-      <span>Install, run <code>init</code>, see what lands in your repo. Five minutes.</span>
+      <strong>Get started</strong>
+      <span>Give your agent the URL and let it tailor the Core profile.</span>
     </a>
     <a class="site-guide-card" href="./principles.html">
-      <strong>The 12 principles →</strong>
-      <span>The opinionated playbook AgentRig encodes.</span>
+      <strong>Principles and specification</strong>
+      <span>The canonical contract, mirrored from AGENT-RIG.md.</span>
     </a>
-    <a class="site-guide-card" href="./commands.html">
-      <strong>Commands reference →</strong>
-      <span><code>init</code>, <code>compile</code>, <code>update</code>, <code>doctor</code>,
-      <code>eval</code>, <code>dashboard</code>.</span>
-    </a>
-    <a class="site-guide-card" href="./agent-surfaces.html">
-      <strong>Agent surfaces →</strong>
-      <span>Which files project where, and the symlink layout.</span>
-    </a>
-    <a class="site-guide-card" href="./evals.html">
-      <strong>Evaluating the harness →</strong>
-      <span>3 layers — install completeness, quality probes, fixture-based agentic eval with
-      sign-test lift. Honest about what each does and does not prove.</span>
-    </a>
-    <a class="site-guide-card" href="https://github.com/doidor/agentrig">
-      <strong>Source on GitHub →</strong>
-      <span><code>doidor/agentrig</code> — issues, discussions, editable knowledge.</span>
+    <a class="site-guide-card" href="./migration.html">
+      <strong>Migrate from the old CLI</strong>
+      <span>Understand the clean break without losing local customizations.</span>
     </a>
   </div>
 </section>

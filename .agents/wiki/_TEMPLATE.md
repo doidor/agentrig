@@ -12,8 +12,8 @@ The real underlying cause — not the symptom.
 The exact change that resolved it. Include commands/snippets where useful.
 
 ## Prevention
-The rule/skill wording that would have stopped this. If a rule or skill should have caught it, feed
-this to `skill-improver`.
+The rule or skill wording that would have stopped this. If an instruction should have caught it,
+sharpen that instruction and check it would have prevented the original failure.
 
 ## Related / provenance (optional)
 Links that make the lesson auditable: the PR/commit where it surfaced (e.g. `#1234`, `<commit-sha>`),

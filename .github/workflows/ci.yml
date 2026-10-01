@@ -1,4 +1,4 @@
-name: CI
+name: Validate AgentRig
 
 on:
   push:
@@ -6,21 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  build-test:
+  validate:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x, 24.x]
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm test
-      - name: Self-audit the harness (must stay 100%)
-        run: node dist/cli.js eval --static . --min 100
+          node-version: "22"
+      - run: node --test test/validate.test.mjs
+      - run: node validate.mjs .

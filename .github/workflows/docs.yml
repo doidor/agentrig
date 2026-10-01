@@ -4,58 +4,75 @@ on:
   push:
     branches: [main]
     paths:
+      - "AGENT-RIG.md"
+      - "MIGRATION.md"
+      - ".agents/agents/**"
+      - ".agents/skills/self-verify/**"
+      - ".agents/rules/engineering-principles.md"
+      - "validate.mjs"
       - "docs/**"
-      - "knowledge/PRINCIPLES.md"
+      - "layouts/**"
+      - "scripts/**"
+      - "test/docs.test.mjs"
       - "markbook.config.ts"
-      - "scripts/sync-principles-to-docs.mjs"
-      - ".github/workflows/docs.yml"
       - "package.json"
       - "package-lock.json"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "AGENT-RIG.md"
+      - "MIGRATION.md"
+      - ".agents/agents/**"
+      - ".agents/skills/self-verify/**"
+      - ".agents/rules/engineering-principles.md"
+      - "validate.mjs"
+      - "docs/**"
+      - "layouts/**"
+      - "scripts/**"
+      - "test/docs.test.mjs"
+      - "markbook.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: "pages"
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
-
+          cache: npm
       - run: npm ci
-
       - run: npm run docs:build
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
+      - run: node --test test/docs.test.mjs
+      - if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
 
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
-    # The deploy job needs its own permissions block — workflow-level perms are NOT inherited by
-    # jobs that declare an `environment`. Without id-token:write here, actions/deploy-pages@v4's
-    # OIDC token exchange fails with "401 Requires authentication" (saw this 2026-06-10 after
-    # PR #11 merged to main).
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/configure-pages@v5
       - id: deployment
         uses: actions/deploy-pages@v4

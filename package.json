@@ -1,77 +1,13 @@
 {
-  "name": "@doidor/agentrig",
-  "version": "0.12.0",
-  "description": "AgentRig — an agentic meta-harness. A CLI that investigates a repository and installs (and evaluates) a best-practice agent harness.",
+  "name": "agentrig-docs",
+  "private": true,
   "type": "module",
-  "bin": {
-    "agentrig": "dist/cli.js"
-  },
-  "files": [
-    "dist",
-    "knowledge",
-    "README.md",
-    "LICENSE"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/doidor/agentrig.git"
-  },
-  "homepage": "https://github.com/doidor/agentrig#readme",
-  "bugs": {
-    "url": "https://github.com/doidor/agentrig/issues"
-  },
-  "engines": {
-    "node": ">=22.0.0"
-  },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-prompt-templates.mjs",
-    "dev": "tsc -p tsconfig.json --watch",
-    "clean": "rm -rf dist",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run clean && npm run build && npm test",
-    "start": "node dist/cli.js",
-    "test": "npm run build && node --test test/*.test.mjs",
-    "selftest": "node dist/cli.js eval --static . || true",
-    "changeset": "changeset",
-    "version-packages": "changeset version",
-    "release": "changeset publish",
-    "docs:sync": "node scripts/sync-principles-to-docs.mjs",
-    "docs:dev": "npm run docs:sync && markbook dev",
-    "docs:build": "npm run docs:sync && markbook build",
-    "docs:preview": "markbook preview"
-  },
-  "keywords": [
-    "agent",
-    "harness",
-    "copilot",
-    "agentic",
-    "scaffold",
-    "evaluation",
-    "ai"
-  ],
-  "license": "MIT",
-  "dependencies": {
-    "@github/copilot-sdk": "^1.0.0",
-    "yaml": "^2.9.0",
-    "zod": "^4.3.6"
-  },
-  "peerDependencies": {
-    "@anthropic-ai/claude-agent-sdk": ">=0.3.0"
-  },
-  "peerDependenciesMeta": {
-    "@anthropic-ai/claude-agent-sdk": {
-      "optional": true
-    }
+    "docs:build": "node scripts/sync-docs.mjs && markbook build && node scripts/publish-docs.mjs",
+    "docs:preview": "markbook preview --port 7000 --host 127.0.0.1"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.31.0",
-    "@doidor/markbook": "^0.6.0",
-    "@doidor/markbook-core": "^0.6.0",
-    "@types/node": "^22.0.0",
-    "typescript": "^5.6.0"
+    "@doidor/markbook": "0.6.0",
+    "@doidor/markbook-core": "0.6.0"
   }
 }
