@@ -6,9 +6,14 @@ on:
     paths:
       - "AGENT-RIG.md"
       - "MIGRATION.md"
+      - ".agents/agents/**"
+      - ".agents/skills/self-verify/**"
+      - ".agents/rules/engineering-principles.md"
+      - "validate.mjs"
       - "docs/**"
       - "layouts/**"
-      - "scripts/sync-docs.mjs"
+      - "scripts/**"
+      - "test/docs.test.mjs"
       - "markbook.config.ts"
       - "package.json"
       - "package-lock.json"
@@ -18,9 +23,14 @@ on:
     paths:
       - "AGENT-RIG.md"
       - "MIGRATION.md"
+      - ".agents/agents/**"
+      - ".agents/skills/self-verify/**"
+      - ".agents/rules/engineering-principles.md"
+      - "validate.mjs"
       - "docs/**"
       - "layouts/**"
-      - "scripts/sync-docs.mjs"
+      - "scripts/**"
+      - "test/docs.test.mjs"
       - "markbook.config.ts"
       - "package.json"
       - "package-lock.json"
@@ -45,6 +55,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run docs:build
+      - run: node --test test/docs.test.mjs
       - if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:

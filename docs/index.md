@@ -15,9 +15,9 @@ order: 0
 <section class="site-section">
   <h2>One document, tailored to your repository</h2>
   <p class="site-section-lede">
-    Point an agent at the <a href="./principles.html">AgentRig specification</a>.
-    It inspects your repository, then adds only the instructions, skills, rules,
-    and review roles that make sense there.
+    Point an agent at this site's <a href="./llms.txt">llms.txt</a>.
+    It links the full specification and exact Core files from one site build, so
+    the agent can inspect your repository and add only what makes sense there.
   </p>
   <div class="site-hero-spotlight">
     <h3>Not another agent runtime</h3>
@@ -57,9 +57,13 @@ order: 0
 <section class="site-section">
   <h2>Pick a starting point</h2>
   <div class="site-guide-grid">
+    <a class="site-guide-card" href="./llms.txt">
+      <strong>One URL for your agent</strong>
+      <span>Open llms.txt for the specification, native assets, and validator.</span>
+    </a>
     <a class="site-guide-card" href="./getting-started.html">
       <strong>Get started</strong>
-      <span>Read the spec, inspect your repository, and install only the Core profile.</span>
+      <span>Give your agent the URL and let it tailor the Core profile.</span>
     </a>
     <a class="site-guide-card" href="./principles.html">
       <strong>Principles and specification</strong>
@@ -68,10 +72,6 @@ order: 0
     <a class="site-guide-card" href="./migration.html">
       <strong>Migrate from the old CLI</strong>
       <span>Understand the clean break without losing local customizations.</span>
-    </a>
-    <a class="site-guide-card" href="./llms.txt">
-      <strong>Agent-readable pages</strong>
-      <span>Plain-text versions of the site for agents and other tools.</span>
     </a>
   </div>
 </section>

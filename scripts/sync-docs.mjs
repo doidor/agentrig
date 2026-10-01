@@ -23,8 +23,8 @@ for (const page of pages) {
     .replace(/\]\(AGENT-RIG\.md\)/g, "](./principles.html)")
     .replace(/\]\(MIGRATION\.md\)/g, "](./migration.html)")
     .replace(/\]\((\.agents\/[^)\s]+\.md)\)/g,
-      (_, path) => `](https://github.com/doidor/agentrig/blob/main/${path})`);
-  const unresolved = [...body.matchAll(/\]\((?!https?:\/\/)([^)#]+\.md)(?:#[^)]*)?\)/g)];
+      (_, path) => `](./core/${path.slice(".agents/".length)})`);
+  const unresolved = [...body.matchAll(/\]\((?!https?:\/\/|\.\/core\/)([^)#]+\.md)(?:#[^)]*)?\)/g)];
   if (unresolved.length) {
     throw new Error(`${page.source} has an unmapped local Markdown link: ${unresolved[0][1]}`);
   }

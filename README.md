@@ -13,44 +13,35 @@ the site's [plain-text index](https://tudorpopa.com/agentrig/llms.txt).
 
 ## Bootstrap
 
-Choose **one Git revision containing the document-first files**. Clone the repository and, for a
-reproducible install, check out an existing tag or commit SHA *before* copying any asset:
+Give your agent the documentation site's
+[`llms.txt`](https://tudorpopa.com/agentrig/llms.txt) URL. A local preview
+served on port 8000 uses **`http://localhost:8000/llms.txt`**. The index links
+the full specification, byte-for-byte Core prompts, skill, rule, and validator
+from the same build. The user does not clone AgentRig or install a package.
 
-```sh
-git clone https://github.com/doidor/agentrig.git /path/to/agentrig
-# If pinning, replace EXISTING_REF with a tag or commit that actually exists:
-git -C /path/to/agentrig checkout --detach EXISTING_REF
-```
-
-For direct downloads instead, fetch `AGENT-RIG.md`, `validate.mjs`, and the native files linked
-from the specification at the **same ref**. Raw URLs have the form
-`https://raw.githubusercontent.com/doidor/agentrig/<same-ref>/AGENT-RIG.md` and
-`https://raw.githubusercontent.com/doidor/agentrig/<same-ref>/.agents/agents/builder.md`;
-substitute one existing commit/tag throughout, or `main` for the latest guidance once this
-refactor is merged. No future release tag is assumed.
-
-Paste this into a coding agent working in the target repository (substitute the source path):
+Paste this into a local coding agent working in the target repository:
 
 ```text
-Read /path/to/agentrig/AGENT-RIG.md and its linked native assets from the same
-source revision. Inspect this repository, its existing instructions, tooling,
+Read http://localhost:8000/llms.txt and follow its linked specification and
+Core files. Inspect this repository, its existing instructions and tooling,
 tests, CI, and working tree. Reconcile AGENTS.md with its real purpose and
-Build/Test/Lint commands, then install only the required Core prompts, skill,
-and rule. Preserve existing work and add conditional recipes only for
-demonstrated needs. Run the repository's checks and the self-verify skill,
-request an independent fresh Paranoid review, and run
-node /path/to/agentrig/validate.mjs .; fix every reported error. Show the
-diff and observed results. Get human approval for low-reversibility actions.
+Build/Test/Lint commands, then copy the required Core prompts, skill, and
+rule from the index. Preserve existing work and add optional recipes only
+for demonstrated needs. Run the repository's checks and self-verify, request
+a fresh independent Paranoid review, then download the linked validator to
+a temporary file and run it with Node.js against this repository. Fix every
+reported error; show the diff and observed results. Ask before irreversible
+actions. Do not clone or install AgentRig.
 ```
 
-You can also run validation directly, without a package install or model:
-
-```sh
-node /path/to/agentrig/validate.mjs /path/to/target
-```
+Remote agents cannot access your localhost; give them a reachable URL such
+as the deployed site's `llms.txt` instead. For a pinned, reproducible snapshot,
+use direct raw URLs for the specification, assets, and validator from one
+existing Git tag or commit rather than a moving documentation site.
 
 Migrating from the former CLI? See [MIGRATION.md](MIGRATION.md). License: [MIT](LICENSE).
 
-To build the site locally: `npm ci && npm run docs:build`. The full specification
-and migration pages are generated from the root Markdown files, not edited in
-`docs/`.
+Site maintainers can run `npm ci && npm run docs:build`, then serve `site/` at
+port 8000 (`npm run docs:preview` if no server is already listening). The
+specification, migration pages, and published Core files are generated from
+the root source, not edited in `docs/` or `site/`.

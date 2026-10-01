@@ -68,13 +68,14 @@ state.
 
 ## Bootstrap a target repository
 
-1. **Choose one source revision.** Use a local checkout containing this document, its linked
-   `.agents/` assets, and `validate.mjs` at the *same* Git ref. `main` provides the latest
-   guidance; for reproducibility, pin an existing released tag or commit SHA. For direct
-   downloads, use the same ref in every raw URL, for example
-   `https://raw.githubusercontent.com/doidor/agentrig/main/AGENT-RIG.md` and the corresponding
-   `/main/.agents/...` and `/main/validate.mjs` paths. Substitute an existing tag or commit for
-   `main` throughout to pin a snapshot; no future tag is assumed to exist.
+1. **Choose one entrypoint.** Give your agent this docsite's `llms.txt` URL, which links the full
+   specification, four verbatim Core assets, and the static validator from the same site build.
+   For a local agent using a preview on port 8000, use
+   `http://localhost:8000/llms.txt`; remote agents need a reachable URL such as
+   `https://tudorpopa.com/agentrig/llms.txt`. No repository checkout is required. For a
+   reproducible pinned snapshot instead of a moving site, fetch this specification and its
+   assets from the **same existing Git tag or commit** via raw URLs; do not assume a new tag
+   already exists.
 2. **Investigate before writing.** Read the target's existing instructions, README, manifests,
    CI, build/test/lint configuration, relevant source and tests, and working-tree state. Identify
    the actual purpose, commands, conventions, and risks. Do not replace local work blindly.
@@ -83,17 +84,18 @@ state.
    conventions and link `.agents/rules/engineering-principles.md`. If any file already exists,
    compare and merge the two intents rather than overwriting it.
 4. **Install only the Core assets in the table.** Copy the two agent prompts, the self-verify
-   skill, and the engineering-principles rule from the chosen source revision into their exact
-   target paths. Preserve the Paranoid body exactly. Add optional native skills/rules only when
-   the repository has a concrete need; check their frontmatter too.
+   skill, and the engineering-principles rule from links in the same `llms.txt` index (or the
+   same pinned Git ref) into their exact target paths. Preserve the Paranoid body exactly.
+   Add optional native skills/rules only when the repository has a concrete need; check their
+   frontmatter too.
 5. **Exercise the harness.** Run the target's Test command and any available Build/Lint commands,
    apply the self-verify skill, and invoke Paranoid independently on a real change. If a command
    fails, surface the failure and fix it rather than claiming success.
-6. **Validate structure.** Run
-   `node /path/to/agentrig/validate.mjs /path/to/target` using the validator from the same source
-   revision. Fix each reported error and rerun until it exits zero. The validator uses Node.js
-   only, no package install or model access. It cannot prove that an agent actually obeys the
-   principles or that a code change is correct.
+6. **Validate structure.** Download the validator linked in that index to a temporary file,
+   then run `node /path/to/downloaded/validate.mjs /path/to/target`. Fix each reported error
+   and rerun until it exits zero. The validator uses Node.js only, no package install or
+   model access. It cannot prove that an agent actually obeys the principles or that a code
+   change is correct.
 
 ## Conditional recipes (not Core requirements)
 
@@ -137,10 +139,11 @@ behavior or security.
 
 ## Upgrade without a migration engine
 
-Choose a released tag or commit for a pinned upgrade, or `main` for the latest guidance. Read that
-revision of this specification **and** its native assets together, compare them to the target's
-instructions and customizations, and reconcile each difference intentionally. Run the target's
-checks and `validate.mjs` from the chosen revision. Review proposed deletions and other
+Revisit one docsite `llms.txt` index for the latest guidance, or use raw URLs at one released
+tag or commit for a pinned upgrade. Read the specification **and** linked native assets together,
+compare them to the target's instructions and customizations, and reconcile each difference
+intentionally. Run the target's checks and the validator from the same source. Review proposed
+deletions and other
 low-reversibility changes with a human; no manifest, recorded ownership state, automatic
 overwrite, or automatic target deletion is involved. See [MIGRATION.md](MIGRATION.md) when moving
 from the former npm CLI.

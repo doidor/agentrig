@@ -214,9 +214,10 @@
       display: flex;
       align-items: center;
       gap: 0.6rem;
+      text-decoration: none;
     }
     .site-install:before {
-      content: "$";
+      content: "→";
       color: var(--ar-accent);
       font-weight: 700;
       flex-shrink: 0;
@@ -421,10 +422,10 @@
       <h1>{{ title }}</h1>
       <p class="site-hero-tagline">{{ description }}</p>
       <div class="site-hero-ctas">
-        <a class="site-cta-primary" href="./getting-started.html">Get started →</a>
-        <a class="site-cta-secondary" href="./principles.html">Read the spec</a>
+        <a class="site-cta-primary" href="./llms.txt">Read llms.txt →</a>
+        <a class="site-cta-secondary" href="./getting-started.html">Get started</a>
       </div>
-      <div class="site-install" role="text" aria-label="Clone the specification">git clone https://github.com/doidor/agentrig.git</div>
+      <a class="site-install" href="./llms.txt" aria-label="Agent-readable entrypoint">Point your agent at this site's llms.txt</a>
     </div>
   </section>
 

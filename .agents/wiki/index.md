@@ -16,6 +16,10 @@ here.
 
 ## Index
 _Add a one-line link per entry as you create it, newest first._
+- [docsite-asset-triggers](./docsite-asset-triggers.md) — include every published Core source
+  in Docs workflow triggers to prevent stale site assets.
+- [docsite-core-links](./docsite-core-links.md) — changing documentation link mapping requires
+  validating both the new URL shape and its published target.
 - [markbook-template-comment](./markbook-template-comment.md) — exclude preserved layout
   comments when checking rendered template slots.
 - [pages-pr-permissions](./pages-pr-permissions.md) — isolate Pages/OIDC write access from
