@@ -7,4 +7,5 @@ export default defineConfig({
   themeColor: "#0a1228",
   contentDir: "docs",
   outDir: "site",
+  layoutsDir: "layouts",
 });

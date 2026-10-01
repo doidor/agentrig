@@ -23,7 +23,8 @@ docs-only Markbook build mirrors the specification at https://tudorpopa.com/agen
 - Edit the native files in `.agents/` directly. Do not autogenerate or commit vendor-specific
   instruction copies or keep a second template/dogfood copy of an asset.
 - Edit `AGENT-RIG.md` and `MIGRATION.md` as the canonical text; the docs build regenerates the
-  corresponding ignored site pages. Keep the authored homepage and quickstart brief.
+  corresponding ignored site pages. Keep the authored homepage and quickstart brief. Preserve
+  the original homepage design in `layouts/landing.html` when updating its copy or navigation.
 - Run the commands above and report observed results before handing work to an independent
   reviewer. Log newly discovered gotchas in `.agents/wiki/` when they arise.
 - Never approve your own work, including work authored under a shared agent identity. Seek
