@@ -16,7 +16,8 @@ order: 0
   <h2>One document, tailored to your repository</h2>
   <p class="site-section-lede">
     Point an agent at this site's <a href="./llms.txt">llms.txt</a>.
-    It links the full specification and exact Core files from one site build, so
+    It links the full specification, exact Core files, and optional skills from
+    one site build, so
     the agent can inspect your repository and add only what makes sense there.
   </p>
   <div class="site-hero-spotlight">
@@ -35,9 +36,9 @@ order: 0
   <div class="site-feature-grid">
     <div class="site-feature">
       <span class="site-feature-icon" aria-hidden="true">&#x1F9ED;</span>
-      <h3>Practical engineering principles</h3>
-      <p>KISS, DRY, fail fast, and least surprise guide every change without
-      adding another framework to your repository.</p>
+      <h3>Practical rules</h3>
+      <p>KISS, DRY, fail fast, and least surprise travel with security,
+      code-review, and no-debug-logging guidance without another framework.</p>
     </div>
     <div class="site-feature">
       <span class="site-feature-icon" aria-hidden="true">&#x1F6E1;</span>

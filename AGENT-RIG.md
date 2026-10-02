@@ -1,6 +1,6 @@
 # AgentRig: document-first harness specification
 
-**Specification version:** 1.0 (document-first profile; no release tag implied).
+**Specification version:** 2.0 (four general rules are required; no release tag implied).
 
 AgentRig is a specification, directly copyable native assets, and a small static validator. An
 agent can install a repository-local harness by reading this document and the linked assets; no
@@ -47,6 +47,20 @@ Install these paths in the target repository (the linked files are the **source*
 | `.agents/agents/paranoid.md` | Copy the [Paranoid prompt](.agents/agents/paranoid.md) verbatim, including its final newline. This file contains only the frozen system-prompt body; invocation metadata stays here, not in the prompt. |
 | `.agents/skills/self-verify/SKILL.md` | Copy the [self-verify skill](.agents/skills/self-verify/SKILL.md); use it before handoff, including the baseline and after evidence from the target's own commands. |
 | `.agents/rules/engineering-principles.md` | Copy the [engineering-principles rule](.agents/rules/engineering-principles.md). It has actionable sections named KISS, DRY, Fail fast, and Least surprise. |
+| `.agents/rules/security.md` | Copy the [security rule](.agents/rules/security.md) for input boundaries, secrets, and least privilege. |
+| `.agents/rules/code-review.md` | Copy the [code-review rule](.agents/rules/code-review.md) for consequential, evidence-backed findings and independent approval. |
+| `.agents/rules/no-debug-logging.md` | Copy the [no-debug-logging rule](.agents/rules/no-debug-logging.md) to keep temporary diagnostics out of changes. |
+
+The four general rules above are always part of Core. The same `llms.txt` index also offers
+four **optional** procedural skills; choose them only when the repository has the matching
+workflow:
+
+| When needed | Available skill |
+| --- | --- |
+| CI fails | [fix-ci](.agents/skills/fix-ci/SKILL.md) |
+| PR review feedback needs addressing | [address-review-comments](.agents/skills/address-review-comments/SKILL.md) |
+| An authorized branch needs conflict resolution | [resolve-conflicts](.agents/skills/resolve-conflicts/SKILL.md) |
+| A recurring gotcha needs recording or reporting | [log-gotcha](.agents/skills/log-gotcha/SKILL.md) |
 
 Every installed skill, including optional ones, needs `description` and `allowed-tools` in its
 frontmatter. Every installed rule needs `globs`, `description`, and `priority` in its frontmatter.
@@ -69,11 +83,11 @@ state.
 ## Bootstrap a target repository
 
 1. **Choose one entrypoint.** Give your agent
-   `https://tudorpopa.com/agentrig/llms.txt`, which links the full specification, four
-   verbatim Core assets, and the static validator from the same site build. For an
-   unpublished local preview, use that preview's `llms.txt` URL instead; the agent must be
-   able to reach it. No repository checkout is required. For a reproducible pinned
-   snapshot instead of a moving site, fetch this specification and its
+   `https://tudorpopa.com/agentrig/llms.txt`, which links the full specification, seven
+   verbatim Core Markdown assets, the optional skills, and the static validator from the same
+   site build. For an unpublished local preview, use that preview's `llms.txt` URL instead;
+   the agent must be able to reach it. No repository checkout is required. For a reproducible
+   pinned snapshot instead of a moving site, fetch this specification and its
    assets from the **same existing Git tag or commit** via raw URLs; do not assume a new tag
    already exists.
 2. **Investigate before writing.** Read the target's existing instructions, README, manifests,
@@ -83,11 +97,10 @@ state.
    truthful Build/Test/Lint entries and a runnable Test command. Record repository-specific
    conventions and link `.agents/rules/engineering-principles.md`. If any file already exists,
    compare and merge the two intents rather than overwriting it.
-4. **Install only the Core assets in the table.** Copy the two agent prompts, the self-verify
-   skill, and the engineering-principles rule from links in the same `llms.txt` index (or the
+4. **Install the Core assets in the table.** Copy the two agent prompts, the self-verify
+   skill, and all four general rules from links in the same `llms.txt` index (or the
    same pinned Git ref) into their exact target paths. Preserve the Paranoid body exactly.
-   Add optional native skills/rules only when the repository has a concrete need; check their
-   frontmatter too.
+   Add an optional procedural skill only for a concrete need; check its frontmatter too.
 5. **Exercise the harness.** Run the target's Test command and any available Build/Lint commands,
    apply the self-verify skill, and invoke Paranoid independently on a real change. If a command
    fails, surface the failure and fix it rather than claiming success.
@@ -127,8 +140,9 @@ actionable error and a nonzero exit status:
   evidence and verification, confirmed versus unverified findings, and final scope/checks.
 - [ ] The core self-verify skill exists; **every** installed skill has `description` and
   `allowed-tools` frontmatter.
-- [ ] The engineering-principles rule exists with the four named, actionable sections; **every**
-  installed rule has `globs`, `description`, and `priority` frontmatter.
+- [ ] All four general rules exist with nonempty instructions and valid `globs`, `description`,
+  and `priority` frontmatter; the engineering rule has the four named, actionable sections.
+  **Every** additional installed rule meets the same frontmatter contract.
 - [ ] No unresolved template tokens remain in the installed harness.
 
 Source integrity is separate from target conformance: AgentRig's own tests compare its native

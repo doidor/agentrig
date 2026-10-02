@@ -16,6 +16,8 @@ here.
 
 ## Index
 _Add a one-line link per entry as you create it, newest first._
+- [optional-assets-hidden-from-llms](./optional-assets-hidden-from-llms.md) — publish the
+  retained library so an agent following one URL can choose optional assets.
 - [markbook-preview-port](./markbook-preview-port.md) — Markbook 0.6 preview binds
   `dev.port + 1000`, so check the actual listener.
 - [preview-server-lifecycle](./preview-server-lifecycle.md) — a successful docs build does not
