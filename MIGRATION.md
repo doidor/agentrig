@@ -7,6 +7,16 @@ no new installer, CLI, npm runtime, manifest, or automatic migration. Your exist
 are **not** deleted or changed by this repository: review any removals or replacements yourself,
 especially generated files used by agent hosts.
 
+## From Core 1.0 to Core 2.0
+
+Core 2.0 adds three default rules: `security.md`, `code-review.md`, and
+`no-debug-logging.md`, alongside the existing engineering-principles rule.
+In a repository already using Core 1.0, follow the updated `llms.txt` index,
+copy those three rules into `.agents/rules/` without overwriting local edits,
+and rerun the downloaded validator and your project checks. The additional
+operational skills are published in the index but remain optional; select them
+only for workflows the repository actually uses.
+
 | Former command or surface | Document-first workflow |
 | --- | --- |
 | `agentrig init [path]` | Point an agent at the docsite's `llms.txt`; it inspects the target, writes/reconciles its `AGENTS.md`, and copies only the Core files linked there. |

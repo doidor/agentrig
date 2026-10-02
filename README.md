@@ -2,7 +2,7 @@
 
 AgentRig is a **document-first specification** for a small, repository-local coding-agent
 harness. The [normative specification and bootstrap procedure](AGENT-RIG.md) define its Core
-profile; the linked `.agents/` prompts, skill, and rule are directly copyable. A dependency-free
+profile; the linked `.agents/` prompts, skill, and four general rules are directly copyable. A dependency-free
 [`validate.mjs`](validate.mjs) checks the installed structure. There is no AgentRig installer, npm
 CLI, model runtime, or automatic migration.
 
@@ -15,8 +15,9 @@ the site's [plain-text index](https://tudorpopa.com/agentrig/llms.txt).
 
 Give your agent the documentation site's
 [`llms.txt`](https://tudorpopa.com/agentrig/llms.txt) URL. The index links
-the full specification, byte-for-byte Core prompts, skill, rule, and validator
-from the same build. The user does not clone AgentRig or install a package.
+the full specification, byte-for-byte Core prompts, self-verify skill, four
+general rules, optional procedural skills, and validator from the same build.
+The user does not clone AgentRig or install a package.
 
 Paste this into an agent working in the target repository:
 

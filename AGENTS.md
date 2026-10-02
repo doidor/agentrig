@@ -25,9 +25,9 @@ docs-only Markbook build mirrors the specification at https://tudorpopa.com/agen
 - Edit `AGENT-RIG.md` and `MIGRATION.md` as the canonical text; the docs build regenerates the
   corresponding ignored site pages. Keep the authored homepage and quickstart brief. Preserve
   the original homepage design in `layouts/landing.html` when updating its copy or navigation.
-- The docs build publishes exact Core-file copies and the validator under `site/core/` and links
-  them from `site/llms.txt`; edit the canonical files, never the generated output. Keep the Docs
-  workflow path filters in sync with every source file copied into the site.
+- The docs build publishes the full retained skills/rules catalog, Core prompts, and validator
+  under `site/core/` and links them from `site/llms.txt`; edit canonical files, never generated
+  output. Keep Docs workflow path filters and output tests in sync with every published source.
 - Run the commands above and report observed results before handing work to an independent
   reviewer. Log newly discovered gotchas in `.agents/wiki/` when they arise.
 - Never approve your own work, including work authored under a shared agent identity. Seek

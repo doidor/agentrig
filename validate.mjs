@@ -337,12 +337,18 @@ function validate(repo) {
   }
 
   const rulePath = ".agents/rules/engineering-principles.md";
-  const rulePaths = new Set([rulePath]);
+  const requiredRules = [
+    rulePath,
+    ".agents/rules/security.md",
+    ".agents/rules/code-review.md",
+    ".agents/rules/no-debug-logging.md",
+  ];
+  const rulePaths = new Set(requiredRules);
   for (const path of markdownFiles(repo, ".agents/rules", errors)) {
     if (basename(path) !== "README.md") rulePaths.add(path);
   }
   for (const path of rulePaths) {
-    const markdown = read(path, path === rulePath);
+    const markdown = read(path, requiredRules.includes(path));
     if (markdown === null) continue;
     const parsed = frontmatter(markdown, path, errors);
     if (parsed) {
@@ -353,6 +359,9 @@ function validate(repo) {
       if (!globs?.every(validGlob)) errors.push(`${path}: frontmatter needs valid, nonempty relative globs.`);
       if (!/^[1-9]\d*$/.test(withoutYamlComment(parsed.fields.get("priority")?.value ?? ""))) {
         errors.push(`${path}: frontmatter needs a positive integer priority.`);
+      }
+      if (requiredRules.includes(path) && !parsed.body.replace(/<!--[\s\S]*?-->/g, "").trim()) {
+        errors.push(`${path}: add rule instructions after the frontmatter.`);
       }
     }
     if (path === rulePath) {

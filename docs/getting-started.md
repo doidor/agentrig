@@ -14,7 +14,8 @@ Read https://tudorpopa.com/agentrig/llms.txt, tailor its Core harness to this re
 
 The published [llms.txt](./llms.txt) links the full
 [specification](./principles.html), exact Builder and Paranoid prompts, the
-self-verify skill, engineering rule, and standalone validator. No AgentRig
+self-verify skill, four required general rules, optional procedural skills,
+and standalone validator. No AgentRig
 checkout or package is needed. On a local preview, substitute the URL of
 that preview's `llms.txt` if you want to use its unpublished content; the
 agent must be able to reach whichever URL you give it. The validator checks

@@ -16,6 +16,9 @@ const CORE_FILES = [
   ".agents/agents/paranoid.md",
   ".agents/skills/self-verify/SKILL.md",
   ".agents/rules/engineering-principles.md",
+  ".agents/rules/security.md",
+  ".agents/rules/code-review.md",
+  ".agents/rules/no-debug-logging.md",
 ];
 const PARANOID = `You are Paranoid, an independent code-review agent. Your job is to find consequential defects in the proposed change that a principles or conventions review might miss.
 
@@ -38,6 +41,11 @@ const PRINCIPLES = {
   "Least surprise": "Preserve established defaults and contracts; document intentional behavior changes for affected callers.",
 };
 const RULE = ".agents/rules/engineering-principles.md";
+const OTHER_CORE_RULES = [
+  ".agents/rules/security.md",
+  ".agents/rules/code-review.md",
+  ".agents/rules/no-debug-logging.md",
+];
 const SKILL = ".agents/skills/self-verify/SKILL.md";
 const AGENTS = `## Purpose
 Keep this repository's agent instructions minimal and easy to inspect.
@@ -75,6 +83,9 @@ function target(t) {
   write(dir, ".agents/agents/paranoid.md", PARANOID);
   write(dir, SKILL, "---\ndescription: Verify a change before handoff.\nallowed-tools: Bash Read\n---\n# Self-verify\nRun tests and report the observed results.\n");
   write(dir, RULE, principlesRule());
+  for (const path of OTHER_CORE_RULES) {
+    copyFileSync(join(ROOT, path), join(dir, path));
+  }
   return dir;
 }
 
@@ -130,6 +141,15 @@ for (const path of CORE_FILES) {
     const dir = target(t);
     unlinkSync(join(dir, path));
     rejects(dir, path, /missing; create this required Core-profile file/i);
+  });
+}
+
+for (const path of OTHER_CORE_RULES) {
+  test(`empty required rule ${path} is rejected`, (t) => {
+    const dir = target(t);
+    const text = readFileSync(join(dir, path), "utf8");
+    write(dir, path, text.slice(0, text.indexOf("\n---", 4) + 4) + "\n");
+    rejects(dir, path, /add rule instructions after the frontmatter/);
   });
 }
 
